@@ -79,7 +79,7 @@ export class BillingService {
         visitId,
         totalAmount,
         paidAmount: 0,
-        status: InvoiceStatus.UNPAID,
+        status: InvoiceStatus.ISSUED,
         items: {
           create: invoiceItems,
         },
@@ -122,8 +122,8 @@ export class BillingService {
         throw new BadRequestException('Invoice not found');
       }
 
-      if (invoice.status === InvoiceStatus.CANCELLED) {
-        throw new BadRequestException('Cannot pay cancelled invoice');
+      if (invoice.status === InvoiceStatus.VOID) {
+        throw new BadRequestException('Cannot pay voided invoice');
       }
 
       if (invoice.status === InvoiceStatus.PAID) {

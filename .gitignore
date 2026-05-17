@@ -7,3 +7,20 @@ build/
 backend/.env
 coverage/
 *.log
+
+# Claude / AI session artifacts
+.claude/
+
+# Legacy clutter files (never committed, kept local only)
+CHECKIN_COMPLETE.md
+CODE_AUDIT_LOG.md
+LOGS_GENERATED.md
+LOGS_INDEX.md
+LOG_FILES_GUIDE.md
+PROGRESS_LOG.md
+PROJECT_CHECKIN_SUMMARY.txt
+PROJECT_SUMMARY.md
+README_LOGS.md
+SPRINT_1_CHECKLIST.md
+STATUS_REPORT.md
+TASK_TRACKING_LOG.md

@@ -7,6 +7,203 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  passwordHash  String
+  fullName      String
+  status        UserStatus    @default(ACTIVE)
+  roleId        String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  examinations  Examination[] @relation("DoctorExaminations")
+  role          Role          @relation(fields: [roleId], references: [id])
+  createdVisits Visit[]       @relation("VisitCreatedBy")
+}
+
+model Patient {
+  id          String    @id @default(uuid())
+  patientCode String    @unique
+  fullName    String
+  dob         DateTime?
+  gender      String?
+  phone       String?
+  citizenId   String?   @unique
+  address     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  visits      Visit[]
+
+  @@index([fullName])
+  @@index([phone])
+}
+
+model Visit {
+  id              String       @id @default(uuid())
+  patientId       String
+  visitDate       DateTime     @db.Date
+  queueNumber     Int
+  reason          String?
+  status          VisitStatus  @default(REGISTERED)
+  createdByUserId String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  examination     Examination?
+  invoice         Invoice?
+  createdByUser   User         @relation("VisitCreatedBy", fields: [createdByUserId], references: [id])
+  patient         Patient      @relation(fields: [patientId], references: [id])
+
+  @@unique([visitDate, queueNumber])
+  @@unique([patientId, visitDate])
+  @@index([visitDate])
+  @@index([status])
+}
+
+model Examination {
+  id            String            @id @default(uuid())
+  visitId       String            @unique
+  doctorUserId  String
+  symptoms      String?
+  clinicalNotes String?
+  conclusion    String?
+  status        ExaminationStatus @default(OPEN)
+  completedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  diagnoses     Diagnosis[]
+  doctor        User              @relation("DoctorExaminations", fields: [doctorUserId], references: [id])
+  visit         Visit             @relation(fields: [visitId], references: [id])
+  prescription  Prescription?
+}
+
+model Disease {
+  id        String      @id @default(uuid())
+  code      String      @unique
+  name      String
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  diagnoses Diagnosis[]
+
+  @@index([isActive])
+}
+
+model Diagnosis {
+  id            String      @id @default(uuid())
+  examinationId String
+  diseaseId     String?
+  name          String
+  isPrimary     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  disease       Disease?    @relation(fields: [diseaseId], references: [id])
+  examination   Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+
+  @@index([examinationId])
+}
+
+model Drug {
+  id                String             @id @default(uuid())
+  name              String             @unique
+  unit              String
+  price             Decimal            @db.Decimal(12, 2)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  prescriptionItems PrescriptionItem[]
+
+  @@index([isActive])
+}
+
+model Prescription {
+  id            String             @id @default(uuid())
+  examinationId String             @unique
+  note          String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  examination   Examination        @relation(fields: [examinationId], references: [id])
+  items         PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  drugId         String
+  quantity       Int
+  dosage         String
+  unitPrice      Decimal      @db.Decimal(12, 2)
+  lineTotal      Decimal      @db.Decimal(12, 2)
+  createdAt      DateTime     @default(now())
+  drug           Drug         @relation(fields: [drugId], references: [id])
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([prescriptionId, drugId])
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  visitId     String        @unique
+  totalAmount Decimal       @db.Decimal(12, 2)
+  paidAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  status      InvoiceStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  visit       Visit         @relation(fields: [visitId], references: [id])
+  items       InvoiceItem[]
+  payments    Payment[]
+
+  @@index([status])
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  lineTotal   Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  invoiceId String
+  amount    Decimal       @db.Decimal(12, 2)
+  method    PaymentMethod
+  note      String?
+  paidAt    DateTime      @default(now())
+  createdAt DateTime      @default(now())
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model RegulationVersion {
+  id          String           @id @default(uuid())
+  isActive    Boolean          @default(false)
+  activatedAt DateTime?
+  note        String?
+  createdAt   DateTime         @default(now())
+  items       RegulationItem[]
+
+  @@index([isActive])
+}
+
+model RegulationItem {
+  id        String            @id @default(uuid())
+  versionId String
+  key       String
+  value     String
+  version   RegulationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, key])
+}
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -14,6 +211,7 @@ enum UserStatus {
 }
 
 enum VisitStatus {
+  REGISTERED
   WAITING
   IN_EXAMINATION
   COMPLETED
@@ -23,198 +221,19 @@ enum VisitStatus {
 enum ExaminationStatus {
   OPEN
   COMPLETED
+  CANCELLED
 }
 
 enum InvoiceStatus {
-  UNPAID
+  DRAFT
+  ISSUED
   PARTIALLY_PAID
   PAID
-  CANCELLED
+  VOID
 }
 
 enum PaymentMethod {
   CASH
   TRANSFER
   CARD
-}
-
-model Role {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-
-  users User[]
-}
-
-model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  passwordHash String
-  fullName     String
-  status       UserStatus @default(ACTIVE)
-
-  roleId String
-  role   Role   @relation(fields: [roleId], references: [id])
-
-  createdVisits Visit[]       @relation("VisitCreatedBy")
-  examinations  Examination[] @relation("DoctorExaminations")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Patient {
-  id        String    @id @default(uuid())
-  fullName  String
-  dob       DateTime?
-  gender    String?
-  phone     String?
-  citizenId String?   @unique
-  address   String?
-
-  visits Visit[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Visit {
-  id          String      @id @default(uuid())
-  patientId   String
-  patient     Patient     @relation(fields: [patientId], references: [id])
-  visitDate   DateTime    @db.Date
-  queueNumber Int
-  reason      String?
-  status      VisitStatus @default(WAITING)
-
-  createdByUserId String
-  createdByUser   User   @relation("VisitCreatedBy", fields: [createdByUserId], references: [id])
-
-  examination Examination?
-  invoice     Invoice?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([visitDate, queueNumber])
-  @@index([patientId])
-  @@index([visitDate])
-  @@index([status])
-}
-
-model Examination {
-  id       String @id @default(uuid())
-  visitId  String @unique
-  visit    Visit  @relation(fields: [visitId], references: [id])
-
-  doctorUserId String
-  doctor       User   @relation("DoctorExaminations", fields: [doctorUserId], references: [id])
-
-  symptoms      String?
-  clinicalNotes String?
-  conclusion    String?
-  status        ExaminationStatus @default(OPEN)
-  completedAt   DateTime?
-
-  diagnoses    Diagnosis[]
-  prescription Prescription?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Diagnosis {
-  id            String @id @default(uuid())
-  examinationId String
-  examination   Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
-
-  name      String
-  isPrimary Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  @@index([examinationId])
-}
-
-model Drug {
-  id        String  @id @default(uuid())
-  name      String  @unique
-  unit      String
-  price     Decimal @db.Decimal(12, 2)
-  isActive  Boolean @default(true)
-
-  prescriptionItems PrescriptionItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Prescription {
-  id            String @id @default(uuid())
-  examinationId String @unique
-  examination   Examination @relation(fields: [examinationId], references: [id])
-
-  note  String?
-  items PrescriptionItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model PrescriptionItem {
-  id             String @id @default(uuid())
-  prescriptionId String
-  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
-
-  drugId String
-  drug   Drug   @relation(fields: [drugId], references: [id])
-
-  quantity  Int
-  dosage    String
-  unitPrice Decimal @db.Decimal(12, 2)
-  lineTotal Decimal @db.Decimal(12, 2)
-
-  createdAt DateTime @default(now())
-}
-
-model Invoice {
-  id      String @id @default(uuid())
-  visitId String @unique
-  visit   Visit  @relation(fields: [visitId], references: [id])
-
-  totalAmount Decimal       @db.Decimal(12, 2)
-  paidAmount  Decimal       @default(0) @db.Decimal(12, 2)
-  status      InvoiceStatus @default(UNPAID)
-
-  items    InvoiceItem[]
-  payments Payment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model InvoiceItem {
-  id        String @id @default(uuid())
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  description String
-  quantity    Int
-  unitPrice   Decimal @db.Decimal(12, 2)
-  lineTotal   Decimal @db.Decimal(12, 2)
-
-  createdAt DateTime @default(now())
-}
-
-model Payment {
-  id        String @id @default(uuid())
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  amount Decimal       @db.Decimal(12, 2)
-  method PaymentMethod
-  note   String?
-
-  paidAt    DateTime @default(now())
-  createdAt DateTime @default(now())
 }

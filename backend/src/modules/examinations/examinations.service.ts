@@ -1,9 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ExaminationStatus, VisitStatus } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
-import { SetDiagnosesDto } from './dto/set-diagnoses.dto';
 import { UpdateExaminationDto } from './dto/update-examination.dto';
 
 @Injectable()
@@ -11,84 +14,110 @@ export class ExaminationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findOne(id: string) {
-    return this.prisma.examination.findUniqueOrThrow({
+    const examination = await this.prisma.examination.findUnique({
       where: { id },
       include: {
-        visit: {
-          include: {
-            patient: true,
-          },
-        },
-        diagnoses: true,
+        visit: { include: { patient: true } },
+        diagnoses: { include: { disease: true } },
         prescription: {
-          include: {
-            items: {
-              include: {
-                drug: true,
-              },
-            },
-          },
+          include: { items: { include: { drug: true } } },
         },
       },
     });
+
+    if (!examination) {
+      throw new NotFoundException('Examination not found');
+    }
+
+    return examination;
   }
 
+  // UC-10: Lập / cập nhật phiếu khám (kèm diagnoses)
   async update(id: string, dto: UpdateExaminationDto) {
     const examination = await this.prisma.examination.findUnique({
       where: { id },
     });
 
     if (!examination) {
-      throw new BadRequestException('Examination not found');
+      throw new NotFoundException('Examination not found');
     }
 
-    if (examination.status === ExaminationStatus.COMPLETED) {
-      throw new BadRequestException('Completed examination cannot be edited');
-    }
-
-    return this.prisma.examination.update({
-      where: { id },
-      data: dto,
-    });
-  }
-
-  async setDiagnoses(id: string, dto: SetDiagnosesDto) {
-    const examination = await this.prisma.examination.findUnique({
-      where: { id },
-    });
-
-    if (!examination) {
-      throw new BadRequestException('Examination not found');
-    }
-
-    if (examination.status === ExaminationStatus.COMPLETED) {
-      throw new BadRequestException('Completed examination cannot be edited');
-    }
-
-    const primaryCount = dto.diagnoses.filter((d) => d.isPrimary).length;
-
-    if (primaryCount !== 1) {
+    if (
+      examination.status === ExaminationStatus.COMPLETED ||
+      examination.status === ExaminationStatus.CANCELLED
+    ) {
       throw new BadRequestException(
-        'Exactly one primary diagnosis is required',
+        `Cannot edit examination with status ${examination.status}`,
       );
     }
 
+    // Chuẩn bị snapshot diagnosis nếu request có gửi
+    let diagnosisRows:
+      | { name: string; diseaseId: string; isPrimary: boolean }[]
+      | undefined;
+
+    if (dto.diagnoses !== undefined) {
+      const primaryCount = dto.diagnoses.filter((d) => d.isPrimary).length;
+
+      if (primaryCount > 1) {
+        throw new BadRequestException(
+          'At most one primary diagnosis is allowed',
+        );
+      }
+
+      const diseaseIds = [...new Set(dto.diagnoses.map((d) => d.diseaseId))];
+
+      if (diseaseIds.length > 0) {
+        const diseases = await this.prisma.disease.findMany({
+          where: { id: { in: diseaseIds }, isActive: true },
+        });
+
+        if (diseases.length !== diseaseIds.length) {
+          throw new BadRequestException(
+            'Some diseases are invalid or inactive',
+          );
+        }
+
+        const diseaseMap = new Map(diseases.map((d) => [d.id, d]));
+
+        diagnosisRows = dto.diagnoses.map((d) => ({
+          name: diseaseMap.get(d.diseaseId)!.name, // snapshot tên bệnh
+          diseaseId: d.diseaseId,
+          isPrimary: d.isPrimary ?? false,
+        }));
+      } else {
+        diagnosisRows = [];
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
-      await tx.diagnosis.deleteMany({
-        where: { examinationId: id },
+      await tx.examination.update({
+        where: { id },
+        data: {
+          symptoms: dto.symptoms,
+          clinicalNotes: dto.clinicalNotes,
+          conclusion: dto.conclusion,
+        },
       });
 
-      await tx.diagnosis.createMany({
-        data: dto.diagnoses.map((diagnosis) => ({
-          examinationId: id,
-          name: diagnosis.name,
-          isPrimary: diagnosis.isPrimary,
-        })),
-      });
+      if (diagnosisRows !== undefined) {
+        await tx.diagnosis.deleteMany({ where: { examinationId: id } });
+
+        if (diagnosisRows.length > 0) {
+          await tx.diagnosis.createMany({
+            data: diagnosisRows.map((row) => ({
+              examinationId: id,
+              name: row.name,
+              diseaseId: row.diseaseId,
+              isPrimary: row.isPrimary,
+            })),
+          });
+        }
+      }
 
       return tx.examination.findUniqueOrThrow({
         where: { id },
-        include: { diagnoses: true },
+        include: { diagnoses: { include: { disease: true } } },
       });
     });
   }
@@ -100,7 +129,7 @@ export class ExaminationsService {
     });
 
     if (!examination) {
-      throw new BadRequestException('Examination not found');
+      throw new NotFoundException('Examination not found');
     }
 
     if (examination.status === ExaminationStatus.COMPLETED) {
@@ -121,13 +150,10 @@ export class ExaminationsService {
       const drugIds = dto.items.map((item) => item.drugId);
 
       const drugs = await tx.drug.findMany({
-        where: {
-          id: { in: drugIds },
-          isActive: true,
-        },
+        where: { id: { in: drugIds }, isActive: true },
       });
 
-      if (drugs.length !== drugIds.length) {
+      if (drugs.length !== new Set(drugIds).size) {
         throw new BadRequestException('Some drugs are invalid or inactive');
       }
 
@@ -159,11 +185,7 @@ export class ExaminationsService {
           },
         },
         include: {
-          items: {
-            include: {
-              drug: true,
-            },
-          },
+          items: { include: { drug: true } },
         },
       });
     });
@@ -173,17 +195,21 @@ export class ExaminationsService {
     return this.prisma.$transaction(async (tx) => {
       const examination = await tx.examination.findUnique({
         where: { id },
-        include: {
-          diagnoses: true,
-        },
+        include: { diagnoses: true },
       });
 
       if (!examination) {
-        throw new BadRequestException('Examination not found');
+        throw new NotFoundException('Examination not found');
       }
 
       if (examination.status === ExaminationStatus.COMPLETED) {
         return examination;
+      }
+
+      if (examination.status === ExaminationStatus.CANCELLED) {
+        throw new BadRequestException(
+          'Cannot complete a cancelled examination',
+        );
       }
 
       if (!examination.symptoms || !examination.conclusion) {
@@ -210,19 +236,13 @@ export class ExaminationsService {
         },
         include: {
           diagnoses: true,
-          prescription: {
-            include: {
-              items: true,
-            },
-          },
+          prescription: { include: { items: true } },
         },
       });
 
       await tx.visit.update({
         where: { id: examination.visitId },
-        data: {
-          status: VisitStatus.COMPLETED,
-        },
+        data: { status: VisitStatus.COMPLETED },
       });
 
       return completed;
