@@ -4,89 +4,154 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  // ─── Roles ────────────────────────────────────────────────────────────────
-  const [adminRole, doctorRole, receptionistRole, cashierRole, managerRole] =
+  // ─── Step 1: Migrate existing roles (email-based schema → code-based) ──────
+  // Nếu roles cũ có name nhưng chưa có code, gán code = name
+  const legacyRoleNames = ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'CASHIER', 'MANAGER'];
+  for (const roleName of legacyRoleNames) {
+    await prisma.role.updateMany({
+      where: { name: roleName, code: null },
+      data: { code: roleName },
+    });
+  }
+
+  // ─── Step 2: Upsert roles by code ────────────────────────────────────────
+  const roleDefinitions = [
+    { code: 'ADMIN', name: 'Quản trị viên', description: 'Toàn quyền hệ thống' },
+    { code: 'DOCTOR', name: 'Bác sĩ', description: 'Thực hiện khám bệnh' },
+    { code: 'RECEPTIONIST', name: 'Lễ tân', description: 'Tiếp nhận bệnh nhân' },
+    { code: 'CASHIER', name: 'Thu ngân', description: 'Xử lý thanh toán' },
+    { code: 'MANAGER', name: 'Quản lý', description: 'Xem báo cáo và thống kê' },
+  ];
+
+  const roles: Record<string, { id: string }> = {};
+  for (const rd of roleDefinitions) {
+    roles[rd.code] = await prisma.role.upsert({
+      where: { code: rd.code },
+      update: { name: rd.name, description: rd.description },
+      create: rd,
+    });
+  }
+
+  // ─── Step 3: Migrate existing users (email-based → username-based) ────────
+  const legacyUserMap = [
+    { email: 'admin@clinic.local', username: 'admin' },
+    { email: 'doctor@clinic.local', username: 'doctor' },
+    { email: 'receptionist@clinic.local', username: 'receptionist' },
+    { email: 'cashier@clinic.local', username: 'cashier' },
+    { email: 'manager@clinic.local', username: 'manager' },
+  ];
+  for (const { email, username } of legacyUserMap) {
+    await prisma.user.updateMany({
+      where: { email, username: null },
+      data: { username },
+    });
+  }
+
+  // ─── Step 4: Upsert seed users by username ────────────────────────────────
+  const [adminUser, doctorUser, receptionistUser, cashierUser, managerUser] =
     await Promise.all([
-      prisma.role.upsert({
-        where: { name: 'ADMIN' },
+      prisma.user.upsert({
+        where: { username: 'admin' },
         update: {},
-        create: { name: 'ADMIN' },
+        create: {
+          username: 'admin',
+          fullName: 'System Admin',
+          email: 'admin@clinic.local',
+          passwordHash: await bcrypt.hash('Admin@123', 10),
+        },
       }),
-      prisma.role.upsert({
-        where: { name: 'DOCTOR' },
+      prisma.user.upsert({
+        where: { username: 'doctor' },
         update: {},
-        create: { name: 'DOCTOR' },
+        create: {
+          username: 'doctor',
+          fullName: 'Bác sĩ Demo',
+          email: 'doctor@clinic.local',
+          passwordHash: await bcrypt.hash('Doctor@123456', 10),
+        },
       }),
-      prisma.role.upsert({
-        where: { name: 'RECEPTIONIST' },
+      prisma.user.upsert({
+        where: { username: 'receptionist' },
         update: {},
-        create: { name: 'RECEPTIONIST' },
+        create: {
+          username: 'receptionist',
+          fullName: 'Lễ tân Demo',
+          email: 'receptionist@clinic.local',
+          passwordHash: await bcrypt.hash('Reception@123456', 10),
+        },
       }),
-      prisma.role.upsert({
-        where: { name: 'CASHIER' },
+      prisma.user.upsert({
+        where: { username: 'cashier' },
         update: {},
-        create: { name: 'CASHIER' },
+        create: {
+          username: 'cashier',
+          fullName: 'Thu ngân Demo',
+          email: 'cashier@clinic.local',
+          passwordHash: await bcrypt.hash('Cashier@123456', 10),
+        },
       }),
-      prisma.role.upsert({
-        where: { name: 'MANAGER' },
+      prisma.user.upsert({
+        where: { username: 'manager' },
         update: {},
-        create: { name: 'MANAGER' },
+        create: {
+          username: 'manager',
+          fullName: 'Quản lý Demo',
+          email: 'manager@clinic.local',
+          passwordHash: await bcrypt.hash('Manager@123456', 10),
+        },
       }),
     ]);
 
-  // ─── Users ────────────────────────────────────────────────────────────────
-  await Promise.all([
-    prisma.user.upsert({
-      where: { email: 'admin@clinic.local' },
+  // ─── Step 5: Assign roles to seed users (idempotent) ─────────────────────
+  const userRoleAssignments = [
+    { user: adminUser, roleCode: 'ADMIN' },
+    { user: doctorUser, roleCode: 'DOCTOR' },
+    { user: receptionistUser, roleCode: 'RECEPTIONIST' },
+    { user: cashierUser, roleCode: 'CASHIER' },
+    { user: managerUser, roleCode: 'MANAGER' },
+  ];
+
+  for (const { user, roleCode } of userRoleAssignments) {
+    const roleId = roles[roleCode].id;
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: user.id, roleId } },
       update: {},
-      create: {
-        email: 'admin@clinic.local',
-        fullName: 'System Admin',
-        passwordHash: await bcrypt.hash('Admin@123456', 10),
-        roleId: adminRole.id,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'doctor@clinic.local' },
-      update: {},
-      create: {
-        email: 'doctor@clinic.local',
-        fullName: 'Bác sĩ Demo',
-        passwordHash: await bcrypt.hash('Doctor@123456', 10),
-        roleId: doctorRole.id,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'receptionist@clinic.local' },
-      update: {},
-      create: {
-        email: 'receptionist@clinic.local',
-        fullName: 'Lễ tân Demo',
-        passwordHash: await bcrypt.hash('Reception@123456', 10),
-        roleId: receptionistRole.id,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'cashier@clinic.local' },
-      update: {},
-      create: {
-        email: 'cashier@clinic.local',
-        fullName: 'Thu ngân Demo',
-        passwordHash: await bcrypt.hash('Cashier@123456', 10),
-        roleId: cashierRole.id,
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'manager@clinic.local' },
-      update: {},
-      create: {
-        email: 'manager@clinic.local',
-        fullName: 'Quản lý Demo',
-        passwordHash: await bcrypt.hash('Manager@123456', 10),
-        roleId: managerRole.id,
-      },
-    }),
-  ]);
+      create: { userId: user.id, roleId },
+    });
+  }
+
+  // ─── Step 6: Upsert permissions ───────────────────────────────────────────
+  const permissionDefinitions = [
+    { code: 'USER_READ', name: 'Xem danh sách người dùng' },
+    { code: 'USER_CREATE', name: 'Tạo người dùng' },
+    { code: 'USER_UPDATE', name: 'Cập nhật thông tin người dùng' },
+    { code: 'USER_LOCK', name: 'Khóa/mở khóa người dùng' },
+    { code: 'USER_ASSIGN_ROLE', name: 'Gán vai trò cho người dùng' },
+    { code: 'RBAC_ROLE_READ', name: 'Xem danh sách vai trò' },
+    { code: 'RBAC_PERMISSION_READ', name: 'Xem danh sách quyền' },
+    { code: 'RBAC_ROLE_UPDATE_PERMISSION', name: 'Cập nhật quyền của vai trò' },
+    { code: 'AUTH_ME', name: 'Xem thông tin tài khoản hiện tại' },
+    { code: 'AUDIT_READ', name: 'Xem nhật ký hệ thống' },
+  ];
+
+  const perms: Record<string, { id: string }> = {};
+  for (const pd of permissionDefinitions) {
+    perms[pd.code] = await prisma.permission.upsert({
+      where: { code: pd.code },
+      update: { name: pd.name },
+      create: pd,
+    });
+  }
+
+  // ─── Step 7: Assign all permissions to ADMIN role (replace, idempotent) ───
+  const adminRoleId = roles['ADMIN'].id;
+  await prisma.rolePermission.deleteMany({ where: { roleId: adminRoleId } });
+  await prisma.rolePermission.createMany({
+    data: Object.values(perms).map((p) => ({
+      roleId: adminRoleId,
+      permissionId: p.id,
+    })),
+  });
 
   // ─── Drug catalog ─────────────────────────────────────────────────────────
   const drugs = [
@@ -122,36 +187,40 @@ async function main() {
   }
 
   // ─── Regulation (ver1 defaults) ───────────────────────────────────────────
-  await prisma.regulationVersion.updateMany({
+  const hasActiveRegulation = await prisma.regulationVersion.count({
     where: { isActive: true },
-    data: { isActive: false },
   });
 
-  const regulation = await prisma.regulationVersion.create({
-    data: {
-      isActive: true,
-      activatedAt: new Date(),
-      note: 'Quy định khởi tạo mặc định ver1',
-      items: {
-        create: [
-          { key: 'MAX_PATIENTS_PER_DAY', value: '40' },
-          { key: 'CONSULTATION_FEE', value: '150000' },
-        ],
+  if (hasActiveRegulation === 0) {
+    await prisma.regulationVersion.create({
+      data: {
+        isActive: true,
+        activatedAt: new Date(),
+        note: 'Quy định khởi tạo mặc định ver1',
+        items: {
+          create: [
+            { key: 'MAX_PATIENTS_PER_DAY', value: '40' },
+            { key: 'CONSULTATION_FEE', value: '150000' },
+          ],
+        },
       },
-    },
-  });
+    });
+  }
 
   console.log('✓ Seed completed');
   console.log(
     '  Roles:',
-    ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'CASHIER', 'MANAGER'].join(', '),
+    roleDefinitions.map((r) => r.code).join(', '),
   );
   console.log(
-    '  Users: admin, doctor, receptionist, cashier, manager @clinic.local',
+    '  Users: admin (Admin@123), doctor, receptionist, cashier, manager',
+  );
+  console.log(`  Permissions: ${permissionDefinitions.length} items`);
+  console.log(
+    `  Admin permissions: all ${permissionDefinitions.length} assigned`,
   );
   console.log(`  Drugs: ${drugs.length} items`);
   console.log(`  Diseases: ${diseases.length} items`);
-  console.log(`  Regulation version: ${regulation.id} (active)`);
 }
 
 main()
