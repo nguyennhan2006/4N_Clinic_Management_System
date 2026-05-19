@@ -3,8 +3,8 @@ import { Request } from 'express';
 
 export type CurrentUserPayload = {
   sub: string;
-  email: string;
-  role: string;
+  username: string;
+  roles: string[];
 };
 
 export const CurrentUser = createParamDecorator(

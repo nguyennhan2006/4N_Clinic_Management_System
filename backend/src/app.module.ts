@@ -3,11 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
 import { PrismaModule } from './prisma/prisma.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { PatientsModule } from './modules/patients/patients.module';
-import { VisitsModule } from './modules/visits/visits.module';
-import { ExaminationsModule } from './modules/examinations/examinations.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { ExaminationsModule } from './modules/examinations/examinations.module';
+import { PatientsModule } from './modules/patients/patients.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { UsersModule } from './modules/users/users.module';
+import { VisitsModule } from './modules/visits/visits.module';
 
 @Module({
   imports: [
@@ -20,7 +23,10 @@ import { BillingModule } from './modules/billing/billing.module';
       },
     }),
     PrismaModule,
+    AuditModule,
     AuthModule,
+    UsersModule,
+    RbacModule,
     PatientsModule,
     VisitsModule,
     ExaminationsModule,

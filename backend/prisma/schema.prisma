@@ -7,26 +7,101 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Role {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  users     User[]
-}
+// ─── Identity & Access ─────────────────────────────────────────────────────
 
 model User {
   id            String        @id @default(uuid())
-  email         String        @unique
+  username      String?       @unique
   passwordHash  String
   fullName      String
+  email         String?
+  phone         String?
   status        UserStatus    @default(ACTIVE)
-  roleId        String
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+
+  userRoles     UserRole[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]    @relation("AuditLogActor")
   examinations  Examination[] @relation("DoctorExaminations")
-  role          Role          @relation(fields: [roleId], references: [id])
   createdVisits Visit[]       @relation("VisitCreatedBy")
 }
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String?  @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditLogActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
+
+// ─── Clinical ──────────────────────────────────────────────────────────────
 
 model Patient {
   id          String    @id @default(uuid())
@@ -203,6 +278,8 @@ model RegulationItem {
 
   @@unique([versionId, key])
 }
+
+// ─── Enums ─────────────────────────────────────────────────────────────────
 
 enum UserStatus {
   ACTIVE
