@@ -51,7 +51,7 @@ model Visit {
   visitDate       DateTime     @db.Date
   queueNumber     Int
   reason          String?
-  status          VisitStatus  @default(REGISTERED)
+  status          VisitStatus  @default(WAITING)
   createdByUserId String
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -211,6 +211,8 @@ enum UserStatus {
 }
 
 enum VisitStatus {
+  // TODO(phase2): REGISTERED hiện không dùng trong Phase 1 — POST /visits tạo thẳng WAITING.
+  // Giữ lại để tránh breaking migration khi phase 2 cần flow 2 bước (tiếp nhận → chờ khám).
   REGISTERED
   WAITING
   IN_EXAMINATION
