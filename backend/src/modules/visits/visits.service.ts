@@ -143,6 +143,15 @@ export class VisitsService {
 
   // UC-09: Mở lượt khám
   async openExamination(visitId: string, doctorUserId: string) {
+    // Validate doctor active trước transaction (BR-09)
+    const doctor = await this.prisma.user.findUnique({
+      where: { id: doctorUserId },
+    });
+
+    if (!doctor || doctor.status !== 'ACTIVE') {
+      throw new BadRequestException('Doctor account is inactive or not found');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const visit = await tx.visit.findUnique({
         where: { id: visitId },

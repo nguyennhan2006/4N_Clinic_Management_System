@@ -1,15 +1,33 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { InvoiceStatus, VisitStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InvoiceStatus, Prisma, VisitStatus } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { QueryInvoicesDto } from './dto/query-invoices.dto';
 
-const EXAMINATION_FEE = 100000;
+const DEFAULT_CONSULTATION_FEE = 150000;
 
 @Injectable()
 export class BillingService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getConsultationFee(): Promise<number> {
+    const activeVersion = await this.prisma.regulationVersion.findFirst({
+      where: { isActive: true },
+      include: { items: true },
+    });
+    const item = activeVersion?.items.find((i) => i.key === 'CONSULTATION_FEE');
+    const parsed = item ? Number(item.value) : NaN;
+    return Number.isFinite(parsed) && parsed > 0
+      ? parsed
+      : DEFAULT_CONSULTATION_FEE;
+  }
+
+  // UC-14: Lập hóa đơn từ visit đã COMPLETED
   async createInvoiceFromVisit(visitId: string) {
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
@@ -18,13 +36,7 @@ export class BillingService {
         examination: {
           include: {
             prescription: {
-              include: {
-                items: {
-                  include: {
-                    drug: true,
-                  },
-                },
-              },
+              include: { items: { include: { drug: true } } },
             },
           },
         },
@@ -32,7 +44,7 @@ export class BillingService {
     });
 
     if (!visit) {
-      throw new BadRequestException('Visit not found');
+      throw new NotFoundException('Visit not found');
     }
 
     if (visit.status !== VisitStatus.COMPLETED) {
@@ -49,18 +61,23 @@ export class BillingService {
       throw new BadRequestException('Visit has no examination');
     }
 
-    const invoiceItems = [
+    const consultationFee = await this.getConsultationFee();
+
+    const invoiceItems: {
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      lineTotal: number;
+    }[] = [
       {
         description: 'Phí khám bệnh',
         quantity: 1,
-        unitPrice: EXAMINATION_FEE,
-        lineTotal: EXAMINATION_FEE,
+        unitPrice: consultationFee,
+        lineTotal: consultationFee,
       },
     ];
 
-    const prescriptionItems = visit.examination.prescription?.items || [];
-
-    for (const item of prescriptionItems) {
+    for (const item of visit.examination.prescription?.items ?? []) {
       invoiceItems.push({
         description: `Thuốc: ${item.drug.name} - ${item.dosage}`,
         quantity: item.quantity,
@@ -69,45 +86,99 @@ export class BillingService {
       });
     }
 
-    const totalAmount = invoiceItems.reduce(
-      (sum, item) => sum + Number(item.lineTotal),
-      0,
-    );
+    const totalAmount = invoiceItems.reduce((sum, i) => sum + i.lineTotal, 0);
 
-    const invoice = await this.prisma.invoice.create({
+    return this.prisma.invoice.create({
       data: {
         visitId,
         totalAmount,
         paidAmount: 0,
         status: InvoiceStatus.ISSUED,
-        items: {
-          create: invoiceItems,
-        },
+        items: { create: invoiceItems },
       },
       include: {
         items: true,
         payments: true,
+        visit: { include: { patient: true } },
       },
     });
+  }
+
+  // UC-16: Tra cứu danh sách hóa đơn
+  async findMany(query: QueryInvoicesDto) {
+    const where: Prisma.InvoiceWhereInput = {};
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.date) {
+      const day = new Date(`${query.date}T00:00:00.000Z`);
+      const next = new Date(day);
+      next.setUTCDate(next.getUTCDate() + 1);
+      where.createdAt = { gte: day, lt: next };
+    }
+
+    if (query.keyword) {
+      const kw = query.keyword;
+      where.visit = {
+        patient: {
+          OR: [
+            { fullName: { contains: kw, mode: 'insensitive' } },
+            { patientCode: { contains: kw, mode: 'insensitive' } },
+            { phone: { contains: kw } },
+          ],
+        },
+      };
+    }
+
+    return this.prisma.invoice.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        status: true,
+        totalAmount: true,
+        paidAmount: true,
+        createdAt: true,
+        visit: {
+          select: {
+            id: true,
+            visitDate: true,
+            patient: {
+              select: {
+                id: true,
+                patientCode: true,
+                fullName: true,
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // UC-16: Xem chi tiết hóa đơn
+  async findInvoice(id: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        visit: { include: { patient: true } },
+        items: true,
+        payments: true,
+      },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
 
     return invoice;
   }
 
-  async findInvoice(id: string) {
-    return this.prisma.invoice.findUniqueOrThrow({
-      where: { id },
-      include: {
-        visit: {
-          include: {
-            patient: true,
-          },
-        },
-        items: true,
-        payments: true,
-      },
-    });
-  }
-
+  // UC-15: Ghi nhận thanh toán
   async createPayment(invoiceId: string, dto: CreatePaymentDto) {
     if (dto.amount <= 0) {
       throw new BadRequestException('Payment amount must be greater than 0');
@@ -119,7 +190,7 @@ export class BillingService {
       });
 
       if (!invoice) {
-        throw new BadRequestException('Invoice not found');
+        throw new NotFoundException('Invoice not found');
       }
 
       if (invoice.status === InvoiceStatus.VOID) {
@@ -136,7 +207,7 @@ export class BillingService {
 
       if (dto.amount > remainingAmount) {
         throw new BadRequestException(
-          'Payment amount exceeds remaining amount',
+          `Payment amount (${dto.amount}) exceeds remaining amount (${remainingAmount})`,
         );
       }
 
@@ -150,23 +221,15 @@ export class BillingService {
       });
 
       const newPaidAmount = paidAmount + dto.amount;
-
-      let newStatus: InvoiceStatus = InvoiceStatus.PARTIALLY_PAID;
-
-      if (newPaidAmount === totalAmount) {
-        newStatus = InvoiceStatus.PAID;
-      }
+      const newStatus =
+        newPaidAmount >= totalAmount
+          ? InvoiceStatus.PAID
+          : InvoiceStatus.PARTIALLY_PAID;
 
       return tx.invoice.update({
         where: { id: invoiceId },
-        data: {
-          paidAmount: newPaidAmount,
-          status: newStatus,
-        },
-        include: {
-          items: true,
-          payments: true,
-        },
+        data: { paidAmount: newPaidAmount, status: newStatus },
+        include: { items: true, payments: true },
       });
     });
   }

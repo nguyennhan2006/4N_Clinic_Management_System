@@ -1,17 +1,61 @@
-.vscode/
+# ─── Dependencies ────────────────────────────────────────────────────────────
 node_modules/
+.venv/
+.pnp
+.pnp.js
+
+# ─── Build outputs ───────────────────────────────────────────────────────────
 dist/
 build/
-.env
-*.env
-backend/.env
-coverage/
-*.log
+*.tsbuildinfo
 
-# Claude / AI session artifacts
+# ─── Environment / secrets ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── Coverage & test artifacts ───────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── OS / Editor ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── Prisma ──────────────────────────────────────────────────────────────────
+backend/prisma/migrations/dev.db
+backend/prisma/*.db
+
+# ─── Local debug / utility scripts ───────────────────────────────────────────
+show-modules.ps1
+show-tree.ps1
+
+# ─── Binary / office documents (keep in docs only if needed via LFS) ─────────
+*.docx
+*.xlsx
+*.pdf
+
+# ─── Claude / AI session artifacts ───────────────────────────────────────────
 .claude/
 
-# Legacy clutter files (never committed, kept local only)
+# ─── Legacy clutter files (never commit) ─────────────────────────────────────
 CHECKIN_COMPLETE.md
 CODE_AUDIT_LOG.md
 LOGS_GENERATED.md

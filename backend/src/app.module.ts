@@ -10,6 +10,13 @@ import { ExaminationsModule } from './modules/examinations/examinations.module';
 import { PatientsModule } from './modules/patients/patients.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { UsersModule } from './modules/users/users.module';
+import { HealthModule } from './health/health.module';
+
+import { DiseasesModule } from './modules/diseases/diseases.module';
+import { DrugsModule } from './modules/drugs/drugs.module';
+
+import { RegulationsModule } from './modules/regulations/regulations.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { VisitsModule } from './modules/visits/visits.module';
 
 @Module({
@@ -24,6 +31,7 @@ import { VisitsModule } from './modules/visits/visits.module';
     }),
     PrismaModule,
     AuditModule,
+    HealthModule,
     AuthModule,
     UsersModule,
     RbacModule,
@@ -31,6 +39,10 @@ import { VisitsModule } from './modules/visits/visits.module';
     VisitsModule,
     ExaminationsModule,
     BillingModule,
+    RegulationsModule,
+    DiseasesModule,
+    DrugsModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

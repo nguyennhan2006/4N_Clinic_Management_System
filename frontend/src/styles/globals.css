@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  /* 4N Clinic — Medical Professional palette */
+  --color-clinic-bg: #FAFBFC;
+  --color-clinic-surface: #FFFFFF;
+  --color-clinic-sidebar: #1E3A5F;
+  --color-clinic-sidebar-muted: #E8F0F7;
+  --color-clinic-primary: #E04A60;
+  --color-clinic-primary-hover: #C73A50;
+  --color-clinic-secondary: #4A9B9F;
+  --color-clinic-accent: #F4A261;
+  --color-clinic-success: #10B981;
+  --color-clinic-warning: #F59E0B;
+  --color-clinic-danger: #DC2626;
+  --color-clinic-info: #3B82F6;
+  --color-clinic-text: #1A202C;
+  --color-clinic-muted: #64748B;
+  --color-clinic-border: #E2E8F0;
+
+  --radius-clinic: 1rem;
+  --shadow-clinic: 0 8px 24px rgba(26, 32, 44, 0.08);
+}
+
+body {
+  background-color: var(--color-clinic-bg);
+  color: var(--color-clinic-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}

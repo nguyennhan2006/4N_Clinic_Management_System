@@ -191,6 +191,70 @@ export class ExaminationsService {
     });
   }
 
+  // UC-12: Replace-all prescription (upsert)
+  async upsertPrescription(id: string, dto: CreatePrescriptionDto) {
+    const examination = await this.prisma.examination.findUnique({
+      where: { id },
+      include: { prescription: { include: { items: true } } },
+    });
+
+    if (!examination) {
+      throw new NotFoundException('Examination not found');
+    }
+
+    if (examination.status === ExaminationStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Cannot update prescription for completed examination',
+      );
+    }
+
+    if (!dto.items.length) {
+      throw new BadRequestException('Prescription must have at least one item');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const drugIds = dto.items.map((item) => item.drugId);
+
+      const drugs = await tx.drug.findMany({
+        where: { id: { in: drugIds }, isActive: true },
+      });
+
+      if (drugs.length !== new Set(drugIds).size) {
+        throw new BadRequestException('Some drugs are invalid or inactive');
+      }
+
+      const drugMap = new Map(drugs.map((drug) => [drug.id, drug]));
+
+      const itemsData = dto.items.map((item) => {
+        const drug = drugMap.get(item.drugId)!;
+        const unitPrice = Number(drug.price);
+        return {
+          drugId: item.drugId,
+          quantity: item.quantity,
+          dosage: item.dosage,
+          unitPrice,
+          lineTotal: unitPrice * item.quantity,
+        };
+      });
+
+      if (examination.prescription) {
+        // Delete existing items, then recreate (cascade deletes items via onDelete: Cascade)
+        await tx.prescription.delete({
+          where: { examinationId: id },
+        });
+      }
+
+      return tx.prescription.create({
+        data: {
+          examinationId: id,
+          note: dto.note,
+          items: { create: itemsData },
+        },
+        include: { items: { include: { drug: true } } },
+      });
+    });
+  }
+
   async complete(id: string) {
     return this.prisma.$transaction(async (tx) => {
       const examination = await tx.examination.findUnique({

@@ -2,9 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 
@@ -43,7 +46,18 @@ export class ExaminationsController {
     return this.examinationsService.createPrescription(id, dto);
   }
 
+  // UC-12: Replace-all prescription
+  @Put(':id/prescription')
+  @Roles(ROLES.DOCTOR, ROLES.ADMIN)
+  upsertPrescription(
+    @Param('id') id: string,
+    @Body() dto: CreatePrescriptionDto,
+  ) {
+    return this.examinationsService.upsertPrescription(id, dto);
+  }
+
   @Post(':id/complete')
+  @HttpCode(HttpStatus.OK)
   @Roles(ROLES.DOCTOR, ROLES.ADMIN)
   complete(@Param('id') id: string) {
     return this.examinationsService.complete(id);
