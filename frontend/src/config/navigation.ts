@@ -39,9 +39,9 @@ export const navigationConfig: NavSection[] = [
         roles: ['ADMIN', 'RECEPTIONIST', 'DOCTOR', 'MANAGER'],
       },
       {
-        label: 'Lượt khám',
+        label: 'Lượt khám & Phiếu khám',
         path: '/app/visits',
-        icon: 'Calendar',
+        icon: 'Stethoscope',
         roles: ['ADMIN', 'RECEPTIONIST', 'DOCTOR', 'MANAGER'],
       },
       {
@@ -49,12 +49,6 @@ export const navigationConfig: NavSection[] = [
         path: '/app/queue',
         icon: 'ListOrdered',
         roles: ['ADMIN', 'RECEPTIONIST', 'DOCTOR', 'NURSE'],
-      },
-      {
-        label: 'Phiếu khám',
-        path: '/app/examinations',
-        icon: 'Stethoscope',
-        roles: ['ADMIN', 'DOCTOR'],
       },
     ],
   },
