@@ -46,6 +46,16 @@ export function useUpsertPrescriptionMutation(examinationId: string) {
   })
 }
 
+export function useDeletePrescriptionMutation(examinationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => examinationApi.deletePrescription(examinationId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: EXAMINATION_KEYS.detail(examinationId) })
+    },
+  })
+}
+
 export function useCompleteExaminationMutation(id: string) {
   const queryClient = useQueryClient()
   return useMutation({

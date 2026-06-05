@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Query, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ROLES } from '../../common/constants/roles.constant';
@@ -17,7 +26,13 @@ export class QueueController {
   constructor(private readonly queueService: QueueService) {}
 
   @Get()
-  @Roles(ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTIONIST, ROLES.MANAGER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.NURSE,
+    ROLES.RECEPTIONIST,
+    ROLES.MANAGER,
+  )
   @ApiOperation({ summary: 'Danh sách hàng đợi theo ngày/department' })
   findAll(@Query() query: QueryQueueDto) {
     return this.queueService.findAll(query);
@@ -31,7 +46,13 @@ export class QueueController {
   }
 
   @Get(':id')
-  @Roles(ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTIONIST, ROLES.MANAGER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.NURSE,
+    ROLES.RECEPTIONIST,
+    ROLES.MANAGER,
+  )
   @ApiOperation({ summary: 'Chi tiết queue ticket' })
   findOne(@Param('id') id: string) {
     return this.queueService.findOne(id);

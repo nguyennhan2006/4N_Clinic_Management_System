@@ -77,7 +77,9 @@ export class PharmacyService {
 
     // 3. Validate từng item
     for (const item of dto.items) {
-      const prescItem = prescription.items.find((p) => p.id === item.prescriptionItemId);
+      const prescItem = prescription.items.find(
+        (p) => p.id === item.prescriptionItemId,
+      );
       if (!prescItem) {
         throw new NotFoundException(
           `PrescriptionItem ${item.prescriptionItemId} not found in prescription`,
@@ -92,8 +94,11 @@ export class PharmacyService {
       }
 
       // BR-PHR-04: Kiểm tra tồn kho trước khi phát
-      const lot = await this.prisma.stockLot.findUnique({ where: { id: item.stockLotId } });
-      if (!lot) throw new NotFoundException(`StockLot ${item.stockLotId} not found`);
+      const lot = await this.prisma.stockLot.findUnique({
+        where: { id: item.stockLotId },
+      });
+      if (!lot)
+        throw new NotFoundException(`StockLot ${item.stockLotId} not found`);
       if (lot.drugId !== prescItem.drugId) {
         throw new BadRequestException(
           `StockLot ${lot.id} is for a different drug than prescribed`,
@@ -126,7 +131,9 @@ export class PharmacyService {
           note: dto.note ?? null,
           items: {
             create: dto.items.map((item) => {
-              const prescItem = prescription.items.find((p) => p.id === item.prescriptionItemId)!;
+              const prescItem = prescription.items.find(
+                (p) => p.id === item.prescriptionItemId,
+              )!;
               return {
                 prescriptionItemId: item.prescriptionItemId,
                 drugId: prescItem.drugId,
@@ -154,7 +161,9 @@ export class PharmacyService {
           data: { quantityOnHand: { decrement: item.quantity } },
         });
 
-        const prescItem = prescription.items.find((p) => p.id === item.prescriptionItemId)!;
+        const prescItem = prescription.items.find(
+          (p) => p.id === item.prescriptionItemId,
+        )!;
         await tx.stockMovement.create({
           data: {
             drugId: prescItem.drugId,
@@ -234,7 +243,9 @@ export class PharmacyService {
 
     // BR-PHR-06: chỉ có thể cancel DISPENSED (không phải CANCELLED)
     if (dispense.status !== DispenseStatus.DISPENSED) {
-      throw new BadRequestException('Only DISPENSED dispenses can be cancelled');
+      throw new BadRequestException(
+        'Only DISPENSED dispenses can be cancelled',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {

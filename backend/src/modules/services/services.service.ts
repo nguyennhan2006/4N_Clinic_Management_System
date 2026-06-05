@@ -34,7 +34,8 @@ export class ServicesService {
     const existing = await this.prisma.serviceCatalog.findUnique({
       where: { code: dto.code },
     });
-    if (existing) throw new ConflictException(`Service code ${dto.code} already exists`);
+    if (existing)
+      throw new ConflictException(`Service code ${dto.code} already exists`);
 
     return this.prisma.serviceCatalog.create({
       data: {
@@ -60,7 +61,9 @@ export class ServicesService {
   }
 
   async updateCatalog(id: string, dto: UpdateServiceCatalogDto) {
-    const service = await this.prisma.serviceCatalog.findUnique({ where: { id } });
+    const service = await this.prisma.serviceCatalog.findUnique({
+      where: { id },
+    });
     if (!service) throw new NotFoundException(`ServiceCatalog ${id} not found`);
 
     return this.prisma.serviceCatalog.update({
@@ -114,14 +117,17 @@ export class ServicesService {
 
   async createOrder(dto: CreateServiceOrderDto, actorId: string) {
     // Validate visit tồn tại
-    const visit = await this.prisma.visit.findUnique({ where: { id: dto.visitId } });
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: dto.visitId },
+    });
     if (!visit) throw new NotFoundException(`Visit ${dto.visitId} not found`);
 
     // BR-SVC-01: ServiceCatalog phải active
     const service = await this.prisma.serviceCatalog.findUnique({
       where: { id: dto.serviceId },
     });
-    if (!service) throw new NotFoundException(`ServiceCatalog ${dto.serviceId} not found`);
+    if (!service)
+      throw new NotFoundException(`ServiceCatalog ${dto.serviceId} not found`);
     if (!service.isActive) {
       throw new BadRequestException(`Service "${service.name}" is not active`);
     }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -55,6 +56,13 @@ export class ExaminationsController {
     @Body() dto: CreatePrescriptionDto,
   ) {
     return this.examinationsService.upsertPrescription(id, dto);
+  }
+
+  @Delete(':id/prescription')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(ROLES.DOCTOR, ROLES.ADMIN)
+  deletePrescription(@Param('id') id: string) {
+    return this.examinationsService.deletePrescription(id);
   }
 
   @Post(':id/complete')

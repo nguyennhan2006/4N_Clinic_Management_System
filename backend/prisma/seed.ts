@@ -365,6 +365,212 @@ async function main() {
   }
   console.log('✓ StockLots created');
 
+  // ─── Step 15: Demo Patients ───────────────────────────────────────────────
+  const patientDefs = [
+    {
+      patientCode: 'BN001',
+      fullName: 'Nguyễn Thị Mai',
+      gender: 'FEMALE',
+      dob: new Date('1985-03-15'),
+      phone: '0901234001',
+      address: '12 Nguyễn Trãi, Q.1, TP.HCM',
+    },
+    {
+      patientCode: 'BN002',
+      fullName: 'Trần Văn Hùng',
+      gender: 'MALE',
+      dob: new Date('1972-07-22'),
+      phone: '0901234002',
+      address: '45 Lê Lợi, Q.3, TP.HCM',
+    },
+    {
+      patientCode: 'BN003',
+      fullName: 'Lê Thị Lan',
+      gender: 'FEMALE',
+      dob: new Date('1995-11-08'),
+      phone: '0901234003',
+      address: '78 Võ Văn Tần, Q.5, TP.HCM',
+    },
+    {
+      patientCode: 'BN004',
+      fullName: 'Phạm Quốc Bảo',
+      gender: 'MALE',
+      dob: new Date('2001-01-30'),
+      phone: '0901234004',
+      address: '9 Đinh Tiên Hoàng, Bình Thạnh, TP.HCM',
+    },
+    {
+      patientCode: 'BN005',
+      fullName: 'Hoàng Minh Tuấn',
+      gender: 'MALE',
+      dob: new Date('1960-05-19'),
+      phone: '0901234005',
+      address: '33 Cách Mạng Tháng 8, Q.10, TP.HCM',
+    },
+  ];
+
+  const patients: Record<string, { id: string }> = {};
+  for (const pd of patientDefs) {
+    patients[pd.patientCode] = await prisma.patient.upsert({
+      where: { patientCode: pd.patientCode },
+      update: {},
+      create: pd,
+    });
+  }
+  console.log('✓ Patients created');
+
+  // ─── Step 16: Demo Visits + Examinations (today's date) ──────────────────
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const doctorUserId = users['doctor'].id;
+  const receptionistUserId = users['receptionist'].id;
+
+  // Visit 1: WAITING — chờ khám
+  await prisma.visit.upsert({
+    where: {
+      patientId_visitDate: { patientId: patients['BN001'].id, visitDate: today },
+    },
+    update: {},
+    create: {
+      patientId: patients['BN001'].id,
+      visitDate: today,
+      queueNumber: 1,
+      status: 'WAITING',
+      reason: 'Sốt, ho, đau họng 3 ngày',
+      createdByUserId: receptionistUserId,
+    },
+  });
+
+  // Visit 2: IN_EXAMINATION — đang khám (có examination OPEN)
+  const visit2 = await prisma.visit.upsert({
+    where: { patientId_visitDate: { patientId: patients['BN002'].id, visitDate: today } },
+    update: {},
+    create: {
+      patientId: patients['BN002'].id,
+      visitDate: today,
+      queueNumber: 2,
+      status: 'IN_EXAMINATION',
+      reason: 'Đau lưng mãn tính',
+      createdByUserId: receptionistUserId,
+    },
+  });
+
+  // Examination OPEN cho visit2
+  await prisma.examination.upsert({
+    where: { visitId: visit2.id },
+    update: {},
+    create: {
+      visitId: visit2.id,
+      doctorUserId,
+      status: 'OPEN',
+      symptoms: 'Đau vùng thắt lưng lan xuống chân trái, tăng khi ngồi lâu',
+      clinicalNotes: 'Cột sống thắt lưng đau khi ấn L4-L5',
+    },
+  });
+
+  // Visit 3: COMPLETED — đã hoàn tất (có examination COMPLETED + prescription)
+  const visitCompletedDate = new Date(today);
+  visitCompletedDate.setDate(visitCompletedDate.getDate() - 1); // hôm qua
+
+  const visit3 = await prisma.visit.upsert({
+    where: { patientId_visitDate: { patientId: patients['BN003'].id, visitDate: visitCompletedDate } },
+    update: {},
+    create: {
+      patientId: patients['BN003'].id,
+      visitDate: visitCompletedDate,
+      queueNumber: 1,
+      status: 'COMPLETED',
+      reason: 'Khám sức khỏe định kỳ',
+      createdByUserId: receptionistUserId,
+    },
+  });
+
+  const exam3 = await prisma.examination.upsert({
+    where: { visitId: visit3.id },
+    update: {},
+    create: {
+      visitId: visit3.id,
+      doctorUserId,
+      status: 'COMPLETED',
+      symptoms: 'Không có triệu chứng bất thường',
+      clinicalNotes: 'Huyết áp 120/80, nhịp tim 72 lần/phút, cân nặng 55kg',
+      conclusion: 'Sức khỏe ổn định. Tái khám sau 6 tháng.',
+      completedAt: new Date(),
+    },
+  });
+
+  // Diagnosis + prescription cho examination đã hoàn tất
+  const existingDiag = await prisma.diagnosis.findFirst({
+    where: { examinationId: exam3.id },
+  });
+  if (!existingDiag) {
+    const z000Disease = await prisma.disease.findFirst({ where: { code: 'Z00.0' } });
+    if (z000Disease) {
+      await prisma.diagnosis.create({
+        data: {
+          examinationId: exam3.id,
+          diseaseId: z000Disease.id,
+          name: z000Disease.name,
+          isPrimary: true,
+        },
+      });
+    }
+  }
+
+  const existingPrescription = await prisma.prescription.findUnique({
+    where: { examinationId: exam3.id },
+  });
+  if (!existingPrescription) {
+    const vitaminC = await prisma.drug.findFirst({ where: { name: { contains: 'Vitamin C' } } });
+    if (vitaminC) {
+      await prisma.prescription.create({
+        data: {
+          examinationId: exam3.id,
+          note: 'Uống sau bữa ăn sáng',
+          items: {
+            create: [{
+              drugId: vitaminC.id,
+              quantity: 30,
+              dosage: '1 viên/ngày',
+              unitPrice: Number(vitaminC.price),
+              lineTotal: Number(vitaminC.price) * 30,
+            }],
+          },
+        },
+      });
+    }
+  }
+
+  // Visit 4 & 5: hôm nay, WAITING — thêm bệnh nhân chờ
+  await prisma.visit.upsert({
+    where: { patientId_visitDate: { patientId: patients['BN004'].id, visitDate: today } },
+    update: {},
+    create: {
+      patientId: patients['BN004'].id,
+      visitDate: today,
+      queueNumber: 3,
+      status: 'WAITING',
+      reason: 'Đau đầu kéo dài',
+      createdByUserId: receptionistUserId,
+    },
+  });
+
+  await prisma.visit.upsert({
+    where: { patientId_visitDate: { patientId: patients['BN005'].id, visitDate: today } },
+    update: {},
+    create: {
+      patientId: patients['BN005'].id,
+      visitDate: today,
+      queueNumber: 4,
+      status: 'WAITING',
+      reason: 'Rối loạn tiêu hóa, buồn nôn',
+      createdByUserId: receptionistUserId,
+    },
+  });
+
+  console.log('✓ Demo visits + examinations created');
+
   console.log('');
   console.log('✓ SEED COMPLETED SUCCESSFULLY');
   console.log('─────────────────────────────────────');
@@ -373,6 +579,8 @@ async function main() {
   console.log('Permissions:', permissionDefinitions.length, 'items');
   console.log('Drugs:', drugs.length, 'items');
   console.log('Diseases:', diseases.length, 'items');
+  console.log('Patients: 5 demo patients');
+  console.log('Visits: 5 demo visits (3 today, 1 yesterday completed)');
   console.log('');
   console.log('Default login credentials:');
   console.log('  admin@clinic.local / Admin@123456');

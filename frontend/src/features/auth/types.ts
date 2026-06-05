@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'RECEPTIONIST' | 'DOCTOR' | 'CASHIER' | 'MANAGER' | 'NURSE' | 'LAB_TECH' | 'PHARMACIST'
+export type Role = 'ADMIN' | 'RECEPTIONIST' | 'DOCTOR' | 'CASHIER' | 'MANAGER' | 'NURSE' | 'LAB_TECHNICIAN' | 'PHARMACIST'
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'LOCKED'
 

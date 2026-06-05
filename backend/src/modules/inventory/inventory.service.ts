@@ -35,7 +35,10 @@ export class InventoryService {
     });
 
     // Group by drugId, tổng hợp tồn kho
-    const grouped = new Map<string, { drug: (typeof lots)[0]['drug']; totalOnHand: number; lots: typeof lots }>();
+    const grouped = new Map<
+      string,
+      { drug: (typeof lots)[0]['drug']; totalOnHand: number; lots: typeof lots }
+    >();
     for (const lot of lots) {
       const key = lot.drugId;
       if (!grouped.has(key)) {
@@ -80,12 +83,16 @@ export class InventoryService {
 
   async createLot(dto: CreateStockLotDto, actorId: string) {
     // Validate drug tồn tại
-    const drug = await this.prisma.drug.findUnique({ where: { id: dto.drugId } });
+    const drug = await this.prisma.drug.findUnique({
+      where: { id: dto.drugId },
+    });
     if (!drug) throw new NotFoundException(`Drug ${dto.drugId} not found`);
 
     // BR-INV-01: lotNumber phải unique per drugId
     const existing = await this.prisma.stockLot.findUnique({
-      where: { drugId_lotNumber: { drugId: dto.drugId, lotNumber: dto.lotNumber } },
+      where: {
+        drugId_lotNumber: { drugId: dto.drugId, lotNumber: dto.lotNumber },
+      },
     });
     if (existing) {
       throw new ConflictException(
@@ -105,7 +112,9 @@ export class InventoryService {
         data: {
           drugId: dto.drugId,
           lotNumber: dto.lotNumber,
-          expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : new Date('2099-12-31'),
+          expiryDate: dto.expiryDate
+            ? new Date(dto.expiryDate)
+            : new Date('2099-12-31'),
           quantityOnHand: dto.quantity,
           unitCost: dto.unitCost,
           receivedAt: new Date(),

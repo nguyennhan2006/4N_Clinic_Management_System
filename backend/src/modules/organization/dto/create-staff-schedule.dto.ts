@@ -1,4 +1,12 @@
-import { IsDateString, IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 
 // CF-005: Schema uses startTime/endTime as String (should be DateTime per baseline).
 // Using String + regex validation until schema correction migration is run.

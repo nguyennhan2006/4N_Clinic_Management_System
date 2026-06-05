@@ -41,7 +41,10 @@ export class InventoryController {
   @Post('lots')
   @Roles(ROLES.ADMIN)
   @ApiOperation({ summary: 'Nhập lô thuốc mới vào kho' })
-  createLot(@Body() dto: CreateStockLotDto, @Request() req: { user: { userId: string } }) {
+  createLot(
+    @Body() dto: CreateStockLotDto,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.inventoryService.createLot(dto, req.user.userId);
   }
 

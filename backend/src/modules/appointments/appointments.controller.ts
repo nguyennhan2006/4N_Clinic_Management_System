@@ -29,7 +29,14 @@ export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
   @Get()
-  @Roles(ROLES.ADMIN, ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.NURSE, ROLES.MANAGER, ROLES.CASHIER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.RECEPTIONIST,
+    ROLES.DOCTOR,
+    ROLES.NURSE,
+    ROLES.MANAGER,
+    ROLES.CASHIER,
+  )
   @ApiOperation({ summary: 'Danh sách lịch hẹn' })
   findAll(@Query() query: QueryAppointmentsDto) {
     return this.appointmentsService.findAll(query);
@@ -38,12 +45,22 @@ export class AppointmentsController {
   @Post()
   @Roles(ROLES.ADMIN, ROLES.RECEPTIONIST)
   @ApiOperation({ summary: 'Đặt lịch hẹn mới' })
-  create(@Body() dto: CreateAppointmentDto, @Request() req: { user: { userId: string } }) {
+  create(
+    @Body() dto: CreateAppointmentDto,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.appointmentsService.create(dto, req.user.userId);
   }
 
   @Get(':id')
-  @Roles(ROLES.ADMIN, ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.NURSE, ROLES.MANAGER, ROLES.CASHIER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.RECEPTIONIST,
+    ROLES.DOCTOR,
+    ROLES.NURSE,
+    ROLES.MANAGER,
+    ROLES.CASHIER,
+  )
   @ApiOperation({ summary: 'Chi tiết lịch hẹn' })
   findOne(@Param('id') id: string) {
     return this.appointmentsService.findOne(id);
@@ -63,7 +80,10 @@ export class AppointmentsController {
   @Patch(':id/cancel')
   @Roles(ROLES.ADMIN, ROLES.RECEPTIONIST)
   @ApiOperation({ summary: 'Hủy lịch hẹn' })
-  cancel(@Param('id') id: string, @Request() req: { user: { userId: string } }) {
+  cancel(
+    @Param('id') id: string,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.appointmentsService.cancel(id, req.user.userId);
   }
 

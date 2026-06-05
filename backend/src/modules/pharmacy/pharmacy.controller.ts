@@ -35,7 +35,10 @@ export class PharmacyController {
   @Post('dispense')
   @Roles(ROLES.ADMIN, ROLES.PHARMACIST)
   @ApiOperation({ summary: 'Phát thuốc theo đơn — trừ kho trong transaction' })
-  dispense(@Body() dto: CreateDispenseDto, @Request() req: { user: { userId: string } }) {
+  dispense(
+    @Body() dto: CreateDispenseDto,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.pharmacyService.dispense(dto, req.user.userId);
   }
 
@@ -56,7 +59,10 @@ export class PharmacyController {
   @Patch('dispense/:id/cancel')
   @Roles(ROLES.ADMIN, ROLES.PHARMACIST)
   @ApiOperation({ summary: 'Hủy phát thuốc — hoàn trả kho' })
-  cancelDispense(@Param('id') id: string, @Request() req: { user: { userId: string } }) {
+  cancelDispense(
+    @Param('id') id: string,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.pharmacyService.cancelDispense(id, req.user.userId);
   }
 }

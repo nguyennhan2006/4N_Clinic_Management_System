@@ -157,7 +157,7 @@ export const router = createBrowserRouter([
 
           // ── Lab (Phase 2) ─────────────────────────────────────────────
           {
-            element: <RequireRole roles={['ADMIN', 'DOCTOR', 'NURSE', 'LAB_TECH']} />,
+            element: <RequireRole roles={['ADMIN', 'DOCTOR', 'NURSE', 'LAB_TECHNICIAN']} />,
             children: [{ path: 'lab', element: <LabWorklist /> }],
           },
 

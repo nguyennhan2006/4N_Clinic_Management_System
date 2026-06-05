@@ -18,6 +18,9 @@ export const examinationApi = {
   upsertPrescription: (id: string, data: CreatePrescriptionRequest) =>
     apiClient.put<Prescription>(`/examinations/${id}/prescription`, data),
 
+  deletePrescription: (id: string) =>
+    apiClient.delete<void>(`/examinations/${id}/prescription`),
+
   complete: (id: string) =>
     apiClient.post<Examination>(`/examinations/${id}/complete`),
 }

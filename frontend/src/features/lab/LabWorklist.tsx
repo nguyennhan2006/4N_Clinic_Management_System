@@ -24,9 +24,9 @@ const STATUS_COLORS: Record<LabStatus, string> = {
 
 export function LabWorklist() {
   const { hasRole } = useAuthStore()
-  const canCollect = hasRole(['ADMIN', 'NURSE', 'LAB_TECH'])
-  const canEnterResult = hasRole(['ADMIN', 'LAB_TECH'])
-  const canVerify = hasRole(['ADMIN', 'DOCTOR', 'LAB_TECH'])
+  const canCollect = hasRole(['ADMIN', 'NURSE', 'LAB_TECHNICIAN'])
+  const canEnterResult = hasRole(['ADMIN', 'LAB_TECHNICIAN'])
+  const canVerify = hasRole(['ADMIN', 'DOCTOR', 'LAB_TECHNICIAN'])
 
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<LabStatus | ''>('')

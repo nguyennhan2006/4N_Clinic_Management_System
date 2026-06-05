@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle, Trash2, X } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -12,6 +12,7 @@ import { isApiError } from '@/lib/errors'
 import type { Disease, Drug } from './types'
 import {
   useCompleteExaminationMutation,
+  useDeletePrescriptionMutation,
   useDiseasesQuery,
   useDrugsQuery,
   useExaminationQuery,
@@ -324,6 +325,7 @@ export function ExaminationPage() {
 
   const updateMutation = useUpdateExaminationMutation(id ?? '')
   const upsertPrescriptionMutation = useUpsertPrescriptionMutation(id ?? '')
+  const deletePrescriptionMutation = useDeletePrescriptionMutation(id ?? '')
   const completeMutation = useCompleteExaminationMutation(id ?? '')
 
   // Form state
@@ -341,8 +343,9 @@ export function ExaminationPage() {
   const [completeError, setCompleteError] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
 
-  // Init form from loaded exam
-  if (exam && !formInitialized) {
+  // Init form once when exam data first loads (useEffect avoids side-effect during render)
+  useEffect(() => {
+    if (!exam || formInitialized) return
     setSymptoms(exam.symptoms ?? '')
     setClinicalNotes(exam.clinicalNotes ?? '')
     setConclusion(exam.conclusion ?? '')
@@ -365,7 +368,7 @@ export function ExaminationPage() {
       setPrescriptionNote(exam.prescription.note ?? '')
     }
     setFormInitialized(true)
-  }
+  }, [exam, formInitialized])
 
   const isReadOnly = !canEdit || exam?.status === 'COMPLETED' || exam?.status === 'CANCELLED'
 
@@ -389,6 +392,9 @@ export function ExaminationPage() {
             dosage: r.dosage,
           })),
         })
+      } else if (exam?.prescription) {
+        // Doctor removed all drugs — delete the existing prescription
+        await deletePrescriptionMutation.mutateAsync()
       }
 
       setSaveMsg('Đã lưu phiếu khám.')

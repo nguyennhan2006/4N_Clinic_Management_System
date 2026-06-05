@@ -7,7 +7,9 @@ export class CreateServiceOrderDto {
   @IsString()
   visitId: string;
 
-  @ApiPropertyOptional({ description: 'Gắn với examination nếu bác sĩ chỉ định' })
+  @ApiPropertyOptional({
+    description: 'Gắn với examination nếu bác sĩ chỉ định',
+  })
   @IsOptional()
   @IsString()
   examinationId?: string;

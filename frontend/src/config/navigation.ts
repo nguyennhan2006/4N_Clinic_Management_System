@@ -65,7 +65,7 @@ export const navigationConfig: NavSection[] = [
         label: 'Xét nghiệm',
         path: '/app/lab',
         icon: 'FlaskConical',
-        roles: ['ADMIN', 'DOCTOR', 'NURSE', 'LAB_TECH'],
+        roles: ['ADMIN', 'DOCTOR', 'NURSE', 'LAB_TECHNICIAN'],
       },
       {
         label: 'Phát thuốc',

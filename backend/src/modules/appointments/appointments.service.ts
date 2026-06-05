@@ -55,7 +55,9 @@ export class AppointmentsService {
         AND ("scheduledAt" + ("durationMinutes" * INTERVAL '1 minute')) > ${scheduledAt}
     `;
     if (conflicts.length > 0) {
-      throw new ConflictException('Doctor has a conflicting appointment at this time');
+      throw new ConflictException(
+        'Doctor has a conflicting appointment at this time',
+      );
     }
 
     const appointment = await this.prisma.appointment.create({
@@ -90,7 +92,11 @@ export class AppointmentsService {
       action: 'CREATE_APPOINTMENT',
       entityType: 'Appointment',
       entityId: appointment.id,
-      after: { patientId: dto.patientId, doctorProfileId: dto.doctorProfileId, scheduledAt },
+      after: {
+        patientId: dto.patientId,
+        doctorProfileId: dto.doctorProfileId,
+        scheduledAt,
+      },
     });
 
     return appointment;
@@ -133,7 +139,15 @@ export class AppointmentsService {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id },
       include: {
-        patient: { select: { id: true, fullName: true, phone: true, dob: true, gender: true } },
+        patient: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            dob: true,
+            gender: true,
+          },
+        },
         doctorProfile: {
           select: {
             id: true,
@@ -148,7 +162,8 @@ export class AppointmentsService {
         visit: { select: { id: true, status: true, queueNumber: true } },
       },
     });
-    if (!appointment) throw new NotFoundException(`Appointment ${id} not found`);
+    if (!appointment)
+      throw new NotFoundException(`Appointment ${id} not found`);
     return appointment;
   }
 
@@ -157,7 +172,9 @@ export class AppointmentsService {
 
     // Chỉ sửa khi status SCHEDULED
     if (appointment.status !== AppointmentStatus.SCHEDULED) {
-      throw new BadRequestException('Only SCHEDULED appointments can be updated');
+      throw new BadRequestException(
+        'Only SCHEDULED appointments can be updated',
+      );
     }
 
     if (dto.scheduledAt) {
@@ -166,8 +183,11 @@ export class AppointmentsService {
         throw new BadRequestException('Scheduled time must be in the future');
       }
 
-      const durationMinutes = dto.durationMinutes ?? appointment.durationMinutes;
-      const newEnd = new Date(newScheduledAt.getTime() + durationMinutes * 60_000);
+      const durationMinutes =
+        dto.durationMinutes ?? appointment.durationMinutes;
+      const newEnd = new Date(
+        newScheduledAt.getTime() + durationMinutes * 60_000,
+      );
 
       const conflicts = await this.prisma.$queryRaw<{ id: string }[]>`
         SELECT id FROM "Appointment"
@@ -178,7 +198,9 @@ export class AppointmentsService {
           AND ("scheduledAt" + ("durationMinutes" * INTERVAL '1 minute')) > ${newScheduledAt}
       `;
       if (conflicts.length > 0) {
-        throw new ConflictException('Doctor has a conflicting appointment at this time');
+        throw new ConflictException(
+          'Doctor has a conflicting appointment at this time',
+        );
       }
     }
 
@@ -204,7 +226,9 @@ export class AppointmentsService {
 
     // BR-APT-05: chỉ cancel SCHEDULED
     if (appointment.status !== AppointmentStatus.SCHEDULED) {
-      throw new BadRequestException('Only SCHEDULED appointments can be cancelled');
+      throw new BadRequestException(
+        'Only SCHEDULED appointments can be cancelled',
+      );
     }
 
     const updated = await this.prisma.appointment.update({
@@ -229,7 +253,9 @@ export class AppointmentsService {
 
     // BR-APT-06: chỉ checkin SCHEDULED
     if (appointment.status !== AppointmentStatus.SCHEDULED) {
-      throw new BadRequestException('Only SCHEDULED appointments can be checked in');
+      throw new BadRequestException(
+        'Only SCHEDULED appointments can be checked in',
+      );
     }
 
     // Kiểm tra appointment này chưa tạo visit (Visit.appointmentId unique)
@@ -237,7 +263,9 @@ export class AppointmentsService {
       where: { appointmentId: id },
     });
     if (existingVisit) {
-      throw new ConflictException('This appointment has already been checked in');
+      throw new ConflictException(
+        'This appointment has already been checked in',
+      );
     }
 
     // Kiểm tra patient đã có visit hôm nay chưa (unique constraint patientId+visitDate)
@@ -304,7 +332,11 @@ export class AppointmentsService {
         action: 'CHECKIN_APPOINTMENT',
         entityType: 'Appointment',
         entityId: id,
-        after: { visitId: visit.id, ticketId: ticket.id, ticketNumber: ticketQueueNumber },
+        after: {
+          visitId: visit.id,
+          ticketId: ticket.id,
+          ticketNumber: ticketQueueNumber,
+        },
       });
 
       return { visit, ticket };

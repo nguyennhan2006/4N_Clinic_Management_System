@@ -36,7 +36,14 @@ export class ServicesController {
   // ─── Service Catalog ──────────────────────────────────────────────────────
 
   @Get('service-catalog')
-  @Roles(ROLES.ADMIN, ROLES.DOCTOR, ROLES.MANAGER, ROLES.NURSE, ROLES.LAB_TECHNICIAN, ROLES.RECEPTIONIST)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.MANAGER,
+    ROLES.NURSE,
+    ROLES.LAB_TECHNICIAN,
+    ROLES.RECEPTIONIST,
+  )
   @ApiOperation({ summary: 'Danh sách catalog dịch vụ' })
   listCatalog(@Query('type') type?: string) {
     return this.servicesService.listCatalog(type);
@@ -59,14 +66,28 @@ export class ServicesController {
   // ─── Service Orders ───────────────────────────────────────────────────────
 
   @Get('service-orders')
-  @Roles(ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.LAB_TECHNICIAN, ROLES.MANAGER, ROLES.CASHIER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.NURSE,
+    ROLES.LAB_TECHNICIAN,
+    ROLES.MANAGER,
+    ROLES.CASHIER,
+  )
   @ApiOperation({ summary: 'Danh sách service orders' })
   listOrders(@Query() query: QueryServiceOrdersDto) {
     return this.servicesService.listOrders(query);
   }
 
   @Get('service-orders/:id')
-  @Roles(ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.LAB_TECHNICIAN, ROLES.MANAGER, ROLES.CASHIER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.NURSE,
+    ROLES.LAB_TECHNICIAN,
+    ROLES.MANAGER,
+    ROLES.CASHIER,
+  )
   @ApiOperation({ summary: 'Chi tiết service order' })
   findOrder(@Param('id') id: string) {
     return this.servicesService.findOrder(id);
@@ -75,14 +96,20 @@ export class ServicesController {
   @Post('service-orders')
   @Roles(ROLES.ADMIN, ROLES.DOCTOR)
   @ApiOperation({ summary: 'Chỉ định dịch vụ cho visit' })
-  createOrder(@Body() dto: CreateServiceOrderDto, @Request() req: { user: { userId: string } }) {
+  createOrder(
+    @Body() dto: CreateServiceOrderDto,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.servicesService.createOrder(dto, req.user.userId);
   }
 
   @Patch('service-orders/:id/status')
   @Roles(ROLES.ADMIN, ROLES.NURSE, ROLES.LAB_TECHNICIAN)
   @ApiOperation({ summary: 'Cập nhật trạng thái service order' })
-  updateOrderStatus(@Param('id') id: string, @Body() dto: UpdateServiceOrderStatusDto) {
+  updateOrderStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateServiceOrderStatusDto,
+  ) {
     return this.servicesService.updateOrderStatus(id, dto.status);
   }
 }

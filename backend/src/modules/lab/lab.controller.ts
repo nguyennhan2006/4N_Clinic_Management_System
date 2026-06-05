@@ -31,7 +31,10 @@ export class LabController {
   @Post('orders')
   @Roles(ROLES.ADMIN, ROLES.DOCTOR)
   @ApiOperation({ summary: 'Tạo lab order từ service order type=LAB_TEST' })
-  createOrder(@Body() dto: CreateLabOrderDto, @Request() req: { user: { userId: string } }) {
+  createOrder(
+    @Body() dto: CreateLabOrderDto,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.labService.createOrder(dto, req.user.userId);
   }
 
@@ -43,7 +46,13 @@ export class LabController {
   }
 
   @Get('orders/:id')
-  @Roles(ROLES.ADMIN, ROLES.DOCTOR, ROLES.LAB_TECHNICIAN, ROLES.NURSE, ROLES.MANAGER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.LAB_TECHNICIAN,
+    ROLES.NURSE,
+    ROLES.MANAGER,
+  )
   @ApiOperation({ summary: 'Chi tiết lab order' })
   findOrder(@Param('id') id: string) {
     return this.labService.findOrder(id);
@@ -62,7 +71,9 @@ export class LabController {
 
   @Post('orders/:id/result')
   @Roles(ROLES.ADMIN, ROLES.LAB_TECHNICIAN)
-  @ApiOperation({ summary: 'Nhập kết quả xét nghiệm (SAMPLE_COLLECTED → RESULT_ENTERED)' })
+  @ApiOperation({
+    summary: 'Nhập kết quả xét nghiệm (SAMPLE_COLLECTED → RESULT_ENTERED)',
+  })
   submitResult(
     @Param('id') id: string,
     @Body() dto: CreateLabResultDto,
@@ -74,12 +85,21 @@ export class LabController {
   @Post('orders/:id/verify')
   @Roles(ROLES.ADMIN, ROLES.DOCTOR)
   @ApiOperation({ summary: 'Xác nhận kết quả (RESULT_ENTERED → VERIFIED)' })
-  verifyResult(@Param('id') id: string, @Request() req: { user: { userId: string } }) {
+  verifyResult(
+    @Param('id') id: string,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.labService.verifyResult(id, req.user.userId);
   }
 
   @Get('orders/:id/result')
-  @Roles(ROLES.ADMIN, ROLES.DOCTOR, ROLES.LAB_TECHNICIAN, ROLES.NURSE, ROLES.MANAGER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.DOCTOR,
+    ROLES.LAB_TECHNICIAN,
+    ROLES.NURSE,
+    ROLES.MANAGER,
+  )
   @ApiOperation({ summary: 'Lấy kết quả xét nghiệm của lab order' })
   getResult(@Param('id') id: string) {
     return this.labService.getResult(id);

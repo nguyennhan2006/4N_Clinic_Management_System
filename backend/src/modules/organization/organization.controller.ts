@@ -55,9 +55,14 @@ export class OrganizationController {
 
   @Get('departments')
   @Roles(
-    ROLES.ADMIN, ROLES.MANAGER, ROLES.DOCTOR,
-    ROLES.RECEPTIONIST, ROLES.NURSE, ROLES.CASHIER,
-    ROLES.LAB_TECHNICIAN, ROLES.PHARMACIST,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.DOCTOR,
+    ROLES.RECEPTIONIST,
+    ROLES.NURSE,
+    ROLES.CASHIER,
+    ROLES.LAB_TECHNICIAN,
+    ROLES.PHARMACIST,
   )
   findDepartments(@Query() query: QueryDepartmentsDto) {
     return this.organizationService.findDepartments(
@@ -82,8 +87,11 @@ export class OrganizationController {
 
   @Get('rooms')
   @Roles(
-    ROLES.ADMIN, ROLES.MANAGER, ROLES.DOCTOR,
-    ROLES.RECEPTIONIST, ROLES.NURSE,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.DOCTOR,
+    ROLES.RECEPTIONIST,
+    ROLES.NURSE,
   )
   findRooms(@Query() query: QueryRoomsDto) {
     return this.organizationService.findRooms(query.departmentId);
@@ -106,8 +114,12 @@ export class OrganizationController {
 
   @Get('doctors')
   @Roles(
-    ROLES.ADMIN, ROLES.MANAGER, ROLES.DOCTOR,
-    ROLES.RECEPTIONIST, ROLES.NURSE, ROLES.LAB_TECHNICIAN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.DOCTOR,
+    ROLES.RECEPTIONIST,
+    ROLES.NURSE,
+    ROLES.LAB_TECHNICIAN,
   )
   findDoctors() {
     return this.organizationService.findDoctors();

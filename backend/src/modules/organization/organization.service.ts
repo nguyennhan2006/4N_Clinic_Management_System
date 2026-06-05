@@ -44,7 +44,9 @@ export class OrganizationService {
       where: { code: dto.code },
     });
     if (existing) {
-      throw new ConflictException(`Department code '${dto.code}' already exists`);
+      throw new ConflictException(
+        `Department code '${dto.code}' already exists`,
+      );
     }
     return this.prisma.department.create({
       data: { code: dto.code, name: dto.name, description: dto.description },
@@ -76,10 +78,14 @@ export class OrganizationService {
     if (!dept.isActive) throw new BadRequestException('Department is inactive');
 
     const existing = await this.prisma.room.findUnique({
-      where: { departmentId_code: { departmentId: dto.departmentId, code: dto.code } },
+      where: {
+        departmentId_code: { departmentId: dto.departmentId, code: dto.code },
+      },
     });
     if (existing) {
-      throw new ConflictException(`Room code '${dto.code}' already exists in this department`);
+      throw new ConflictException(
+        `Room code '${dto.code}' already exists in this department`,
+      );
     }
 
     return this.prisma.room.create({ data: dto });
@@ -113,7 +119,9 @@ export class OrganizationService {
 
     const hasDoctor = user.userRoles.some((ur) => ur.role.code === 'DOCTOR');
     if (!hasDoctor) {
-      throw new BadRequestException('User must have DOCTOR role to create a profile');
+      throw new BadRequestException(
+        'User must have DOCTOR role to create a profile',
+      );
     }
 
     // BR-ORG-04: mỗi user chỉ có 1 DoctorProfile (unique constraint in schema)
@@ -121,7 +129,9 @@ export class OrganizationService {
       where: { userId: dto.userId },
     });
     if (existing) {
-      throw new ConflictException('Doctor profile already exists for this user');
+      throw new ConflictException(
+        'Doctor profile already exists for this user',
+      );
     }
 
     await this.findDepartmentOrThrow(dto.departmentId);
@@ -136,7 +146,9 @@ export class OrganizationService {
   }
 
   async updateDoctorProfile(id: string, dto: UpdateDoctorProfileDto) {
-    const profile = await this.prisma.doctorProfile.findUnique({ where: { id } });
+    const profile = await this.prisma.doctorProfile.findUnique({
+      where: { id },
+    });
     if (!profile) throw new NotFoundException('Doctor profile not found');
 
     if (dto.departmentId) await this.findDepartmentOrThrow(dto.departmentId);
@@ -175,7 +187,9 @@ export class OrganizationService {
       throw new BadRequestException('endTime must be after startTime');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
     if (!user) throw new NotFoundException('User not found');
 
     await this.findDepartmentOrThrow(dto.departmentId);
@@ -203,7 +217,9 @@ export class OrganizationService {
   }
 
   async deleteSchedule(id: string) {
-    const schedule = await this.prisma.staffSchedule.findUnique({ where: { id } });
+    const schedule = await this.prisma.staffSchedule.findUnique({
+      where: { id },
+    });
     if (!schedule) throw new NotFoundException('Schedule not found');
 
     await this.prisma.staffSchedule.delete({ where: { id } });

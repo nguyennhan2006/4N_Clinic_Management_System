@@ -21,21 +21,33 @@ export class CreateVitalSignDto {
   @Max(300)
   pulse?: number;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 300, description: 'Huyết áp tâm thu (mmHg)' })
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 300,
+    description: 'Huyết áp tâm thu (mmHg)',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(300)
   systolicBp?: number;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 200, description: 'Huyết áp tâm trương (mmHg)' })
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 200,
+    description: 'Huyết áp tâm trương (mmHg)',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(200)
   diastolicBp?: number;
 
-  @ApiPropertyOptional({ minimum: 30, maximum: 45, description: 'Nhiệt độ (°C)' })
+  @ApiPropertyOptional({
+    minimum: 30,
+    maximum: 45,
+    description: 'Nhiệt độ (°C)',
+  })
   @IsOptional()
   @IsNumber()
   @Min(30)
@@ -49,14 +61,22 @@ export class CreateVitalSignDto {
   @Max(100)
   spo2?: number;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 300, description: 'Chiều cao (cm)' })
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 300,
+    description: 'Chiều cao (cm)',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(300)
   heightCm?: number;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 500, description: 'Cân nặng (kg)' })
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 500,
+    description: 'Cân nặng (kg)',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)

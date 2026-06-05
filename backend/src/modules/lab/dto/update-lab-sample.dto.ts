@@ -2,7 +2,7 @@ import { IsDateString, IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateLabSampleDto {
-  @ApiPropertyOptional({ description: "blood | urine | swab | stool | tissue" })
+  @ApiPropertyOptional({ description: 'blood | urine | swab | stool | tissue' })
   @IsOptional()
   @IsString()
   sampleType?: string;

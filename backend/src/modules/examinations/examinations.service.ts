@@ -259,6 +259,29 @@ export class ExaminationsService {
     });
   }
 
+  async deletePrescription(id: string) {
+    const examination = await this.prisma.examination.findUnique({
+      where: { id },
+      include: { prescription: true },
+    });
+
+    if (!examination) {
+      throw new NotFoundException('Examination not found');
+    }
+
+    if (examination.status === ExaminationStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Cannot delete prescription for completed examination',
+      );
+    }
+
+    if (!examination.prescription) {
+      return; // idempotent — no prescription to delete
+    }
+
+    await this.prisma.prescription.delete({ where: { examinationId: id } });
+  }
+
   async complete(id: string, actorId: string) {
     const completed = await this.prisma.$transaction(async (tx) => {
       const examination = await tx.examination.findUnique({

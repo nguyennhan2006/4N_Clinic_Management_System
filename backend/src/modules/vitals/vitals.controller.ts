@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ROLES } from '../../common/constants/roles.constant';
@@ -18,12 +26,21 @@ export class VitalsController {
   @Post()
   @Roles(ROLES.ADMIN, ROLES.NURSE, ROLES.DOCTOR)
   @ApiOperation({ summary: 'Ghi/cập nhật chỉ số sinh tồn cho visit' })
-  create(@Body() dto: CreateVitalSignDto, @Request() req: { user: { userId: string } }) {
+  create(
+    @Body() dto: CreateVitalSignDto,
+    @Request() req: { user: { userId: string } },
+  ) {
     return this.vitalsService.create(dto, req.user.userId);
   }
 
   @Get('visit/:visitId')
-  @Roles(ROLES.ADMIN, ROLES.NURSE, ROLES.DOCTOR, ROLES.RECEPTIONIST, ROLES.MANAGER)
+  @Roles(
+    ROLES.ADMIN,
+    ROLES.NURSE,
+    ROLES.DOCTOR,
+    ROLES.RECEPTIONIST,
+    ROLES.MANAGER,
+  )
   @ApiOperation({ summary: 'Lấy vital signs của visit' })
   getByVisit(@Param('visitId') visitId: string) {
     return this.vitalsService.getByVisit(visitId);

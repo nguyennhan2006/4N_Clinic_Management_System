@@ -27,13 +27,19 @@ export class LabService {
       include: { service: true },
     });
     if (!serviceOrder) {
-      throw new NotFoundException(`ServiceOrder ${dto.serviceOrderId} not found`);
+      throw new NotFoundException(
+        `ServiceOrder ${dto.serviceOrderId} not found`,
+      );
     }
     if (serviceOrder.service.type !== 'LAB_TEST') {
-      throw new BadRequestException('LabOrder can only be created from LAB_TEST service orders');
+      throw new BadRequestException(
+        'LabOrder can only be created from LAB_TEST service orders',
+      );
     }
     if (serviceOrder.status === 'CANCELLED') {
-      throw new BadRequestException('Cannot create lab order for a cancelled service order');
+      throw new BadRequestException(
+        'Cannot create lab order for a cancelled service order',
+      );
     }
 
     // LabOrder phải unique per serviceOrder
@@ -41,14 +47,17 @@ export class LabService {
       where: { serviceOrderId: dto.serviceOrderId },
     });
     if (existing) {
-      throw new ConflictException('Lab order already exists for this service order');
+      throw new ConflictException(
+        'Lab order already exists for this service order',
+      );
     }
 
     // Validate LabTestCatalog tồn tại
     const labTest = await this.prisma.labTestCatalog.findUnique({
       where: { id: dto.labTestId },
     });
-    if (!labTest) throw new NotFoundException(`LabTestCatalog ${dto.labTestId} not found`);
+    if (!labTest)
+      throw new NotFoundException(`LabTestCatalog ${dto.labTestId} not found`);
 
     return this.prisma.$transaction(async (tx) => {
       const labOrder = await tx.labOrder.create({
@@ -114,7 +123,9 @@ export class LabService {
           include: {
             service: true,
             visit: {
-              include: { patient: { select: { id: true, fullName: true, phone: true } } },
+              include: {
+                patient: { select: { id: true, fullName: true, phone: true } },
+              },
             },
           },
         },
@@ -136,10 +147,14 @@ export class LabService {
     const order = await this.findOrder(id);
 
     if (order.status === LabOrderStatus.CANCELLED) {
-      throw new BadRequestException('Cannot collect sample for a cancelled lab order');
+      throw new BadRequestException(
+        'Cannot collect sample for a cancelled lab order',
+      );
     }
     if (order.status !== LabOrderStatus.ORDERED) {
-      throw new BadRequestException('Sample can only be collected when lab order is ORDERED');
+      throw new BadRequestException(
+        'Sample can only be collected when lab order is ORDERED',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -176,7 +191,9 @@ export class LabService {
     // BR-LAB-02: phải đã lấy mẫu trước khi nhập kết quả
     if (order.status !== LabOrderStatus.SAMPLE_COLLECTED) {
       throw new BadRequestException(
-        'Sample must be collected before entering results (current status: ' + order.status + ')',
+        'Sample must be collected before entering results (current status: ' +
+          order.status +
+          ')',
       );
     }
 
@@ -185,11 +202,15 @@ export class LabService {
       where: { labOrderId: id, status: { not: 'CANCELLED' } },
     });
     if (existingResult) {
-      throw new ConflictException('Lab result already entered and is immutable');
+      throw new ConflictException(
+        'Lab result already entered and is immutable',
+      );
     }
 
     if (!dto.resultText && dto.resultValue === undefined) {
-      throw new BadRequestException('Either resultText or resultValue must be provided');
+      throw new BadRequestException(
+        'Either resultText or resultValue must be provided',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -200,7 +221,8 @@ export class LabService {
           resultText: dto.resultText ?? null,
           resultValue: dto.resultValue ?? null,
           unit: dto.unit ?? null,
-          referenceRange: dto.referenceRange ?? order.labTest.referenceRange ?? null,
+          referenceRange:
+            dto.referenceRange ?? order.labTest.referenceRange ?? null,
           status: 'RESULT_ENTERED',
           enteredAt: new Date(),
         },
@@ -234,7 +256,9 @@ export class LabService {
     const order = await this.findOrder(labOrderId);
 
     if (order.status !== LabOrderStatus.RESULT_ENTERED) {
-      throw new BadRequestException('Lab order must have result entered before verifying');
+      throw new BadRequestException(
+        'Lab order must have result entered before verifying',
+      );
     }
 
     const result = await this.prisma.labResult.findFirst({
@@ -245,7 +269,11 @@ export class LabService {
     return this.prisma.$transaction(async (tx) => {
       await tx.labResult.update({
         where: { id: result.id },
-        data: { status: 'VERIFIED', verifiedById: actorId, verifiedAt: new Date() },
+        data: {
+          status: 'VERIFIED',
+          verifiedById: actorId,
+          verifiedAt: new Date(),
+        },
       });
 
       return tx.labOrder.update({

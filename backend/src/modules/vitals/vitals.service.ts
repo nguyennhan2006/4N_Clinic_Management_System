@@ -8,7 +8,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 
 const MEASUREMENT_FIELDS = [
-  'pulse', 'systolicBp', 'diastolicBp', 'temperature', 'spo2', 'heightCm', 'weightKg',
+  'pulse',
+  'systolicBp',
+  'diastolicBp',
+  'temperature',
+  'spo2',
+  'heightCm',
+  'weightKg',
 ] as const;
 
 @Injectable()
@@ -25,10 +31,14 @@ export class VitalsService {
     }
 
     // BR-VS-01: Visit không được COMPLETED
-    const visit = await this.prisma.visit.findUnique({ where: { id: dto.visitId } });
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: dto.visitId },
+    });
     if (!visit) throw new NotFoundException(`Visit ${dto.visitId} not found`);
     if (visit.status === 'COMPLETED') {
-      throw new BadRequestException('Cannot record vital signs for a COMPLETED visit');
+      throw new BadRequestException(
+        'Cannot record vital signs for a COMPLETED visit',
+      );
     }
 
     // Tính BMI nếu có đủ cả chiều cao lẫn cân nặng
@@ -74,7 +84,9 @@ export class VitalsService {
   }
 
   async getByVisit(visitId: string) {
-    const visit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: visitId },
+    });
     if (!visit) throw new NotFoundException(`Visit ${visitId} not found`);
 
     return this.prisma.vitalSign.findUnique({
