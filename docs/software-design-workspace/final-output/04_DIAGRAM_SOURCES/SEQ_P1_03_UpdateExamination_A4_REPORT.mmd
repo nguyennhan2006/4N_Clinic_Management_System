@@ -1,0 +1,69 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P1-03 A4 REPORT — Update Examination / Diagnosis (UC10). Full: SEQ_P1_03_UpdateExamination.mmd
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as ExamCtrl
+    participant SV as ExamSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+
+    DR->>FE: Enter symptoms / diagnosis
+    FE->>GD: PATCH /examinations/:id {dto} + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        note over CT: Validate DTO
+        alt invalid DTO
+            CT-->>FE: 400 invalid DTO
+        else valid DTO
+            CT->>SV: update(id, dto)
+            SV->>DB: find examination
+            alt not found
+                SV-->>CT: throw 404
+                CT-->>FE: 404 exam not found
+            else COMPLETED / CANCELLED
+                SV-->>CT: throw 400
+                CT-->>FE: 400 exam locked
+            else editable (OPEN)
+                opt diagnoses provided
+                    alt more than one primary
+                        SV-->>CT: throw 400
+                        CT-->>FE: 400 multiple primary
+                    else valid
+                        SV->>DB: check diseases active
+                        alt disease invalid/inactive
+                            SV-->>CT: throw 400
+                            CT-->>FE: 400 disease inactive
+                        else ok
+                            note over SV: snapshot disease name
+                        end
+                    end
+                end
+                rect rgb(235,235,255)
+                    note over TX: BEGIN transaction
+                    SV->>TX: save exam + diagnoses
+                    TX->>DB: update examination fields
+                    opt diagnoses provided
+                        TX->>DB: replace diagnoses (snapshot name)
+                    end
+                    note over TX: COMMIT
+                end
+                SV-->>CT: examination
+                CT-->>FE: 200 examination
+                FE-->>DR: Examination saved
+            end
+        end
+    end

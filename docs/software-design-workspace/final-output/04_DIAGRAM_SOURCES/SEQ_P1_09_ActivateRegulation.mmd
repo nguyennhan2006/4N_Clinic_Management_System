@@ -1,0 +1,47 @@
+%% SEQ-P1-09 — Activate Regulation Version (UC17) — AS-BUILT
+%% Source: backend/src/modules/regulations/regulations.service.ts::activate
+%% Roles: ADMIN | Endpoint: PATCH /regulations/:id/activate
+%% NOTE (as-built): NO AuditService in activate(). REGULATION_ACTIVATE audit is a
+%%       recommended hardening (see VALIDATION_REPORT) and is intentionally NOT drawn here.
+sequenceDiagram
+    autonumber
+    actor AD as Admin
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as RegulationsController
+    participant SV as RegulationsService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+
+    AD->>FE: Activate a draft regulation version
+    FE->>GD: PATCH /regulations/:id/activate + token
+    GD->>GD: verify JWT + role == ADMIN
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: activate(id)
+        SV->>DB: regulationVersion.findUnique(id)
+        alt not found
+            DB-->>SV: null
+            SV-->>CT: throw NotFoundException
+            CT-->>FE: 404 "Regulation version not found"
+        else found
+            alt already active
+                SV-->>CT: throw BadRequestException
+                CT-->>FE: 400 "Version is already active"
+            else inactive draft
+                rect rgb(235,235,255)
+                    note over TX: BEGIN $transaction — BR-09
+                    SV->>TX: run
+                    TX->>DB: regulationVersion.updateMany(isActive=true -> isActive=false)
+                    TX->>DB: regulationVersion.update(id, isActive=true, activatedAt=now)
+                    note over TX: COMMIT
+                end
+                note over SV: Not retroactive - existing visits/invoices keep prior values
+                SV-->>CT: activated version (+ items)
+                CT-->>FE: 200 {version}
+                FE-->>AD: Regulation activated
+            end
+        end
+    end

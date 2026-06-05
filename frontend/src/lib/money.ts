@@ -11,6 +11,8 @@ export function formatVND(value: number | string | null | undefined): string {
   return vndFormatter.format(num)
 }
 
+export const formatMoney = formatVND
+
 export function formatVNDCompact(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—'
   const num = typeof value === 'string' ? parseFloat(value) : value

@@ -1,0 +1,65 @@
+%% SEQ-P1-01 — Create Visit (UC07) — AS-BUILT
+%% Source: backend/src/modules/visits/visits.service.ts::create + visits.controller.ts
+%% Roles: RECEPTIONIST, ADMIN | Endpoint: POST /visits
+sequenceDiagram
+    autonumber
+    actor RC as Receptionist
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as VisitsController
+    participant SV as VisitsService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    RC->>FE: Select patient + visit date
+    FE->>GD: POST /visits {patientId, visitDate, reason} + Bearer token
+    GD->>GD: verify JWT + role in {RECEPTIONIST, ADMIN}
+    alt token invalid
+        GD-->>FE: 401 Unauthorized
+    else role not allowed
+        GD-->>FE: 403 Forbidden
+    else authorized
+        GD->>CT: proceed to handler
+        note over CT: ValidationPipe checks DTO (patientId, visitDate)
+        alt invalid DTO
+            CT-->>FE: 400 BadRequestException
+        else valid DTO
+            CT->>SV: create(dto, actorId)
+            SV->>DB: patient.findUnique(id)
+            alt patient not found
+                DB-->>SV: null
+                SV-->>CT: throw NotFoundException
+                CT-->>FE: 404 "Patient not found"
+            else patient ok
+                SV->>DB: regulationVersion.findFirst(isActive) -> MAX_PATIENTS_PER_DAY (fallback 40)
+                rect rgb(235,235,255)
+                    note over TX: BEGIN $transaction (Serializable) — BR-03 atomic
+                    SV->>TX: run
+                    TX->>DB: visit.findFirst(patientId, visitDate)
+                    alt duplicate visit today (BR-02)
+                        TX-->>SV: throw ConflictException
+                        SV-->>CT: propagate
+                        CT-->>FE: 409 "Patient already has a visit on this date"
+                    else no duplicate
+                        TX->>DB: visit.count(visitDate, status != CANCELLED)
+                        alt count >= max (BR-01)
+                            TX-->>SV: throw ConflictException
+                            SV-->>CT: propagate
+                            CT-->>FE: 409 "Daily patient limit reached"
+                        else slot available
+                            TX->>DB: visit.findFirst(visitDate order queueNumber desc)
+                            TX->>DB: visit.create(queueNumber+1, status=WAITING)
+                            note over TX: state none -> WAITING
+                        end
+                    end
+                    note over TX: COMMIT
+                end
+                SV->>AU: log(CREATE_VISIT, Visit, id, {patientId, visitDate, queueNumber})
+                note right of AU: append-only, after COMMIT
+                SV-->>CT: visit (+ patient)
+                CT-->>FE: 201 {visit}
+                FE-->>RC: Show queue number
+            end
+        end
+    end

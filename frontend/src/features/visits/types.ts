@@ -33,4 +33,5 @@ export interface CreateVisitRequest {
 export interface QueryVisitsParams {
   date?: string
   status?: VisitStatus
+  hasInvoice?: boolean
 }

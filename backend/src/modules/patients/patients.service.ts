@@ -5,15 +5,19 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 
 @Injectable()
 export class PatientsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   // UC-04: tạo hồ sơ + sinh patientCode duy nhất (BN-000001)
-  async create(dto: CreatePatientDto) {
+  async create(dto: CreatePatientDto, actorId: string) {
     if (dto.citizenId) {
       const existed = await this.prisma.patient.findUnique({
         where: { citizenId: dto.citizenId },
@@ -24,7 +28,7 @@ export class PatientsService {
       }
     }
 
-    return this.prisma.$transaction(
+    const patient = await this.prisma.$transaction(
       async (tx) => {
         const count = await tx.patient.count();
         const patientCode = `BN-${String(count + 1).padStart(6, '0')}`;
@@ -43,6 +47,16 @@ export class PatientsService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+
+    await this.auditService.log({
+      actorId,
+      action: 'CREATE_PATIENT',
+      entityType: 'Patient',
+      entityId: patient.id,
+      after: { fullName: patient.fullName, patientCode: patient.patientCode },
+    });
+
+    return patient;
   }
 
   async findAll(keyword?: string) {

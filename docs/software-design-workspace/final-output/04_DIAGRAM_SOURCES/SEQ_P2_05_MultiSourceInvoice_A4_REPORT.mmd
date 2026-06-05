@@ -1,0 +1,56 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P2-05 A4 REPORT — Multi-source Invoice (PLANNED). Full: SEQ_P2_05_MultiSourceInvoice.mmd
+sequenceDiagram
+    autonumber
+    actor CA as Cashier
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as BillingCtrl
+    participant SV as BillingSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    note over CT,SV: PLANNED Phase 2A - extends Phase 1 billing
+    CA->>FE: Issue invoice for completed visit
+    FE->>GD: POST /visits/:id/invoice + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: createInvoiceFromVisit(visitId, actorId)
+        SV->>DB: find visit + orders + dispense items
+        alt visit not found
+            SV-->>CT: throw 404
+            CT-->>FE: 404 visit not found
+        else not COMPLETED
+            SV-->>CT: throw 400
+            CT-->>FE: 400 not completed
+        else COMPLETED
+            rect rgb(235,235,255)
+                note over TX: BEGIN transaction (BR-P2-13/14)
+                SV->>TX: build multi-source invoice
+                TX->>DB: read consultation fee
+                loop each source line
+                    note over TX: dedupe by referenceType+referenceId
+                    TX->>DB: build item (price snapshot)
+                end
+                TX->>DB: create Invoice ISSUED + items
+                note over TX: COMMIT
+            end
+            SV->>AU: log CREATE_INVOICE
+            SV-->>CT: invoice
+            CT-->>FE: 201 invoice
+            FE-->>CA: Invoice issued
+        end
+    end
+    note over SV: BR-P2-15 no VOID if payment exists

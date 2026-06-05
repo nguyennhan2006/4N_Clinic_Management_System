@@ -13,6 +13,9 @@ async function main() {
     { code: 'RECEPTIONIST', name: 'Lễ tân' },
     { code: 'CASHIER', name: 'Thu ngân' },
     { code: 'MANAGER', name: 'Quản lý' },
+    { code: 'NURSE', name: 'Điều dưỡng' },
+    { code: 'LAB_TECHNICIAN', name: 'Kỹ thuật viên xét nghiệm' },
+    { code: 'PHARMACIST', name: 'Dược sĩ' },
   ];
 
   const roles: Record<string, { id: string }> = {};
@@ -27,11 +30,62 @@ async function main() {
 
   // ─── Step 2: Create Seed Users ─────────────────────────────────────────────
   const userDefinitions = [
-    { username: 'admin', fullName: 'System Admin', email: 'admin@clinic.local', password: 'Admin@123456', roleCode: 'ADMIN' },
-    { username: 'doctor', fullName: 'Bác sĩ Demo', email: 'doctor@clinic.local', password: 'Doctor@123456', roleCode: 'DOCTOR' },
-    { username: 'receptionist', fullName: 'Lễ tân Demo', email: 'receptionist@clinic.local', password: 'Reception@123456', roleCode: 'RECEPTIONIST' },
-    { username: 'cashier', fullName: 'Thu ngân Demo', email: 'cashier@clinic.local', password: 'Cashier@123456', roleCode: 'CASHIER' },
-    { username: 'manager', fullName: 'Quản lý Demo', email: 'manager@clinic.local', password: 'Manager@123456', roleCode: 'MANAGER' },
+    {
+      username: 'admin',
+      fullName: 'System Admin',
+      email: 'admin@clinic.local',
+      password: 'Admin@123456',
+      roleCode: 'ADMIN',
+    },
+    {
+      username: 'doctor',
+      fullName: 'Bác sĩ Demo',
+      email: 'doctor@clinic.local',
+      password: 'Doctor@123456',
+      roleCode: 'DOCTOR',
+    },
+    {
+      username: 'receptionist',
+      fullName: 'Lễ tân Demo',
+      email: 'receptionist@clinic.local',
+      password: 'Reception@123456',
+      roleCode: 'RECEPTIONIST',
+    },
+    {
+      username: 'cashier',
+      fullName: 'Thu ngân Demo',
+      email: 'cashier@clinic.local',
+      password: 'Cashier@123456',
+      roleCode: 'CASHIER',
+    },
+    {
+      username: 'manager',
+      fullName: 'Quản lý Demo',
+      email: 'manager@clinic.local',
+      password: 'Manager@123456',
+      roleCode: 'MANAGER',
+    },
+    {
+      username: 'nurse',
+      fullName: 'Điều dưỡng Demo',
+      email: 'nurse@clinic.local',
+      password: 'Nurse@123456',
+      roleCode: 'NURSE',
+    },
+    {
+      username: 'labtech',
+      fullName: 'Kỹ thuật viên Demo',
+      email: 'labtech@clinic.local',
+      password: 'Labtech@123456',
+      roleCode: 'LAB_TECHNICIAN',
+    },
+    {
+      username: 'pharmacist',
+      fullName: 'Dược sĩ Demo',
+      email: 'pharmacist@clinic.local',
+      password: 'Pharma@123456',
+      roleCode: 'PHARMACIST',
+    },
   ];
 
   const users: Record<string, { id: string }> = {};
@@ -160,6 +214,156 @@ async function main() {
     });
   }
   console.log('✓ Regulation version created');
+
+  // ─── Step 9: Phase 2 — Departments ────────────────────────────────────────
+  const departmentDefs = [
+    { code: 'GENERAL', name: 'Nội khoa tổng quát' },
+    { code: 'LAB', name: 'Xét nghiệm' },
+    { code: 'PHARMACY', name: 'Nhà thuốc' },
+  ];
+
+  const departments: Record<string, { id: string }> = {};
+  for (const dd of departmentDefs) {
+    departments[dd.code] = await prisma.department.upsert({
+      where: { code: dd.code },
+      update: { name: dd.name },
+      create: { code: dd.code, name: dd.name },
+    });
+  }
+  console.log('✓ Departments created');
+
+  // ─── Step 10: Phase 2 — Rooms ─────────────────────────────────────────────
+  const roomDefs = [
+    {
+      departmentCode: 'GENERAL',
+      code: 'CONS-01',
+      name: 'Phòng khám 01',
+      roomType: 'CONSULTATION',
+    },
+    {
+      departmentCode: 'LAB',
+      code: 'LAB-01',
+      name: 'Phòng xét nghiệm 01',
+      roomType: 'LAB',
+    },
+    {
+      departmentCode: 'PHARMACY',
+      code: 'PHARM-01',
+      name: 'Quầy thuốc 01',
+      roomType: 'PHARMACY',
+    },
+  ];
+
+  for (const rd of roomDefs) {
+    const departmentId = departments[rd.departmentCode].id;
+    await prisma.room.upsert({
+      where: { departmentId_code: { departmentId, code: rd.code } },
+      update: { name: rd.name, roomType: rd.roomType },
+      create: {
+        departmentId,
+        code: rd.code,
+        name: rd.name,
+        roomType: rd.roomType,
+      },
+    });
+  }
+  console.log('✓ Rooms created');
+
+  // ─── Step 11: Phase 2 — DoctorProfile ─────────────────────────────────────
+  const doctorUser = users['doctor'];
+  const generalDeptId = departments['GENERAL'].id;
+
+  await prisma.doctorProfile.upsert({
+    where: { userId: doctorUser.id },
+    update: {},
+    create: {
+      userId: doctorUser.id,
+      departmentId: generalDeptId,
+      title: 'BS.',
+      specialty: 'Nội khoa tổng quát',
+    },
+  });
+  console.log('✓ DoctorProfile created');
+
+  // ─── Step 12: Phase 2 — ServiceCatalog ────────────────────────────────────
+  const serviceDefs = [
+    {
+      code: 'CONSULT',
+      name: 'Phí khám bệnh',
+      type: 'CONSULTATION' as const,
+      price: 150000,
+    },
+    {
+      code: 'CBC',
+      name: 'Công thức máu toàn phần',
+      type: 'LAB_TEST' as const,
+      price: 80000,
+    },
+    {
+      code: 'URINE',
+      name: 'Tổng phân tích nước tiểu',
+      type: 'LAB_TEST' as const,
+      price: 60000,
+    },
+  ];
+
+  const services: Record<string, { id: string }> = {};
+  for (const sd of serviceDefs) {
+    services[sd.code] = await prisma.serviceCatalog.upsert({
+      where: { code: sd.code },
+      update: { name: sd.name, price: sd.price },
+      create: { code: sd.code, name: sd.name, type: sd.type, price: sd.price },
+    });
+  }
+  console.log('✓ ServiceCatalog created');
+
+  // ─── Step 13: Phase 2 — LabTestCatalog ────────────────────────────────────
+  const labTestDefs = [
+    {
+      code: 'CBC',
+      serviceCode: 'CBC',
+      sampleType: 'BLOOD',
+      turnaroundHours: 4,
+    },
+    {
+      code: 'URINE',
+      serviceCode: 'URINE',
+      sampleType: 'URINE',
+      turnaroundHours: 2,
+    },
+  ];
+
+  for (const ltd of labTestDefs) {
+    await prisma.labTestCatalog.upsert({
+      where: { code: ltd.code },
+      update: {},
+      create: {
+        code: ltd.code,
+        serviceId: services[ltd.serviceCode].id,
+        sampleType: ltd.sampleType,
+        turnaroundHours: ltd.turnaroundHours,
+      },
+    });
+  }
+  console.log('✓ LabTestCatalog created');
+
+  // ─── Step 14: Phase 2 — StockLots (one lot per drug, quantity 100) ─────────
+  const allDrugs = await prisma.drug.findMany();
+  for (const drug of allDrugs) {
+    await prisma.stockLot.upsert({
+      where: {
+        drugId_lotNumber: { drugId: drug.id, lotNumber: 'LOT-SEED-001' },
+      },
+      update: {},
+      create: {
+        drugId: drug.id,
+        lotNumber: 'LOT-SEED-001',
+        expiryDate: new Date('2027-12-31'),
+        quantityOnHand: 100,
+      },
+    });
+  }
+  console.log('✓ StockLots created');
 
   console.log('');
   console.log('✓ SEED COMPLETED SUCCESSFULLY');

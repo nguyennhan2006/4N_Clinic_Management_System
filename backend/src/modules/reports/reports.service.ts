@@ -55,11 +55,69 @@ export class ReportsService {
       { totalBilled: 0, totalCollected: 0, paidCount: 0, partialCount: 0 },
     );
 
+    // Revenue breakdown by invoice item type
+    const itemTypes = ['CONSULTATION', 'SERVICE', 'DRUG'] as const;
+    const revenueByType: Record<string, number> = {};
+
+    await Promise.all(
+      itemTypes.map(async (type) => {
+        const agg = await this.prisma.invoiceItem.aggregate({
+          where: {
+            itemType: type,
+            invoice: {
+              status: {
+                in: [InvoiceStatus.PAID, InvoiceStatus.PARTIALLY_PAID],
+              },
+              createdAt: { gte: start, lt: end },
+            },
+          },
+          _sum: { lineTotal: true },
+        });
+        revenueByType[type] = Number(agg._sum.lineTotal ?? 0);
+      }),
+    );
+
     return {
       month,
       visits: visitSummary,
       completedVisits,
       revenue,
+      revenueByType,
     };
+  }
+
+  async getRevenueBreakdown(month: string) {
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      throw new BadRequestException('month must be in YYYY-MM format');
+    }
+
+    const [year, mon] = month.split('-').map(Number);
+    const start = new Date(Date.UTC(year, mon - 1, 1));
+    const end = new Date(Date.UTC(year, mon, 1));
+
+    const itemTypes = ['CONSULTATION', 'SERVICE', 'DRUG'] as const;
+    const byType: Record<string, number> = {};
+
+    await Promise.all(
+      itemTypes.map(async (type) => {
+        const agg = await this.prisma.invoiceItem.aggregate({
+          where: {
+            itemType: type,
+            invoice: {
+              status: {
+                in: [InvoiceStatus.PAID, InvoiceStatus.PARTIALLY_PAID],
+              },
+              createdAt: { gte: start, lt: end },
+            },
+          },
+          _sum: { lineTotal: true },
+        });
+        byType[type] = Number(agg._sum.lineTotal ?? 0);
+      }),
+    );
+
+    const total = Object.values(byType).reduce((s, v) => s + v, 0);
+
+    return { month, byType, total };
   }
 }

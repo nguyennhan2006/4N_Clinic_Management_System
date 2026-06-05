@@ -1,0 +1,60 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P2-01 A4 REPORT — Appointment Check-in (PLANNED). Full: SEQ_P2_01_AppointmentCheckinQueue.mmd
+sequenceDiagram
+    autonumber
+    actor RC as Receptionist
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as ApptCtrl
+    participant SV as ApptSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    note over CT,SV: PLANNED Phase 2A - not implemented
+    RC->>FE: Check in appointment
+    FE->>GD: POST /appointments/:id/checkin + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: checkIn(appointmentId, actorId)
+        SV->>DB: find appointment
+        alt not found
+            SV-->>CT: throw 404
+            CT-->>FE: 404 appointment not found
+        else not SCHEDULED
+            SV-->>CT: throw 409
+            CT-->>FE: 409 wrong state
+        else SCHEDULED
+            rect rgb(235,235,255)
+                note over TX: BEGIN transaction (BR-P2-02)
+                SV->>TX: check-in atomically
+                TX->>DB: check visit by appointmentId
+                alt already checked in
+                    TX-->>SV: throw 409
+                    SV-->>CT: propagate
+                    CT-->>FE: 409 already checked in
+                else not yet
+                    TX->>DB: create Visit WAITING (APPOINTMENT)
+                    TX->>DB: create QueueTicket priority=1
+                    TX->>DB: update Appointment CHECKED_IN
+                end
+                note over TX: COMMIT
+            end
+            SV->>AU: log CHECKIN
+            SV-->>CT: visit + queue ticket
+            CT-->>FE: 201 visit + ticket
+            FE-->>RC: Show queue number
+        end
+    end
+    note over CT,SV: Walk-in: Visit WALK_IN + QueueTicket priority=0

@@ -1,0 +1,58 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P2-03 A4 REPORT PART1 — Lab: order -> collect -> result (PLANNED).
+%% Full: SEQ_P2_03_LabOrderResultReview.mmd. PART2 = review.
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    actor LT as Lab Tech
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as LabCtrl
+    participant SV as LabSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    note over CT,SV: PLANNED Phase 2A - not implemented
+
+    DR->>FE: Order lab service
+    FE->>GD: POST /examinations/:id/service-orders {dto}
+    GD->>CT: proceed (role DOCTOR/ADMIN)
+    CT->>SV: createServiceOrder(dto, actorId)
+    rect rgb(235,235,255)
+        note over TX: BEGIN transaction (BR-P2-06/07)
+        TX->>DB: read ServiceCatalog (priceSnapshot)
+        TX->>DB: create ServiceOrder ORDERED
+        opt type = LAB_TEST
+            TX->>DB: create LabOrder ORDERED
+        end
+        note over TX: COMMIT
+    end
+    SV-->>CT: serviceOrder
+    CT-->>FE: 201 serviceOrder
+
+    LT->>FE: Collect sample
+    FE->>GD: POST /lab/orders/:id/collect
+    GD->>CT: proceed (role LAB_TECHNICIAN)
+    CT->>SV: collectSample(id, actorId)
+    SV->>DB: LabOrder SAMPLE_COLLECTED + LabSample
+    SV-->>CT: labOrder
+    CT-->>FE: 200 labOrder
+
+    LT->>FE: Enter result
+    FE->>GD: POST /lab/orders/:id/result {dto}
+    GD->>CT: proceed
+    CT->>SV: enterResult(id, dto, actorId)
+    SV->>DB: LabResult (enteredById) + LabOrder RESULT_ENTERED
+    note over SV: result immutable after RESULT_ENTERED
+    SV->>AU: log LAB_RESULT_ENTERED
+    SV-->>CT: labResult
+    CT-->>FE: 200 labResult

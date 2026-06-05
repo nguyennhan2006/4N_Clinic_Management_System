@@ -20,11 +20,21 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  userRoles     UserRole[]
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]    @relation("AuditLogActor")
-  examinations  Examination[] @relation("DoctorExaminations")
-  createdVisits Visit[]       @relation("VisitCreatedBy")
+  userRoles            UserRole[]
+  refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]      @relation("AuditLogActor")
+  examinations         Examination[]   @relation("DoctorExaminations")
+  createdVisits        Visit[]         @relation("VisitCreatedBy")
+  doctorProfile        DoctorProfile?
+  staffSchedules       StaffSchedule[]
+  createdAppointments  Appointment[]   @relation("AppointmentCreatedBy")
+  measuredVitals       VitalSign[]     @relation("VitalSignMeasuredBy")
+  orderedServices      ServiceOrder[]  @relation("ServiceOrderedBy")
+  collectedSamples     LabSample[]     @relation("LabSampleCollectedBy")
+  enteredLabResults    LabResult[]     @relation("LabResultEnteredBy")
+  verifiedLabResults   LabResult[]     @relation("LabResultVerifiedBy")
+  stockMovements       StockMovement[] @relation("StockMovementCreatedBy")
+  dispenses            Dispense[]      @relation("DispensedBy")
 }
 
 model Role {
@@ -115,25 +125,35 @@ model Patient {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   visits      Visit[]
+  appointments Appointment[]
 
   @@index([fullName])
   @@index([phone])
 }
 
 model Visit {
-  id              String       @id @default(uuid())
+  id              String      @id @default(uuid())
   patientId       String
-  visitDate       DateTime     @db.Date
+  visitDate       DateTime    @db.Date
   queueNumber     Int
   reason          String?
-  status          VisitStatus  @default(REGISTERED)
+  status          VisitStatus @default(REGISTERED)
   createdByUserId String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  examination     Examination?
-  invoice         Invoice?
-  createdByUser   User         @relation("VisitCreatedBy", fields: [createdByUserId], references: [id])
-  patient         Patient      @relation(fields: [patientId], references: [id])
+  departmentId    String?
+  appointmentId   String?     @unique
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  examination   Examination?
+  invoice       Invoice?
+  createdByUser User          @relation("VisitCreatedBy", fields: [createdByUserId], references: [id])
+  patient       Patient       @relation(fields: [patientId], references: [id])
+  department    Department?   @relation(fields: [departmentId], references: [id])
+  appointment   Appointment?  @relation("AppointmentVisit", fields: [appointmentId], references: [id])
+  queueTicket   QueueTicket?
+  vitalSign     VitalSign?
+  serviceOrders ServiceOrder[]
+  dispenses     Dispense[]
 
   @@unique([visitDate, queueNumber])
   @@unique([patientId, visitDate])
@@ -152,10 +172,12 @@ model Examination {
   completedAt   DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+
   diagnoses     Diagnosis[]
-  doctor        User              @relation("DoctorExaminations", fields: [doctorUserId], references: [id])
-  visit         Visit             @relation(fields: [visitId], references: [id])
+  doctor        User          @relation("DoctorExaminations", fields: [doctorUserId], references: [id])
+  visit         Visit         @relation(fields: [visitId], references: [id])
   prescription  Prescription?
+  serviceOrders ServiceOrder[]
 }
 
 model Disease {
@@ -177,8 +199,9 @@ model Diagnosis {
   name          String
   isPrimary     Boolean     @default(false)
   createdAt     DateTime    @default(now())
-  disease       Disease?    @relation(fields: [diseaseId], references: [id])
-  examination   Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+
+  disease     Disease?    @relation(fields: [diseaseId], references: [id])
+  examination Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
 
   @@index([examinationId])
 }
@@ -191,7 +214,11 @@ model Drug {
   isActive          Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+
   prescriptionItems PrescriptionItem[]
+  stockLots         StockLot[]
+  stockMovements    StockMovement[]
+  dispenseItems     DispenseItem[]
 
   @@index([isActive])
 }
@@ -202,8 +229,10 @@ model Prescription {
   note          String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
-  examination   Examination        @relation(fields: [examinationId], references: [id])
-  items         PrescriptionItem[]
+
+  examination Examination        @relation(fields: [examinationId], references: [id])
+  items       PrescriptionItem[]
+  dispense    Dispense?
 }
 
 model PrescriptionItem {
@@ -215,8 +244,10 @@ model PrescriptionItem {
   unitPrice      Decimal      @db.Decimal(12, 2)
   lineTotal      Decimal      @db.Decimal(12, 2)
   createdAt      DateTime     @default(now())
-  drug           Drug         @relation(fields: [drugId], references: [id])
-  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  drug         Drug         @relation(fields: [drugId], references: [id])
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  dispenseItem DispenseItem?
 
   @@unique([prescriptionId, drugId])
 }
@@ -229,22 +260,27 @@ model Invoice {
   status      InvoiceStatus @default(DRAFT)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-  visit       Visit         @relation(fields: [visitId], references: [id])
-  items       InvoiceItem[]
-  payments    Payment[]
+
+  visit    Visit         @relation(fields: [visitId], references: [id])
+  items    InvoiceItem[]
+  payments Payment[]
 
   @@index([status])
 }
 
 model InvoiceItem {
-  id          String   @id @default(uuid())
-  invoiceId   String
-  description String
-  quantity    Int
-  unitPrice   Decimal  @db.Decimal(12, 2)
-  lineTotal   Decimal  @db.Decimal(12, 2)
-  createdAt   DateTime @default(now())
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  invoiceId     String
+  description   String
+  quantity      Int
+  unitPrice     Decimal  @db.Decimal(12, 2)
+  lineTotal     Decimal  @db.Decimal(12, 2)
+  itemType      String?
+  referenceType String?
+  referenceId   String?
+  createdAt     DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
@@ -255,7 +291,8 @@ model Payment {
   note      String?
   paidAt    DateTime      @default(now())
   createdAt DateTime      @default(now())
-  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model RegulationVersion {
@@ -264,7 +301,8 @@ model RegulationVersion {
   activatedAt DateTime?
   note        String?
   createdAt   DateTime         @default(now())
-  items       RegulationItem[]
+
+  items RegulationItem[]
 
   @@index([isActive])
 }
@@ -274,9 +312,335 @@ model RegulationItem {
   versionId String
   key       String
   value     String
-  version   RegulationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  version RegulationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
 
   @@unique([versionId, key])
+}
+
+// ─── Organization ──────────────────────────────────────────────────────────
+
+model Department {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rooms          Room[]
+  staffSchedules StaffSchedule[]
+  appointments   Appointment[]
+  queueTickets   QueueTicket[]
+  visits         Visit[]
+  doctorProfiles DoctorProfile[]
+}
+
+model Room {
+  id           String   @id @default(uuid())
+  departmentId String
+  code         String
+  name         String
+  roomType     String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department     Department      @relation(fields: [departmentId], references: [id])
+  staffSchedules StaffSchedule[]
+  appointments   Appointment[]
+
+  @@unique([departmentId, code])
+}
+
+model DoctorProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  departmentId String
+  title        String?
+  specialty    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User            @relation(fields: [userId], references: [id])
+  department   Department      @relation(fields: [departmentId], references: [id])
+  schedules    StaffSchedule[]
+  appointments Appointment[]
+}
+
+model StaffSchedule {
+  id                  String   @id @default(uuid())
+  userId              String
+  departmentId        String
+  roomId              String?
+  workDate            DateTime @db.Date
+  startTime           String
+  endTime             String
+  slotDurationMinutes Int      @default(15)
+  maxAppointments     Int      @default(20)
+  status              String   @default("ACTIVE")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], map: "StaffSchedule_user_fkey")
+  department    Department     @relation(fields: [departmentId], references: [id])
+  room          Room?          @relation(fields: [roomId], references: [id])
+  doctorProfile DoctorProfile? @relation(fields: [userId], references: [userId], map: "StaffSchedule_doctorProfile_fkey")
+  appointments  Appointment[]
+
+  @@index([workDate])
+  @@index([userId, workDate])
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  patientId       String
+  doctorProfileId String
+  departmentId    String
+  roomId          String?
+  scheduleId      String?
+  scheduledAt     DateTime
+  durationMinutes Int               @default(15)
+  status          AppointmentStatus @default(SCHEDULED)
+  reason          String?
+  createdById     String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  doctorProfile DoctorProfile  @relation(fields: [doctorProfileId], references: [id])
+  department    Department     @relation(fields: [departmentId], references: [id])
+  room          Room?          @relation(fields: [roomId], references: [id])
+  schedule      StaffSchedule? @relation(fields: [scheduleId], references: [id])
+  createdBy     User           @relation("AppointmentCreatedBy", fields: [createdById], references: [id])
+  visit         Visit?         @relation("AppointmentVisit")
+
+  @@index([patientId])
+  @@index([doctorProfileId, scheduledAt])
+  @@index([departmentId, scheduledAt])
+}
+
+model QueueTicket {
+  id           String      @id @default(uuid())
+  visitId      String      @unique
+  departmentId String
+  queueDate    DateTime    @db.Date
+  queueNumber  Int
+  priority     Int         @default(0)
+  status       QueueStatus @default(WAITING)
+  calledAt     DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  visit      Visit      @relation(fields: [visitId], references: [id])
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@unique([departmentId, queueDate, queueNumber])
+  @@index([departmentId, queueDate, status])
+}
+
+model VitalSign {
+  id           String   @id @default(uuid())
+  visitId      String   @unique
+  measuredById String
+  pulse        Int?
+  systolicBp   Int?
+  diastolicBp  Int?
+  temperature  Decimal? @db.Decimal(4, 1)
+  spo2         Int?
+  heightCm     Decimal? @db.Decimal(5, 1)
+  weightKg     Decimal? @db.Decimal(5, 1)
+  bmi          Decimal? @db.Decimal(4, 1)
+  note         String?
+  measuredAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  visit      Visit @relation(fields: [visitId], references: [id])
+  measuredBy User  @relation("VitalSignMeasuredBy", fields: [measuredById], references: [id])
+}
+
+// ─── Services & Lab ────────────────────────────────────────────────────────
+
+model ServiceCatalog {
+  id        String      @id @default(uuid())
+  code      String      @unique
+  name      String
+  type      ServiceType
+  price     Decimal     @db.Decimal(12, 2)
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  serviceOrders ServiceOrder[]
+  labTest       LabTestCatalog?
+
+  @@index([type, isActive])
+}
+
+model LabTestCatalog {
+  id              String   @id @default(uuid())
+  serviceId       String   @unique
+  code            String   @unique
+  sampleType      String
+  turnaroundHours Int      @default(24)
+  referenceRange  String?
+
+  service   ServiceCatalog @relation(fields: [serviceId], references: [id])
+  labOrders LabOrder[]
+}
+
+model ServiceOrder {
+  id            String             @id @default(uuid())
+  visitId       String
+  examinationId String?
+  serviceId     String
+  orderedById   String
+  status        ServiceOrderStatus @default(ORDERED)
+  isRequired    Boolean            @default(false)
+  priceSnapshot Decimal            @db.Decimal(12, 2)
+  billingStatus String             @default("PENDING")
+  orderedAt     DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  visit       Visit          @relation(fields: [visitId], references: [id])
+  examination Examination?   @relation(fields: [examinationId], references: [id])
+  service     ServiceCatalog @relation(fields: [serviceId], references: [id])
+  orderedBy   User           @relation("ServiceOrderedBy", fields: [orderedById], references: [id])
+  labOrder    LabOrder?
+
+  @@index([visitId])
+  @@index([examinationId])
+}
+
+model LabOrder {
+  id             String         @id @default(uuid())
+  serviceOrderId String         @unique
+  labTestId      String
+  status         LabOrderStatus @default(ORDERED)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  serviceOrder ServiceOrder   @relation(fields: [serviceOrderId], references: [id])
+  labTest      LabTestCatalog @relation(fields: [labTestId], references: [id])
+  samples      LabSample[]
+  results      LabResult[]
+}
+
+model LabSample {
+  id            String   @id @default(uuid())
+  labOrderId    String
+  collectedById String
+  sampleType    String
+  status        String   @default("COLLECTED")
+  collectedAt   DateTime @default(now())
+  note          String?
+  createdAt     DateTime @default(now())
+
+  labOrder    LabOrder @relation(fields: [labOrderId], references: [id])
+  collectedBy User     @relation("LabSampleCollectedBy", fields: [collectedById], references: [id])
+}
+
+model LabResult {
+  id             String    @id @default(uuid())
+  labOrderId     String
+  enteredById    String
+  verifiedById   String?
+  resultText     String?
+  resultValue    Decimal?  @db.Decimal(10, 4)
+  unit           String?
+  referenceRange String?
+  status         String    @default("RESULT_ENTERED")
+  enteredAt      DateTime  @default(now())
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  labOrder   LabOrder @relation(fields: [labOrderId], references: [id])
+  enteredBy  User     @relation("LabResultEnteredBy", fields: [enteredById], references: [id])
+  verifiedBy User?    @relation("LabResultVerifiedBy", fields: [verifiedById], references: [id])
+}
+
+// ─── Pharmacy & Inventory ─────────────────────────────────────────────────
+
+model StockLot {
+  id             String    @id @default(uuid())
+  drugId         String
+  lotNumber      String
+  expiryDate     DateTime  @db.Date
+  quantityOnHand Int       @default(0)
+  unitCost       Decimal?  @db.Decimal(12, 2)
+  receivedAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  drug          Drug            @relation(fields: [drugId], references: [id])
+  movements     StockMovement[]
+  dispenseItems DispenseItem[]
+
+  @@unique([drugId, lotNumber])
+  @@index([drugId, expiryDate])
+}
+
+model StockMovement {
+  id            String            @id @default(uuid())
+  drugId        String
+  lotId         String
+  movementType  StockMovementType
+  quantity      Int
+  referenceType String?
+  referenceId   String?
+  note          String?
+  createdById   String
+  createdAt     DateTime          @default(now())
+
+  drug      Drug      @relation(fields: [drugId], references: [id])
+  lot       StockLot  @relation(fields: [lotId], references: [id])
+  createdBy User      @relation("StockMovementCreatedBy", fields: [createdById], references: [id])
+
+  @@index([drugId])
+  @@index([lotId])
+  @@index([createdAt])
+}
+
+model Dispense {
+  id             String         @id @default(uuid())
+  prescriptionId String         @unique
+  visitId        String
+  dispensedById  String
+  status         DispenseStatus @default(PENDING)
+  dispensedAt    DateTime?
+  note           String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  prescription Prescription  @relation(fields: [prescriptionId], references: [id])
+  visit        Visit         @relation(fields: [visitId], references: [id])
+  dispensedBy  User          @relation("DispensedBy", fields: [dispensedById], references: [id])
+  items        DispenseItem[]
+
+  @@index([visitId])
+  @@index([status])
+}
+
+model DispenseItem {
+  id                 String   @id @default(uuid())
+  dispenseId         String
+  prescriptionItemId String   @unique
+  drugId             String
+  lotId              String
+  quantity           Int
+  unitPriceSnapshot  Decimal  @db.Decimal(12, 2)
+  createdAt          DateTime @default(now())
+
+  dispense         Dispense         @relation(fields: [dispenseId], references: [id], onDelete: Cascade)
+  prescriptionItem PrescriptionItem @relation(fields: [prescriptionItemId], references: [id])
+  drug             Drug             @relation(fields: [drugId], references: [id])
+  lot              StockLot         @relation(fields: [lotId], references: [id])
 }
 
 // ─── Enums ─────────────────────────────────────────────────────────────────
@@ -313,4 +677,55 @@ enum PaymentMethod {
   CASH
   TRANSFER
   CARD
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CHECKED_IN
+  CANCELLED
+  NO_SHOW
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  IN_SERVICE
+  DONE
+  SKIPPED
+  CANCELLED
+}
+
+enum ServiceType {
+  CONSULTATION
+  LAB_TEST
+  PROCEDURE
+  IMAGING
+  MATERIAL
+}
+
+enum DispenseStatus {
+  PENDING
+  DISPENSED
+  CANCELLED
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum LabOrderStatus {
+  ORDERED
+  SAMPLE_COLLECTED
+  RESULT_ENTERED
+  VERIFIED
+  CANCELLED
+}
+
+enum ServiceOrderStatus {
+  ORDERED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }

@@ -1,0 +1,71 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P1-01 A4 REPORT — Create Visit (UC07). Full technical: SEQ_P1_01_CreateVisit.mmd
+sequenceDiagram
+    autonumber
+    actor RC as Receptionist
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as VisitsCtrl
+    participant SV as VisitsSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    RC->>FE: Select patient + date
+    FE->>GD: POST /visits {dto} + token
+    GD->>GD: verify JWT + role
+    alt invalid token
+        GD-->>FE: 401 Unauthorized
+    else role not allowed
+        GD-->>FE: 403 Forbidden
+    else authorized
+        GD->>CT: proceed
+        note over CT: Validate DTO
+        alt invalid DTO
+            CT-->>FE: 400 invalid DTO
+        else valid DTO
+            CT->>SV: create(dto, actorId)
+            SV->>DB: find patient
+            alt patient not found
+                DB-->>SV: null
+                SV-->>CT: throw 404
+                CT-->>FE: 404 patient not found
+            else patient exists
+                SV->>DB: get active daily cap
+                rect rgb(235,235,255)
+                    note over TX: BEGIN Serializable transaction
+                    SV->>TX: create visit atomically
+                    TX->>DB: check duplicate visit
+                    alt duplicate today
+                        TX-->>SV: throw 409
+                        SV-->>CT: propagate
+                        CT-->>FE: 409 duplicate visit
+                    else no duplicate
+                        TX->>DB: count visits today
+                        alt daily cap reached
+                            TX-->>SV: throw 409
+                            SV-->>CT: propagate
+                            CT-->>FE: 409 daily cap reached
+                        else slot available
+                            TX->>DB: get last queue number
+                            TX->>DB: create Visit WAITING
+                            note over TX: queueNumber is atomic
+                        end
+                    end
+                    note over TX: COMMIT
+                end
+                SV->>AU: log CREATE_VISIT
+                SV-->>CT: created visit
+                CT-->>FE: 201 created
+                FE-->>RC: Show queue number
+            end
+        end
+    end

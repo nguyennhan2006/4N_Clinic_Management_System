@@ -5,13 +5,17 @@ import {
 } from '@nestjs/common';
 import { ExaminationStatus, VisitStatus } from '@prisma/client';
 
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdateExaminationDto } from './dto/update-examination.dto';
 
 @Injectable()
 export class ExaminationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async findOne(id: string) {
     const examination = await this.prisma.examination.findUnique({
@@ -255,8 +259,8 @@ export class ExaminationsService {
     });
   }
 
-  async complete(id: string) {
-    return this.prisma.$transaction(async (tx) => {
+  async complete(id: string, actorId: string) {
+    const completed = await this.prisma.$transaction(async (tx) => {
       const examination = await tx.examination.findUnique({
         where: { id },
         include: { diagnoses: true },
@@ -282,6 +286,20 @@ export class ExaminationsService {
         );
       }
 
+      // BR-LAB-05: Required service orders phải COMPLETED trước khi hoàn tất khám
+      const requiredPending = await tx.serviceOrder.count({
+        where: {
+          visitId: examination.visitId,
+          isRequired: true,
+          status: { notIn: ['COMPLETED', 'CANCELLED'] },
+        },
+      });
+      if (requiredPending > 0) {
+        throw new BadRequestException(
+          `${requiredPending} required service order(s) must be completed before finishing examination`,
+        );
+      }
+
       const primaryDiagnosis = examination.diagnoses.find(
         (diagnosis) => diagnosis.isPrimary,
       );
@@ -292,7 +310,7 @@ export class ExaminationsService {
         );
       }
 
-      const completed = await tx.examination.update({
+      const result = await tx.examination.update({
         where: { id },
         data: {
           status: ExaminationStatus.COMPLETED,
@@ -309,7 +327,17 @@ export class ExaminationsService {
         data: { status: VisitStatus.COMPLETED },
       });
 
-      return completed;
+      return result;
     });
+
+    await this.auditService.log({
+      actorId,
+      action: 'COMPLETE_EXAMINATION',
+      entityType: 'Examination',
+      entityId: completed.id,
+      after: { visitId: completed.visitId, completedAt: completed.completedAt },
+    });
+
+    return completed;
   }
 }

@@ -4,28 +4,69 @@ Hướng dẫn cho Claude Code khi làm việc trong project này.
 
 ## Tổng quan project
 
-Web app quản lý phòng mạch tư nhân, phase 1. Backend NestJS + Prisma + PostgreSQL. Frontend React + Vite (chưa bắt đầu).
+Web app quản lý phòng mạch tư nhân. Backend NestJS + Prisma + PostgreSQL. Frontend React + Vite.
 
-**Bản kế hoạch chính:** [`PLAN.md`](PLAN.md) — đọc trước khi làm bất cứ thứ gì.
-**Business rules:** [`docs/business/business-rules.md`](docs/business/business-rules.md) — nguồn chốt logic nghiệp vụ.
+- **Phase 1:** Hoàn thành — 20 models, 40 endpoints, 20 UCs, 12 controllers, 5 active roles
+- **Phase 2A:** Schema present (17 models), services/controllers chưa implement — STOP-IMPLEMENTATION cho đến khi SDD approved
+
+## Tài liệu quan trọng — đọc theo thứ tự
+
+| Tài liệu | Khi nào đọc |
+|---|---|
+| [`docs/evaluation-report-2026-05-20.md`](docs/evaluation-report-2026-05-20.md) | Hiểu nhanh luồng đi Phase 1, UC score |
+| [`docs/software-design-workspace/MODE_C_CONTEXT.md`](docs/software-design-workspace/MODE_C_CONTEXT.md) | Context đầy đủ Phase 1 + Phase 2A (40 endpoints, RBAC, state machines) |
+| [`docs/software-design-workspace/final-output/03_GOVERNANCE/DB_Design_and_Extensibility.md`](docs/software-design-workspace/final-output/03_GOVERNANCE/DB_Design_and_Extensibility.md) | Phân tích database, constraint, extensibility |
+| [`docs/adr/README.md`](docs/adr/README.md) | Tại sao các quyết định kiến trúc lại như vậy |
+| [`docs/software-design-workspace/audit-output/`](docs/software-design-workspace/audit-output/) | Audit A0-A6: evidence, conflicts, readiness gate |
+
+## ERD Diagrams (draw.io)
+
+```
+docs/software-design-workspace/final-output/04_DIAGRAM_SOURCES/
+├── ERD_01_Phase1.mmd        # Phase 1 only (20 models)
+├── ERD_02_Phase2A_Delta.mmd # Phase 2A new models (17) + Phase 1 anchors
+└── ERD_03_Full_Schema.mmd   # Tất cả 37 models (reference)
+```
+Cách dùng: draw.io → Extras → Edit Diagram → chọn Mermaid → paste file.
+
+## Chu trình phát triển mỗi phase (AI-assisted workflow)
+
+```
+1. MODE A  — Audit codebase: đọc code, đo đạc, ghi A0-A5 (KHÔNG sửa code)
+2. MODE A.1 — Correction: sửa lỗi trong audit, ghi A6 (KHÔNG sửa code)
+3. Team Review — Con người approve design gate
+4. MODE C  — Generate Software Design Package (As-Built + Target Design)
+5. Team Review — Approve SDD
+6. Sprint 0 — Commit hardening + schema correction migration
+7. Sprint N — Implement theo module (build→test→review→merge)
+8. Integration QA — Full flow demo, regression
+9. Lặp lại từ bước 1 cho Phase tiếp theo
+```
+
+**Quy tắc bất biến:** Design → Approve → Migration → Implement. **Không bao giờ ngược lại.**
 
 ## Cấu trúc quan trọng
 
 ```
-backend/src/modules/   # 11 feature modules
-backend/prisma/        # schema.prisma + seed.ts
-docs/business/         # business-rules.md, role-matrix.md
-docs/agile/            # backlog.md, sprint-plan.md
-docs/api/              # api-scope.md, error-codes.md
-docs/architecture/     # architecture-overview.md, module-boundaries.md
+backend/src/modules/         # 12 feature modules (Phase 1 implemented)
+backend/prisma/schema.prisma # Single source of truth cho DB
+backend/prisma/seed.ts       # Demo data + Phase 2A foundation
+docs/adr/                    # Architecture Decision Records (7 ADRs)
+docs/software-design-workspace/
+  audit-output/              # A0-A6 audit files
+  control/                   # Control documents
+  final-output/              # SDD output + ERD diagrams
+  MODE_C_CONTEXT.md          # Comprehensive context for AI
+docs/phase2-tasks/           # Phase 2A implementation task specs (00-07)
 ```
 
 ## Quy tắc khi code
 
 ### Trước khi tạo/sửa bất kỳ file nào
-1. Đọc `PLAN.md` phần liên quan
-2. Kiểm tra business rules trong `docs/business/business-rules.md`
-3. Liệt kê rõ: file nào tạo mới, file nào sửa, file nào là core
+1. Kiểm tra `docs/software-design-workspace/audit-output/` — có conflict nào liên quan không?
+2. Kiểm tra `docs/adr/` — quyết định kiến trúc liên quan đã ghi ở đâu?
+3. Đọc `backend/prisma/schema.prisma` — verify field names trước khi code service
+4. Liệt kê rõ: file nào tạo mới, file nào sửa, file nào là core
 
 ### Về schema
 - **Schema là nguồn chốt dữ liệu.** Không code service trước khi schema đã được migrate.

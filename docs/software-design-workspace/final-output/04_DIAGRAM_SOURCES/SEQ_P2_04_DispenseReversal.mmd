@@ -1,0 +1,56 @@
+%% SEQ-P2-04 — Dispense reversal (PLANNED Phase 2A)
+%% Source: MODE_C_CONTEXT.md §3.7 BR-P2-12, §3.8 (Pharmacy)
+%% Canonical (post CF-003/004): DispenseStatus REVERSED; StockMovementType REVERSAL
+%% Roles: PHARMACIST, ADMIN | Endpoint: PATCH /pharmacy/dispense/:id/reverse
+sequenceDiagram
+    autonumber
+    actor PH as Pharmacist
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as PharmacyController
+    participant SV as PharmacyService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    note over CT,SV: PLANNED Phase 2A — not implemented in current backend
+    PH->>FE: Reverse a dispense
+    FE->>GD: PATCH /pharmacy/dispense/:id/reverse + token
+    GD->>GD: verify JWT + role in {PHARMACIST, ADMIN}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: reverse(dispenseId, actorId)
+        SV->>DB: dispense.findUnique(id, include items, invoice state)
+        alt not found
+            DB-->>SV: null
+            SV-->>CT: throw NotFoundException
+            CT-->>FE: 404 "Dispense not found"
+        else found
+            alt already REVERSED
+                SV-->>CT: throw ConflictException
+                CT-->>FE: 409 "Dispense already reversed"
+            else invoice already PAID (BR-P2-12)
+                SV-->>CT: throw ConflictException
+                CT-->>FE: 409 "Cannot reverse after payment"
+            else reversible (before payment)
+                rect rgb(235,235,255)
+                    note over TX: BEGIN $transaction — atomic
+                    SV->>TX: run
+                    loop each DispenseItem
+                        TX->>DB: stockMovement.create(type=REVERSAL, referenceType=Dispense)
+                        TX->>DB: stockLot.update(quantityOnHand += qty)
+                    end
+                    TX->>DB: dispense.update(status=REVERSED)
+                    note over TX: Dispense DISPENSED -> REVERSED
+                    note over TX: COMMIT
+                end
+                SV->>AU: log(STOCK_MOVEMENT reversal) [NEW audit — Phase 2A]
+                note right of AU: append-only, after COMMIT
+                SV-->>CT: dispense (REVERSED)
+                CT-->>FE: 200 {dispense}
+                FE-->>PH: Dispense reversed, stock restored
+            end
+        end
+    end

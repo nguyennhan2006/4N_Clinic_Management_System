@@ -1,0 +1,252 @@
+%% ============================================================
+%% ERD — Phase 1 As-Built (20 models)
+%% 4N Clinic Management System
+%%
+%% Cách dùng với draw.io:
+%%   Extras → Edit Diagram → chọn format "Mermaid" → paste toàn bộ file
+%%
+%% Màu gợi ý sau khi import (group thủ công trong draw.io):
+%%   🔵 Identity & Access : User, Role, Permission, UserRole, RolePermission, RefreshToken, AuditLog
+%%   🟢 Clinical          : Patient, Visit, Examination, Disease, Diagnosis, Drug, Prescription, PrescriptionItem
+%%   🟡 Financial         : Invoice, InvoiceItem, Payment
+%%   🟣 Operations        : RegulationVersion, RegulationItem
+%% ============================================================
+
+erDiagram
+
+%% ─── Identity & Access ───────────────────────────────────────
+
+    User {
+        string  id          PK  "uuid"
+        string  username    UK  "nullable"
+        string  passwordHash    "bcrypt, never expose"
+        string  fullName
+        string  email           "nullable"
+        string  phone           "nullable"
+        string  status          "ACTIVE|INACTIVE|LOCKED"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Role {
+        string  id      PK  "uuid"
+        string  code    UK  "nullable"
+        string  name
+        string  description "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Permission {
+        string  id      PK  "uuid"
+        string  code    UK
+        string  name
+        string  description "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    UserRole {
+        string  userId  PK,FK   "→ User"
+        string  roleId  PK,FK   "→ Role"
+        datetime createdAt
+    }
+
+    RolePermission {
+        string  roleId       PK,FK  "→ Role"
+        string  permissionId PK,FK  "→ Permission"
+    }
+
+    RefreshToken {
+        string  id        PK  "uuid"
+        string  userId    FK  "→ User"
+        string  tokenHash     "SHA-256 hash"
+        datetime revokedAt    "nullable"
+        datetime expiresAt
+        datetime createdAt
+    }
+
+    AuditLog {
+        string  id         PK  "uuid"
+        string  actorId    FK  "→ User (nullable)"
+        string  action         "LOGIN_SUCCESS | CREATE_VISIT | ..."
+        string  entityType
+        string  entityId       "nullable"
+        json    before         "nullable"
+        json    after          "nullable"
+        datetime createdAt
+    }
+
+%% ─── Clinical ────────────────────────────────────────────────
+
+    Patient {
+        string  id          PK  "uuid"
+        string  patientCode UK
+        string  fullName
+        datetime dob            "nullable"
+        string  gender          "nullable"
+        string  phone           "nullable"
+        string  citizenId   UK  "nullable"
+        string  address         "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Visit {
+        string  id              PK  "uuid"
+        string  patientId       FK  "→ Patient"
+        string  createdByUserId FK  "→ User"
+        string  departmentId    FK  "→ Department (nullable, Phase2A field)"
+        string  appointmentId   FK,UK "→ Appointment (nullable, Phase2A field)"
+        date    visitDate
+        int     queueNumber
+        string  reason          "nullable"
+        string  status          "REGISTERED|WAITING|IN_EXAMINATION|COMPLETED|CANCELLED"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Examination {
+        string  id           PK  "uuid"
+        string  visitId      FK,UK "→ Visit (1:1)"
+        string  doctorUserId FK  "→ User"
+        string  symptoms         "nullable"
+        string  clinicalNotes    "nullable"
+        string  conclusion       "nullable"
+        string  status           "OPEN|COMPLETED|CANCELLED"
+        datetime completedAt     "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Disease {
+        string  id       PK  "uuid"
+        string  code     UK
+        string  name
+        boolean isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Diagnosis {
+        string  id            PK  "uuid"
+        string  examinationId FK  "→ Examination"
+        string  diseaseId     FK  "→ Disease (nullable)"
+        string  name
+        boolean isPrimary
+        datetime createdAt
+    }
+
+    Drug {
+        string  id       PK  "uuid"
+        string  name     UK
+        string  unit
+        decimal price
+        boolean isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    Prescription {
+        string  id            PK  "uuid"
+        string  examinationId FK,UK "→ Examination (1:1)"
+        string  note              "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    PrescriptionItem {
+        string  id             PK     "uuid"
+        string  prescriptionId FK     "→ Prescription"
+        string  drugId         FK     "→ Drug"
+        int     quantity
+        string  dosage
+        decimal unitPrice          "snapshot at time of prescription"
+        decimal lineTotal
+        datetime createdAt
+    }
+
+%% ─── Financial ───────────────────────────────────────────────
+
+    Invoice {
+        string  id          PK  "uuid"
+        string  visitId     FK,UK "→ Visit (1:1)"
+        decimal totalAmount
+        decimal paidAmount
+        string  status      "DRAFT|ISSUED|PARTIALLY_PAID|PAID|VOID"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    InvoiceItem {
+        string  id            PK  "uuid"
+        string  invoiceId     FK  "→ Invoice"
+        string  description       "snapshot"
+        int     quantity
+        decimal unitPrice         "snapshot"
+        decimal lineTotal
+        string  itemType          "nullable: CONSULTATION|LAB_TEST|MEDICINE|..."
+        string  referenceType     "nullable: SERVICE_ORDER|DISPENSE_ITEM|EXAM_FEE"
+        string  referenceId       "nullable"
+        datetime createdAt
+    }
+
+    Payment {
+        string  id        PK  "uuid"
+        string  invoiceId FK  "→ Invoice"
+        decimal amount
+        string  method    "CASH|TRANSFER|CARD"
+        string  note      "nullable"
+        datetime paidAt
+        datetime createdAt
+    }
+
+%% ─── Operations ──────────────────────────────────────────────
+
+    RegulationVersion {
+        string  id          PK  "uuid"
+        boolean isActive
+        datetime activatedAt "nullable"
+        string  note         "nullable"
+        datetime createdAt
+    }
+
+    RegulationItem {
+        string  id        PK  "uuid"
+        string  versionId FK  "→ RegulationVersion"
+        string  key           "e.g. MAX_PATIENTS_PER_DAY"
+        string  value
+    }
+
+%% ─── Relationships ───────────────────────────────────────────
+
+    %% Identity & Access
+    User            ||--o{    UserRole        : "assigned"
+    Role            ||--o{    UserRole        : "assigned to"
+    Role            ||--o{    RolePermission  : "grants"
+    Permission      ||--o{    RolePermission  : "granted by"
+    User            ||--o{    RefreshToken    : "owns"
+    User            |o--o{    AuditLog        : "performed (nullable actor)"
+
+    %% Visit lifecycle
+    Patient         ||--o{    Visit           : "has"
+    User            ||--o{    Visit           : "created by"
+    Visit           ||--o|    Examination     : "has"
+    Visit           ||--o|    Invoice         : "billed as"
+
+    %% Examination chain
+    User            ||--o{    Examination     : "performed by doctor"
+    Examination     ||--o{    Diagnosis       : "contains"
+    Examination     ||--o|    Prescription    : "has"
+    Disease         |o--o{    Diagnosis       : "classified as"
+
+    %% Prescription items
+    Prescription    ||--o{    PrescriptionItem : "contains"
+    Drug            ||--o{    PrescriptionItem : "prescribed"
+
+    %% Invoice chain
+    Invoice         ||--o{    InvoiceItem     : "contains"
+    Invoice         ||--o{    Payment         : "paid via"
+
+    %% Operations
+    RegulationVersion ||--o{  RegulationItem  : "contains"

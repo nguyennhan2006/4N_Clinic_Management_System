@@ -19,12 +19,17 @@ export interface InvoiceListItem {
   }
 }
 
+export type InvoiceItemType = 'CONSULTATION' | 'SERVICE' | 'DRUG' | 'OTHER'
+
 export interface InvoiceItem {
   id: string
   description: string
   quantity: number
   unitPrice: number | string
   lineTotal: number | string
+  itemType?: InvoiceItemType
+  referenceType?: string
+  referenceId?: string
 }
 
 export interface Payment {

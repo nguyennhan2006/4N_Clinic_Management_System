@@ -3,7 +3,7 @@ import type { CreateVisitRequest, QueryVisitsParams, Visit, VisitExamination } f
 
 export const visitApi = {
   list: (params?: QueryVisitsParams) =>
-    apiClient.get<Visit[]>('/visits', params as Record<string, string | undefined>),
+    apiClient.get<Visit[]>('/visits', params as Record<string, string | boolean | undefined>),
 
   create: (data: CreateVisitRequest) =>
     apiClient.post<Visit>('/visits', data),

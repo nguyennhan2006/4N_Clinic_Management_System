@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -28,8 +29,8 @@ export class PatientsController {
 
   @Post()
   @Roles(ROLES.RECEPTIONIST, ROLES.ADMIN)
-  create(@Body() dto: CreatePatientDto) {
-    return this.patientsService.create(dto);
+  create(@Body() dto: CreatePatientDto, @CurrentUser() user: { sub: string }) {
+    return this.patientsService.create(dto, user.sub);
   }
 
   // UC-11 — khai báo trước ':id' để route khớp đúng

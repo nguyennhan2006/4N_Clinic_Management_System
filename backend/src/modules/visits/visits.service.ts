@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, VisitStatus } from '@prisma/client';
 
+import { AuditService } from '../audit/audit.service';
 import { toDateOnly } from '../../common/utils/date-only.util';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
@@ -15,7 +16,10 @@ const DEFAULT_MAX_PATIENTS_PER_DAY = 40;
 
 @Injectable()
 export class VisitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   private async getMaxPatientsPerDay(): Promise<number> {
     const activeVersion = await this.prisma.regulationVersion.findFirst({
@@ -48,7 +52,7 @@ export class VisitsService {
 
     const maxPatientsPerDay = await this.getMaxPatientsPerDay();
 
-    return this.prisma.$transaction(
+    const visit = await this.prisma.$transaction(
       async (tx) => {
         const duplicateToday = await tx.visit.findFirst({
           where: { patientId: dto.patientId, visitDate },
@@ -104,16 +108,38 @@ export class VisitsService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+
+    await this.auditService.log({
+      actorId: userId,
+      action: 'CREATE_VISIT',
+      entityType: 'Visit',
+      entityId: visit.id,
+      after: {
+        patientId: visit.patientId,
+        visitDate: visit.visitDate,
+        queueNumber: visit.queueNumber,
+      },
+    });
+
+    return visit;
   }
 
   // UC-08: Xem danh sách khám
   async findAll(query: QueryVisitsDto) {
     const visitDate = toDateOnly(query.date);
 
+    const invoiceFilter =
+      query.hasInvoice === true
+        ? { invoice: { isNot: null } }
+        : query.hasInvoice === false
+          ? { invoice: { is: null } }
+          : {};
+
     return this.prisma.visit.findMany({
       where: {
-        visitDate,
+        ...(visitDate ? { visitDate } : {}),
         ...(query.status ? { status: query.status } : {}),
+        ...invoiceFilter,
       },
       select: {
         id: true,
@@ -152,7 +178,7 @@ export class VisitsService {
       throw new BadRequestException('Doctor account is inactive or not found');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const examination = await this.prisma.$transaction(async (tx) => {
       const visit = await tx.visit.findUnique({
         where: { id: visitId },
         include: { examination: true },
@@ -174,7 +200,7 @@ export class VisitsService {
         );
       }
 
-      const examination = await tx.examination.create({
+      const exam = await tx.examination.create({
         data: { visitId, doctorUserId },
       });
 
@@ -183,7 +209,17 @@ export class VisitsService {
         data: { status: VisitStatus.IN_EXAMINATION },
       });
 
-      return examination;
+      return exam;
     });
+
+    await this.auditService.log({
+      actorId: doctorUserId,
+      action: 'OPEN_EXAMINATION',
+      entityType: 'Examination',
+      entityId: examination.id,
+      after: { visitId },
+    });
+
+    return examination;
   }
 }

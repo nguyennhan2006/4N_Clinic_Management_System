@@ -1,0 +1,70 @@
+%% SEQ-P2-03 — Lab order -> collect -> result -> review (PLANNED Phase 2A)
+%% Source: MODE_C_CONTEXT.md §3.7 BR-P2-07/08, §3.8 (Services/Lab)
+%% Canonical (post CF-001/002): LabOrderStatus.REVIEWED, LabResult.reviewedById/reviewedAt
+%% Roles: DOCTOR (order/review), LAB_TECHNICIAN (collect/result)
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    actor LT as Lab Technician
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as ServiceOrders/LabController
+    participant SV as LabService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    note over CT,SV: PLANNED Phase 2A — not implemented in current backend
+
+    DR->>FE: Order a lab service on examination
+    FE->>GD: POST /examinations/:id/service-orders {serviceId} + token
+    GD->>GD: role in {DOCTOR, ADMIN}
+    GD->>CT: proceed
+    CT->>SV: createServiceOrder(dto, actorId)
+    rect rgb(235,235,255)
+        note over TX: BEGIN $transaction — BR-P2-06/07
+        SV->>TX: run
+        TX->>DB: serviceCatalog.findUnique(serviceId) -> priceSnapshot
+        TX->>DB: serviceOrder.create(status=ORDERED, priceSnapshot)
+        opt ServiceType == LAB_TEST
+            TX->>DB: labOrder.create(status=ORDERED) (states sync with ServiceOrder)
+        end
+        note over TX: COMMIT
+    end
+    SV-->>CT: serviceOrder (+ labOrder)
+    CT-->>FE: 201 {serviceOrder}
+
+    LT->>FE: Collect sample
+    FE->>GD: POST /lab/orders/:id/collect + token
+    GD->>GD: role == LAB_TECHNICIAN
+    GD->>CT: proceed
+    CT->>SV: collectSample(id, actorId)
+    SV->>DB: labOrder.update(status=SAMPLE_COLLECTED) + labSample.create(collectedById)
+    SV-->>CT: labOrder
+    CT-->>FE: 200 {labOrder}
+
+    LT->>FE: Enter result
+    FE->>GD: POST /lab/orders/:id/result + token
+    GD->>CT: proceed
+    CT->>SV: enterResult(id, dto, actorId)
+    SV->>DB: labResult.create(enteredById) + labOrder.update(status=RESULT_ENTERED)
+    note over SV: result immutable after RESULT_ENTERED
+    SV->>AU: log(LAB_RESULT_ENTERED) [NEW audit — Phase 2A]
+    SV-->>CT: labResult
+    CT-->>FE: 200 {labResult}
+
+    DR->>FE: Review result
+    FE->>GD: PATCH /lab/orders/:id/review + token
+    GD->>GD: role in {DOCTOR, ADMIN}
+    GD->>CT: proceed
+    CT->>SV: review(id, reviewerId)
+    alt reviewer == enteredById (BR-P2-08)
+        SV-->>CT: throw BadRequestException
+        CT-->>FE: 400 "Reviewer must differ from result entrant"
+    else reviewer != entrant
+        SV->>DB: labResult.update(reviewedById, reviewedAt) + labOrder.update(status=REVIEWED)
+        note over SV: LabOrder ... -> REVIEWED (canonical, not VERIFIED)
+        SV-->>CT: labOrder (REVIEWED)
+        CT-->>FE: 200 {labOrder}
+        FE-->>DR: Result reviewed
+    end

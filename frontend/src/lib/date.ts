@@ -54,3 +54,19 @@ export function toApiMonth(date: Date): string {
 export function currentMonth(): string {
   return toApiMonth(new Date())
 }
+
+const timeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
+export function formatTime(value: string | Date | null | undefined): string {
+  if (!value) return '—'
+  const d = parseDate(value)
+  return d ? timeFormatter.format(d) : '—'
+}
+
+export function today(): string {
+  return toApiDate(new Date())
+}

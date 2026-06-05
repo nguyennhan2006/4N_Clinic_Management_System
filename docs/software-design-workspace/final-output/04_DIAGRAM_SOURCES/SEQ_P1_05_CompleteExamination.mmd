@@ -1,0 +1,65 @@
+%% SEQ-P1-05 — Complete Examination (UC13) — AS-BUILT
+%% Source: backend/src/modules/examinations/examinations.service.ts::complete
+%% Roles: DOCTOR, ADMIN | Endpoint: POST /examinations/:id/complete
+%% NOTE: validation is performed INSIDE the transaction (findUnique inside tx).
+%% BR-07: symptoms + conclusion + PRIMARY diagnosis required.
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as ExaminationsController
+    participant SV as ExaminationsService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    DR->>FE: Click "Complete examination"
+    FE->>GD: POST /examinations/:id/complete + token
+    GD->>GD: verify JWT + role in {DOCTOR, ADMIN}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: complete(id, actorId)
+        rect rgb(235,235,255)
+            note over TX: BEGIN $transaction (validation inside tx)
+            SV->>TX: run
+            TX->>DB: examination.findUnique(id, include diagnoses)
+            alt not found
+                TX-->>SV: throw NotFoundException
+                SV-->>CT: propagate
+                CT-->>FE: 404 "Examination not found"
+            else found
+                alt already COMPLETED
+                    TX-->>SV: return existing (idempotent, no error)
+                else CANCELLED
+                    TX-->>SV: throw BadRequestException
+                    SV-->>CT: propagate
+                    CT-->>FE: 400 "Cannot complete a cancelled examination"
+                else OPEN
+                    alt missing symptoms or conclusion (BR-07)
+                        TX-->>SV: throw BadRequestException
+                        SV-->>CT: propagate
+                        CT-->>FE: 400 "Symptoms and conclusion are required"
+                    else has symptoms + conclusion
+                        alt no primary diagnosis (BR-07)
+                            TX-->>SV: throw BadRequestException
+                            SV-->>CT: propagate
+                            CT-->>FE: 400 "Primary diagnosis is required"
+                        else primary diagnosis present
+                            TX->>DB: examination.update(status=COMPLETED, completedAt=now)
+                            TX->>DB: visit.update(status=COMPLETED)
+                            note over TX: Exam OPEN -> COMPLETED; Visit IN_EXAMINATION -> COMPLETED
+                        end
+                    end
+                end
+            end
+            note over TX: COMMIT
+        end
+        SV->>AU: log(COMPLETE_EXAMINATION, Examination, id, {visitId, completedAt})
+        note right of AU: append-only, after COMMIT
+        SV-->>CT: examination
+        CT-->>FE: 201 {examination}
+        FE-->>DR: Examination completed
+    end

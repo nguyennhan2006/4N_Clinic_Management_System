@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Calendar, Stethoscope, Receipt,
-  BarChart3, BookOpen, Pill, Settings, UserCog, LogOut,
+  BarChart3, BookOpen, Pill, Settings, UserCog, LogOut, Building2,
+  CalendarCheck, ListOrdered, FlaskConical, Package, LayoutList, ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/features/auth/store'
@@ -20,6 +21,13 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Pill,
   Settings,
   UserCog,
+  Building2,
+  CalendarCheck,
+  ListOrdered,
+  FlaskConical,
+  Package,
+  LayoutList,
+  ShieldCheck,
 }
 
 function NavItemLink({ item }: { item: NavItem }) {

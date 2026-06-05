@@ -29,7 +29,13 @@ export class VisitsController {
   }
 
   @Get()
-  @Roles(ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.MANAGER, ROLES.ADMIN)
+  @Roles(
+    ROLES.RECEPTIONIST,
+    ROLES.DOCTOR,
+    ROLES.MANAGER,
+    ROLES.CASHIER,
+    ROLES.ADMIN,
+  )
   findAll(@Query() query: QueryVisitsDto) {
     return this.visitsService.findAll(query);
   }

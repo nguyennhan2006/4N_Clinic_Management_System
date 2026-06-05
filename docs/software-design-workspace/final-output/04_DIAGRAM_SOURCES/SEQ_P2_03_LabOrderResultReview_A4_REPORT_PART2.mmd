@@ -1,0 +1,41 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P2-03 A4 REPORT PART2 — Lab: review (PLANNED). Full: SEQ_P2_03_LabOrderResultReview.mmd
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as LabCtrl
+    participant SV as LabSvc
+    participant DB as PostgreSQL
+
+    note over CT,SV: PLANNED Phase 2A - not implemented
+    DR->>FE: Review result
+    FE->>GD: PATCH /lab/orders/:id/review + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: review(id, reviewerId)
+        SV->>DB: find lab order + result
+        alt reviewer = result entrant
+            SV-->>CT: throw 400 (BR-P2-08)
+            CT-->>FE: 400 reviewer must differ
+        else reviewer differs
+            SV->>DB: LabResult reviewedById/reviewedAt
+            SV->>DB: LabOrder -> REVIEWED
+            note over SV: canonical REVIEWED (not VERIFIED)
+            SV-->>CT: labOrder REVIEWED
+            CT-->>FE: 200 labOrder
+            FE-->>DR: Result reviewed
+        end
+    end

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -59,7 +60,7 @@ export class ExaminationsController {
   @Post(':id/complete')
   @HttpCode(HttpStatus.OK)
   @Roles(ROLES.DOCTOR, ROLES.ADMIN)
-  complete(@Param('id') id: string) {
-    return this.examinationsService.complete(id);
+  complete(@Param('id') id: string, @CurrentUser() user: { sub: string }) {
+    return this.examinationsService.complete(id, user.sub);
   }
 }

@@ -1,0 +1,50 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P1-09 A4 REPORT — Activate Regulation (UC17). Full: SEQ_P1_09_ActivateRegulation.mmd
+%% Note: no audit in as-built code (recommended hardening).
+sequenceDiagram
+    autonumber
+    actor AD as Admin
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as RegCtrl
+    participant SV as RegSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+
+    AD->>FE: Activate draft version
+    FE->>GD: PATCH /regulations/:id/activate + token
+    GD->>GD: verify JWT + role = ADMIN
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: activate(id)
+        SV->>DB: find regulation version
+        alt not found
+            SV-->>CT: throw 404
+            CT-->>FE: 404 version not found
+        else already active
+            SV-->>CT: throw 400
+            CT-->>FE: 400 already active
+        else draft
+            rect rgb(235,235,255)
+                note over TX: BEGIN transaction (BR-09)
+                SV->>TX: switch active version
+                TX->>DB: deactivate all active
+                TX->>DB: activate this version
+                note over TX: COMMIT
+            end
+            note over SV: not retroactive
+            SV-->>CT: activated version
+            CT-->>FE: 200 version
+            FE-->>AD: Regulation activated
+        end
+    end

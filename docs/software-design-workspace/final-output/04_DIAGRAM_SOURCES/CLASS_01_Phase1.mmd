@@ -1,0 +1,194 @@
+classDiagram
+
+class User {
+    -id: String
+    -username: String
+    -fullName: String
+    -email: String
+    -status: UserStatus
+    +lock() void
+    +unlock() void
+    +assignRoles(roles) void
+}
+
+class Role {
+    -id: String
+    -code: String
+    -name: String
+    +updatePermissions(perms) void
+}
+
+class Permission {
+    -id: String
+    -code: String
+    -name: String
+}
+
+class Patient {
+    -id: String
+    -patientCode: String
+    -fullName: String
+    -dob: Date
+    -gender: String
+    -phone: String
+    -address: String
+    +updateProfile() void
+    +getMedicalHistory() List
+}
+
+class Visit {
+    -id: String
+    -visitDate: Date
+    -queueNumber: Int
+    -reason: String
+    -status: VisitStatus
+    +cancel() void
+    +openExamination() Examination
+}
+
+class Examination {
+    -id: String
+    -symptoms: String
+    -clinicalNotes: String
+    -conclusion: String
+    -status: ExaminationStatus
+    +update() void
+    +addDiagnosis() void
+    +upsertPrescription() void
+    +complete() void
+}
+
+class Disease {
+    -id: String
+    -code: String
+    -name: String
+    -isActive: Boolean
+    +activate() void
+    +deactivate() void
+}
+
+class Diagnosis {
+    -id: String
+    -name: String
+    -isPrimary: Boolean
+}
+
+class Drug {
+    -id: String
+    -name: String
+    -unit: String
+    -price: Decimal
+    -isActive: Boolean
+    +activate() void
+    +deactivate() void
+}
+
+class Prescription {
+    -id: String
+    -note: String
+    +replaceAllItems() void
+    +calculateTotal() Decimal
+}
+
+class PrescriptionItem {
+    -id: String
+    -quantity: Int
+    -dosage: String
+    -unitPrice: Decimal
+    -lineTotal: Decimal
+    +calculateLineTotal() Decimal
+}
+
+class Invoice {
+    -id: String
+    -totalAmount: Decimal
+    -paidAmount: Decimal
+    -status: InvoiceStatus
+    +issue() void
+    +voidInvoice() void
+    +getRemainingAmount() Decimal
+}
+
+class InvoiceItem {
+    -id: String
+    -description: String
+    -quantity: Int
+    -unitPrice: Decimal
+    -lineTotal: Decimal
+    -itemType: String
+    -referenceId: String
+    +calculateLineTotal() Decimal
+}
+
+class Payment {
+    -id: String
+    -amount: Decimal
+    -method: PaymentMethod
+    -paidAt: Date
+    +confirm() void
+}
+
+class RegulationVersion {
+    -id: String
+    -isActive: Boolean
+    -activatedAt: Date
+    +activate() void
+    +getValue(key) String
+}
+
+class RegulationItem {
+    -id: String
+    -key: String
+    -value: String
+}
+
+class VisitsService {
+    +create(dto, actorId) Visit
+    +findAll(query) List
+    +openExamination(id, actorId) Examination
+    -getActiveDailyCap() Int
+    -generateQueueNumber() Int
+}
+
+class ExaminationsService {
+    +findOne(id) Examination
+    +update(id, dto) Examination
+    +upsertPrescription(id, items) Prescription
+    +complete(id, actorId) Examination
+    -validateCompletionRequirements() void
+}
+
+class BillingService {
+    +createInvoiceFromVisit(visitId, actorId) Invoice
+    +findMany(query) List
+    +findInvoice(id) Invoice
+    +createPayment(invoiceId, dto, actorId) Payment
+    -buildInvoiceItems(visit) List
+    -validatePaymentAmount() void
+}
+
+User "1" --> "0..*" Role : assigned
+Role "1" --> "0..*" Permission : grants
+
+Patient "1" --> "0..*" Visit : has
+User "1" --> "0..*" Visit : created_by
+User "1" --> "0..*" Examination : performs
+Visit "1" --> "0..1" Examination : has
+Visit "1" --> "0..1" Invoice : billed_as
+Examination "1" --> "0..1" Prescription : has
+Examination "1" *-- "0..*" Diagnosis : contains
+Diagnosis "0..*" --> "0..1" Disease : classifies
+Prescription "1" *-- "1..*" PrescriptionItem : contains
+PrescriptionItem "0..*" --> "1" Drug : references
+Invoice "1" *-- "1..*" InvoiceItem : contains
+Invoice "1" *-- "0..*" Payment : paid_by
+RegulationVersion "1" *-- "1..*" RegulationItem : contains
+
+VisitsService ..> Visit : manages
+VisitsService ..> Patient : reads
+VisitsService ..> RegulationVersion : reads_cap
+ExaminationsService ..> Examination : manages
+ExaminationsService ..> Prescription : manages
+BillingService ..> Invoice : creates
+BillingService ..> Visit : validates
+BillingService ..> Payment : records

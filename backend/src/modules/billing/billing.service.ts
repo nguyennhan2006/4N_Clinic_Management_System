@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InvoiceStatus, Prisma, VisitStatus } from '@prisma/client';
 
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { QueryInvoicesDto } from './dto/query-invoices.dto';
@@ -13,7 +14,10 @@ const DEFAULT_CONSULTATION_FEE = 150000;
 
 @Injectable()
 export class BillingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   private async getConsultationFee(): Promise<number> {
     const activeVersion = await this.prisma.regulationVersion.findFirst({
@@ -27,8 +31,8 @@ export class BillingService {
       : DEFAULT_CONSULTATION_FEE;
   }
 
-  // UC-14: Lập hóa đơn từ visit đã COMPLETED
-  async createInvoiceFromVisit(visitId: string) {
+  // UC-14: Lập hóa đơn từ visit đã COMPLETED — multi-item invoice
+  async createInvoiceFromVisit(visitId: string, actorId: string) {
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
       include: {
@@ -39,6 +43,10 @@ export class BillingService {
               include: { items: { include: { drug: true } } },
             },
           },
+        },
+        serviceOrders: {
+          where: { status: 'COMPLETED' },
+          include: { service: true },
         },
       },
     });
@@ -68,27 +76,50 @@ export class BillingService {
       quantity: number;
       unitPrice: number;
       lineTotal: number;
+      itemType?: string;
+      referenceType?: string;
+      referenceId?: string;
     }[] = [
       {
         description: 'Phí khám bệnh',
         quantity: 1,
         unitPrice: consultationFee,
         lineTotal: consultationFee,
+        itemType: 'CONSULTATION',
+        referenceType: 'Examination',
+        referenceId: visit.examination.id,
       },
     ];
 
+    // Dịch vụ đã hoàn thành (service orders COMPLETED)
+    for (const order of visit.serviceOrders ?? []) {
+      invoiceItems.push({
+        description: order.service.name,
+        quantity: 1,
+        unitPrice: Number(order.priceSnapshot),
+        lineTotal: Number(order.priceSnapshot),
+        itemType: 'SERVICE',
+        referenceType: 'ServiceOrder',
+        referenceId: order.id,
+      });
+    }
+
+    // Thuốc trong đơn kê
     for (const item of visit.examination.prescription?.items ?? []) {
       invoiceItems.push({
         description: `Thuốc: ${item.drug.name} - ${item.dosage}`,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         lineTotal: Number(item.lineTotal),
+        itemType: 'DRUG',
+        referenceType: 'PrescriptionItem',
+        referenceId: item.id,
       });
     }
 
     const totalAmount = invoiceItems.reduce((sum, i) => sum + i.lineTotal, 0);
 
-    return this.prisma.invoice.create({
+    const invoice = await this.prisma.invoice.create({
       data: {
         visitId,
         totalAmount,
@@ -101,6 +132,28 @@ export class BillingService {
         payments: true,
         visit: { include: { patient: true } },
       },
+    });
+
+    await this.auditService.log({
+      actorId,
+      action: 'CREATE_INVOICE',
+      entityType: 'Invoice',
+      entityId: invoice.id,
+      after: { visitId, totalAmount, itemCount: invoiceItems.length },
+    });
+
+    return invoice;
+  }
+
+  async getInvoiceItems(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    return this.prisma.invoiceItem.findMany({
+      where: { invoiceId },
+      orderBy: [{ itemType: 'asc' }, { description: 'asc' }],
     });
   }
 
@@ -179,12 +232,16 @@ export class BillingService {
   }
 
   // UC-15: Ghi nhận thanh toán
-  async createPayment(invoiceId: string, dto: CreatePaymentDto) {
+  async createPayment(
+    invoiceId: string,
+    dto: CreatePaymentDto,
+    actorId: string,
+  ) {
     if (dto.amount <= 0) {
       throw new BadRequestException('Payment amount must be greater than 0');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findUnique({
         where: { id: invoiceId },
       });
@@ -232,5 +289,19 @@ export class BillingService {
         include: { items: true, payments: true },
       });
     });
+
+    await this.auditService.log({
+      actorId,
+      action: 'CREATE_PAYMENT',
+      entityType: 'Invoice',
+      entityId: invoiceId,
+      after: {
+        amount: dto.amount,
+        method: dto.method,
+        newStatus: updated.status,
+      },
+    });
+
+    return updated;
   }
 }

@@ -200,7 +200,22 @@ export function InvoiceDetailPage() {
           <tbody className="divide-y divide-clinic-border">
             {invoice?.items.map((item) => (
               <tr key={item.id}>
-                <td className="py-2.5 text-clinic-text">{item.description}</td>
+                <td className="py-2.5 text-clinic-text">
+                  {item.description}
+                  {item.itemType && (
+                    <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      item.itemType === 'CONSULTATION'
+                        ? 'bg-blue-50 text-blue-700'
+                        : item.itemType === 'SERVICE'
+                        ? 'bg-purple-50 text-purple-700'
+                        : item.itemType === 'DRUG'
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {item.itemType === 'CONSULTATION' ? 'Khám' : item.itemType === 'SERVICE' ? 'Dịch vụ' : item.itemType === 'DRUG' ? 'Thuốc' : item.itemType}
+                    </span>
+                  )}
+                </td>
                 <td className="py-2.5 text-clinic-muted">{item.quantity}</td>
                 <td className="py-2.5 text-clinic-muted">{formatVND(Number(item.unitPrice))}</td>
                 <td className="py-2.5 font-medium text-clinic-text">{formatVND(Number(item.lineTotal))}</td>

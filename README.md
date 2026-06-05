@@ -5,15 +5,13 @@
 
 ---
 
-## Giới thiệu
+## Tổng quan
 
-**4N Clinic Management System** là web application nội bộ hỗ trợ vận hành phòng mạch tư nhân. Hệ thống bao gồm toàn bộ luồng nghiệp vụ từ tiếp nhận bệnh nhân, khám bệnh, kê đơn thuốc, đến lập hóa đơn và xem báo cáo doanh thu — phục vụ 5 vai trò nhân viên khác nhau với phân quyền riêng biệt.
-
-Dự án được xây dựng theo hướng **backend-first, modular monolith**, REST API, với frontend React kết nối hoàn toàn vào API thực — không dùng dữ liệu giả.
+**4N Clinic Management System** là web application nội bộ hỗ trợ vận hành phòng mạch tư nhân. Hệ thống bao gồm toàn bộ luồng nghiệp vụ từ đặt lịch hẹn, tiếp nhận bệnh nhân, khám bệnh, xét nghiệm, kê đơn, phát thuốc, đến lập hóa đơn và xem báo cáo doanh thu.
 
 ---
 
-## Tính năng chính (Phase 1 — 20 Use Cases)
+## Use Cases — Phase 1 (20 UC cơ bản)
 
 | UC | Tính năng | Vai trò |
 |---|---|---|
@@ -30,7 +28,7 @@ Dự án được xây dựng theo hướng **backend-first, modular monolith**,
 | UC11 | Xem lịch sử khám bệnh của bệnh nhân | Bác sĩ |
 | UC12 | Kê đơn thuốc | Bác sĩ |
 | UC13 | Hoàn tất phiếu khám | Bác sĩ |
-| UC14 | Lập hóa đơn | Thu ngân |
+| UC14 | Lập hóa đơn (tự động từ dịch vụ + thuốc) | Thu ngân |
 | UC15 | Ghi nhận thanh toán | Thu ngân |
 | UC16 | Tra cứu hóa đơn | Thu ngân, Quản lý |
 | UC17 | Thay đổi quy định phòng mạch | Admin |
@@ -38,31 +36,58 @@ Dự án được xây dựng theo hướng **backend-first, modular monolith**,
 | UC19 | Quản lý danh mục thuốc | Admin |
 | UC20 | Xem báo cáo tháng cơ bản | Quản lý, Admin |
 
+## Use Cases — Phase 2 (mở rộng lâm sàng)
+
+| Module | Tính năng |
+|---|---|
+| Lịch hẹn | Đặt lịch, kiểm tra trùng, check-in → tự tạo Visit + số thứ tự hàng chờ |
+| Hàng đợi | Dashboard trực tiếp, tự làm mới 30 giây, state machine WAITING → CALLED → IN_SERVICE → DONE |
+| Chỉ số sinh tồn | Ghi mạch, huyết áp, nhiệt độ, SpO₂, BMI tự tính |
+| Dịch vụ lâm sàng | Catalog dịch vụ (khám/xét nghiệm/thủ thuật), chỉ định dịch vụ trong phiếu khám |
+| Xét nghiệm | Luồng đầy đủ: chỉ định → lấy mẫu → nhập kết quả → xác nhận, worklist 60 giây |
+| Tồn kho thuốc | Nhập lô, theo dõi số lượng, cảnh báo sắp hết hạn / tồn kho thấp |
+| Phát thuốc | Phát thuốc theo đơn, chọn lô theo FEFO, trừ tồn kho nguyên tử |
+| Hóa đơn mở rộng | Phân loại theo loại (Khám / Dịch vụ / Thuốc), badge phân biệt màu |
+| Báo cáo mở rộng | Doanh thu phân theo loại dịch vụ trong báo cáo tháng |
+| Audit Log | Nhật ký thao tác toàn hệ thống, phân trang, xem diff old/new |
+
 ---
 
 ## Luồng nghiệp vụ chính
 
 ```
-[Lễ tân] Tạo/tra cứu bệnh nhân → Tạo lượt khám (cấp STT hàng chờ)
-    ↓
-[Bác sĩ] Mở lượt khám → Nhập triệu chứng & chẩn đoán → Kê đơn thuốc → Hoàn tất
-    ↓
-[Thu ngân] Lập hóa đơn → Ghi nhận thanh toán (tiền mặt / chuyển khoản / thẻ)
-    ↓
-[Quản lý / Admin] Xem báo cáo doanh thu tháng
+[Lễ tân] Tạo/tra cứu bệnh nhân
+    → Đặt lịch hẹn (tùy chọn) → Check-in khi đến
+    → Tạo lượt khám (cấp STT hàng chờ)
+         ↓
+[Điều dưỡng] Gọi số thứ tự → Đo chỉ số sinh tồn → Chỉ định dịch vụ / xét nghiệm
+         ↓
+[Kỹ thuật viên] Lấy mẫu xét nghiệm → Nhập kết quả → Xác nhận
+         ↓
+[Bác sĩ] Mở lượt khám → Chẩn đoán → Kê đơn thuốc → Hoàn tất phiếu khám
+         ↓
+[Dược sĩ] Phát thuốc theo đơn (chọn lô FEFO, trừ tồn kho)
+         ↓
+[Thu ngân] Lập hóa đơn (tự động tổng hợp tiền khám + dịch vụ + thuốc)
+    → Ghi nhận thanh toán
+         ↓
+[Quản lý / Admin] Báo cáo doanh thu tháng theo từng loại
 ```
 
 ---
 
 ## Vai trò và phân quyền
 
-| Vai trò | Mô tả chức trách |
+| Vai trò | Mô tả |
 |---|---|
-| **ADMIN** | Quản trị hệ thống, tài khoản người dùng, quy định, danh mục |
-| **RECEPTIONIST** | Tiếp nhận bệnh nhân, tạo lượt khám, quản lý hàng chờ |
-| **DOCTOR** | Mở khám, lập phiếu khám, kê đơn thuốc, hoàn tất phiếu khám |
-| **CASHIER** | Lập hóa đơn, ghi nhận thanh toán, tra cứu hóa đơn |
-| **MANAGER** | Xem báo cáo doanh thu, tra cứu hóa đơn, xem danh sách khám |
+| **ADMIN** | Toàn quyền: tài khoản, quy định, danh mục, audit log |
+| **RECEPTIONIST** | Tiếp nhận bệnh nhân, tạo/quản lý lịch hẹn, lượt khám |
+| **DOCTOR** | Mở khám, phiếu khám, đơn thuốc, hoàn tất |
+| **NURSE** | Gọi hàng đợi, ghi chỉ số sinh tồn, chỉ định dịch vụ |
+| **LAB_TECH** | Lấy mẫu, nhập kết quả, xác nhận xét nghiệm |
+| **PHARMACIST** | Phát thuốc, nhập lô tồn kho |
+| **CASHIER** | Lập hóa đơn, ghi nhận thanh toán |
+| **MANAGER** | Báo cáo, tra cứu hóa đơn, xem danh mục |
 
 ---
 
@@ -74,11 +99,10 @@ Dự án được xây dựng theo hướng **backend-first, modular monolith**,
 |---|---|
 | Framework | NestJS 11 + TypeScript |
 | ORM | Prisma 6 |
-| Database | PostgreSQL |
+| Database | PostgreSQL ≥ 14 |
 | Auth | JWT Access Token (1 ngày) + Refresh Token (7 ngày) |
 | Validation | class-validator + class-transformer |
-| API Docs | Swagger / OpenAPI |
-| Test | Jest + Supertest |
+| API Docs | Swagger / OpenAPI tại `/api/docs` |
 
 ### Frontend
 
@@ -93,78 +117,46 @@ Dự án được xây dựng theo hướng **backend-first, modular monolith**,
 
 ---
 
-## Cấu trúc repo
+## Yêu cầu hệ thống
 
-```
-4N_Clinic_Management_System/
-├── backend/                    # NestJS API server
-│   ├── src/
-│   │   ├── modules/
-│   │   │   ├── auth/           # Đăng nhập, JWT, refresh token
-│   │   │   ├── users/          # Quản lý người dùng
-│   │   │   ├── rbac/           # Vai trò và quyền hạn
-│   │   │   ├── patients/       # Hồ sơ bệnh nhân
-│   │   │   ├── visits/         # Lượt khám, hàng chờ
-│   │   │   ├── examinations/   # Phiếu khám, đơn thuốc
-│   │   │   ├── billing/        # Hóa đơn, thanh toán
-│   │   │   ├── diseases/       # Danh mục bệnh
-│   │   │   ├── drugs/          # Danh mục thuốc
-│   │   │   ├── regulations/    # Quy định phòng mạch
-│   │   │   ├── reports/        # Báo cáo tháng
-│   │   │   └── audit/          # Nhật ký thao tác
-│   │   └── common/             # Guards, decorators, constants
-│   └── prisma/
-│       ├── schema.prisma
-│       └── seed.ts
-│
-├── frontend/                   # React SPA
-│   └── src/
-│       ├── features/           # Mỗi feature là 1 module độc lập
-│       │   ├── auth/
-│       │   ├── dashboard/
-│       │   ├── patients/
-│       │   ├── visits/
-│       │   ├── examinations/
-│       │   ├── invoices/
-│       │   ├── regulations/
-│       │   ├── diseases/
-│       │   ├── reports/
-│       │   └── users/
-│       ├── components/
-│       │   ├── common/         # Sidebar, Topbar, PageHeader, ...
-│       │   └── ui/             # shadcn/ui components
-│       ├── lib/                # api-client, date, money, errors
-│       └── config/             # navigation, permissions
-│
-├── docs/                       # Tài liệu thiết kế
-│   ├── business/               # Business rules, role matrix
-│   ├── architecture/           # Architecture overview
-│   ├── api/                    # API scope, error codes
-│   └── agile/                  # Backlog, sprint plan
-│
-├── database/                   # SQL scripts, ERD
-├── frontend-docs/              # API inventory, RBAC matrix
-└── scripts/                    # Dev utilities
+- **Node.js** ≥ 20 — tải tại https://nodejs.org
+- **PostgreSQL** ≥ 14 — tải tại https://www.postgresql.org/download
+- **npm** ≥ 10 (đi kèm Node.js)
+
+Kiểm tra phiên bản:
+
+```bash
+node -v      # >= 20.x.x
+npm -v       # >= 10.x.x
+psql --version
 ```
 
 ---
 
-## Hướng dẫn cài đặt
+## Hướng dẫn cài đặt và chạy
 
-### Yêu cầu hệ thống
-
-- Node.js ≥ 20
-- PostgreSQL ≥ 14
-- npm ≥ 10
-
-### 1. Clone repo
+### Bước 1 — Clone repo
 
 ```bash
 git clone <repo-url>
 cd 4N_Clinic_Management_System
 ```
 
-### 2. Cài đặt Backend
+---
+
+### Bước 2 — Tạo database PostgreSQL
+
+Mở `psql` hoặc pgAdmin và chạy:
+
+```sql
+CREATE DATABASE clinic_db;
+```
+
+> Nếu bạn dùng user/password khác thì thay vào `DATABASE_URL` ở bước 3.
+
+---
+
+### Bước 3 — Cấu hình Backend
 
 ```bash
 cd backend
@@ -174,65 +166,98 @@ npm install
 Tạo file `.env` từ mẫu:
 
 ```bash
+# Windows
+copy .env.example .env
+
+# macOS / Linux
 cp .env.example .env
 ```
 
-Chỉnh sửa `.env` với thông tin database của bạn:
+Mở file `backend/.env` và chỉnh sửa:
 
 ```env
-DATABASE_URL="postgresql://<user>:<password>@localhost:5432/clinic_management_db?schema=public"
+# Thay USER, PASSWORD, và tên database cho đúng với máy bạn
+DATABASE_URL="postgresql://postgres:password@localhost:5432/clinic_db?schema=public"
 
-JWT_ACCESS_SECRET="your_random_secret_here"
+# Đặt bất kỳ chuỗi ngẫu nhiên nào (không để trống)
+JWT_ACCESS_SECRET="clinic_access_secret_change_me"
 JWT_ACCESS_EXPIRES="1d"
 
-JWT_REFRESH_SECRET="your_another_random_secret_here"
+JWT_REFRESH_SECRET="clinic_refresh_secret_change_me"
 JWT_REFRESH_EXPIRES="7d"
 
 PORT=3000
 ```
 
-Chạy migration và seed dữ liệu mẫu:
+---
+
+### Bước 4 — Chạy Migration và Seed dữ liệu
 
 ```bash
+# Trong thư mục backend/
+
+# Tạo các bảng trong database
 npx prisma migrate deploy
+
+# Seed dữ liệu mẫu (tài khoản, danh mục, quy định)
 npx prisma db seed
 ```
 
-Khởi động backend:
+> **Lưu ý:** Nếu bạn đang phát triển và muốn reset database:
+> ```bash
+> npx prisma migrate reset   # Xóa sạch + chạy lại migration + seed
+> ```
+
+---
+
+### Bước 5 — Khởi động Backend
 
 ```bash
+# Trong thư mục backend/
 npm run start:dev
 ```
 
-- API: `http://localhost:3000/api/v1`
-- Swagger UI: `http://localhost:3000/api/docs`
+Kiểm tra server đã chạy:
+- API: http://localhost:3000/api/v1
+- Swagger UI: http://localhost:3000/api/docs
 
-### 3. Cài đặt Frontend
+---
+
+### Bước 6 — Cấu hình Frontend
+
+Mở terminal mới (giữ terminal backend đang chạy):
 
 ```bash
 cd frontend
 npm install
 ```
 
-Tạo file `.env`:
-
-```env
-VITE_API_BASE_URL=http://localhost:3000/api/v1
-```
-
-Khởi động frontend:
+Tạo file `frontend/.env`:
 
 ```bash
+# Windows
+echo VITE_API_BASE_URL=http://localhost:3000/api/v1 > .env
+
+# macOS / Linux
+echo "VITE_API_BASE_URL=http://localhost:3000/api/v1" > .env
+```
+
+---
+
+### Bước 7 — Khởi động Frontend
+
+```bash
+# Trong thư mục frontend/
 npm run dev
 ```
 
-- Truy cập: `http://localhost:5173`
+Truy cập: **http://localhost:5173**
 
 ---
 
 ## Tài khoản demo
 
-Sau khi chạy `npx prisma db seed`, hệ thống tạo sẵn 5 tài khoản:
+Sau khi chạy seed, hệ thống có sẵn các tài khoản:
 
 | Vai trò | Tên đăng nhập | Mật khẩu |
 |---|---|---|
@@ -242,76 +267,177 @@ Sau khi chạy `npx prisma db seed`, hệ thống tạo sẵn 5 tài khoản:
 | Thu ngân | `cashier` | `Cashier@123456` |
 | Quản lý | `manager` | `Manager@123456` |
 
+> Để test đầy đủ Phase 2 (điều dưỡng, dược sĩ, kỹ thuật viên), tạo thêm tài khoản từ trang **Admin → Tài khoản** sau khi đăng nhập bằng `admin`.
+
 ---
 
-## API Reference
+## Xử lý lỗi thường gặp
 
-Tất cả endpoint đều có prefix `/api/v1`. Xác thực bằng `Authorization: Bearer <access_token>`.
+### `Can't reach database server`
 
-| Nhóm | Phương thức | Endpoint |
-|---|---|---|
-| Auth | POST | `/auth/login` |
-| Auth | POST | `/auth/refresh` |
-| Auth | POST | `/auth/logout` |
-| Auth | GET | `/auth/me` |
-| Users | GET / POST | `/users` |
-| Users | GET / PATCH | `/users/:id` |
-| Users | PATCH | `/users/:id/roles` |
-| Users | PATCH | `/users/:id/lock` |
-| RBAC | GET | `/rbac/roles` |
-| RBAC | GET | `/rbac/permissions` |
-| RBAC | PATCH | `/rbac/roles/:id/permissions` |
-| Patients | GET / POST | `/patients` |
-| Patients | GET | `/patients/:id` |
-| Patients | GET | `/patients/:id/medical-history` |
-| Visits | GET / POST | `/visits` |
-| Visits | POST | `/visits/:id/open-examination` |
-| Examinations | GET / PATCH | `/examinations/:id` |
-| Examinations | PUT | `/examinations/:id/prescription` |
-| Examinations | POST | `/examinations/:id/complete` |
-| Billing | POST | `/visits/:id/invoice` |
-| Billing | GET | `/invoices` |
-| Billing | GET | `/invoices/:id` |
-| Billing | POST | `/invoices/:id/payments` |
-| Diseases | GET / POST | `/diseases` |
-| Diseases | PATCH | `/diseases/:id` |
-| Drugs | GET / POST | `/drugs` |
-| Drugs | PATCH | `/drugs/:id` |
-| Regulations | GET | `/regulations/current` |
-| Regulations | POST | `/regulations` |
-| Regulations | PATCH | `/regulations/:id/activate` |
-| Reports | GET | `/reports/monthly?month=YYYY-MM` |
+Database chưa chạy hoặc `DATABASE_URL` sai. Kiểm tra:
+```bash
+# Đảm bảo PostgreSQL đang chạy
+# Windows: Services → postgresql
+# macOS: brew services start postgresql
+# Linux: sudo systemctl start postgresql
+```
 
-Chi tiết request/response xem đầy đủ tại Swagger: `http://localhost:3000/api/docs`
+### `Invalid environment variables`
+
+File `.env` thiếu hoặc sai cú pháp. Kiểm tra lại `backend/.env` theo mẫu ở Bước 3.
+
+### Port 3000 đã bị dùng
+
+Đổi port trong `backend/.env`:
+```env
+PORT=3001
+```
+Và cập nhật `frontend/.env`:
+```env
+VITE_API_BASE_URL=http://localhost:3001/api/v1
+```
+
+### Frontend báo lỗi 401 ngay khi vào
+
+Access token hết hạn hoặc không có. Hãy đăng xuất và đăng nhập lại.
 
 ---
 
 ## Lệnh thường dùng
 
 ```bash
-# Backend
+# ── Backend ──────────────────────────────────
 cd backend
+
 npm run start:dev          # Dev server (hot reload)
 npm run build              # Build production
 npm run test               # Unit tests
 npm run test:e2e           # E2E tests
-npx prisma migrate dev     # Tạo migration mới sau khi sửa schema
-npx prisma studio          # GUI xem và chỉnh sửa database
-npx prisma db seed         # Seed dữ liệu mẫu
+npm run lint               # Kiểm tra lint
+npm run format             # Format code
 
-# Frontend
+npx prisma migrate dev     # Tạo migration mới sau khi sửa schema
+npx prisma migrate deploy  # Áp dụng migration (production / CI)
+npx prisma migrate reset   # Reset DB: xóa sạch + migrate + seed
+npx prisma db seed         # Chỉ seed lại dữ liệu mẫu
+npx prisma studio          # GUI xem và chỉnh sửa database (http://localhost:5555)
+
+# ── Frontend ─────────────────────────────────
 cd frontend
+
 npm run dev                # Dev server
 npm run build              # Build production
 npm run lint               # Kiểm tra lint
+npm run preview            # Preview bản build
 ```
+
+---
+
+## Cấu trúc repo
+
+```
+4N_Clinic_Management_System/
+├── backend/
+│   ├── src/
+│   │   ├── modules/
+│   │   │   ├── auth/               # Đăng nhập, JWT
+│   │   │   ├── users/              # Quản lý người dùng
+│   │   │   ├── patients/           # Hồ sơ bệnh nhân
+│   │   │   ├── visits/             # Lượt khám, hàng chờ
+│   │   │   ├── examinations/       # Phiếu khám, đơn thuốc
+│   │   │   ├── billing/            # Hóa đơn, thanh toán
+│   │   │   ├── appointments/       # Lịch hẹn (Phase 2)
+│   │   │   ├── queue/              # Hàng đợi (Phase 2)
+│   │   │   ├── vitals/             # Chỉ số sinh tồn (Phase 2)
+│   │   │   ├── services/           # Dịch vụ lâm sàng (Phase 2)
+│   │   │   ├── lab/                # Xét nghiệm (Phase 2)
+│   │   │   ├── inventory/          # Tồn kho thuốc (Phase 2)
+│   │   │   ├── pharmacy/           # Phát thuốc (Phase 2)
+│   │   │   ├── diseases/           # Danh mục bệnh
+│   │   │   ├── drugs/              # Danh mục thuốc
+│   │   │   ├── regulations/        # Quy định phòng mạch
+│   │   │   ├── reports/            # Báo cáo tháng
+│   │   │   └── organization/       # Khoa, hồ sơ bác sĩ
+│   │   └── common/                 # Guards, decorators, constants
+│   └── prisma/
+│       ├── schema.prisma           # Nguồn chốt dữ liệu
+│       └── seed.ts
+│
+├── frontend/
+│   └── src/
+│       ├── features/               # Mỗi feature = 1 module độc lập
+│       │   ├── auth/
+│       │   ├── patients/
+│       │   ├── visits/
+│       │   ├── examinations/
+│       │   ├── appointments/       # Phase 2
+│       │   ├── queue/              # Phase 2
+│       │   ├── vitals/             # Phase 2
+│       │   ├── services/           # Phase 2
+│       │   ├── lab/                # Phase 2
+│       │   ├── inventory/          # Phase 2
+│       │   ├── pharmacy/           # Phase 2
+│       │   ├── invoices/
+│       │   ├── reports/
+│       │   ├── regulations/
+│       │   ├── diseases/
+│       │   ├── medicines/
+│       │   ├── users/
+│       │   ├── organization/
+│       │   └── audit/              # Phase 2
+│       ├── components/common/      # Sidebar, Topbar, PageHeader, ...
+│       ├── lib/                    # api-client, date, money, errors
+│       └── config/                 # navigation, permissions
+│
+├── docs/                           # Tài liệu thiết kế
+└── frontend-docs/                  # API inventory, RBAC matrix
+```
+
+---
+
+## API Reference (tóm tắt)
+
+Tất cả endpoint có prefix `/api/v1`. Xác thực: `Authorization: Bearer <access_token>`.
+
+### Phase 1
+
+| Nhóm | Endpoint |
+|---|---|
+| Auth | `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me` |
+| Users | `GET /users`, `POST /users`, `PATCH /users/:id` |
+| Patients | `GET /patients`, `POST /patients`, `GET /patients/:id` |
+| Visits | `GET /visits`, `POST /visits`, `PATCH /visits/:id/status` |
+| Examinations | `GET /examinations/:id`, `PATCH /examinations/:id`, `POST /examinations/:id/complete` |
+| Billing | `POST /visits/:id/invoice`, `GET /invoices`, `POST /invoices/:id/payments` |
+| Diseases | `GET /diseases`, `POST /diseases`, `PATCH /diseases/:id` |
+| Drugs | `GET /drugs`, `POST /drugs`, `PATCH /drugs/:id` |
+| Regulations | `GET /regulations/current`, `POST /regulations`, `PATCH /regulations/:id/activate` |
+| Reports | `GET /reports/monthly` |
+
+### Phase 2
+
+| Nhóm | Endpoint |
+|---|---|
+| Appointments | `GET /appointments`, `POST /appointments`, `POST /appointments/:id/checkin` |
+| Queue | `GET /queue`, `PATCH /queue/:id/status` |
+| Vitals | `GET /vitals/visit/:id`, `POST /vitals` |
+| Service Catalog | `GET /service-catalog`, `POST /service-catalog`, `PATCH /service-catalog/:id` |
+| Service Orders | `GET /service-orders`, `POST /service-orders`, `PATCH /service-orders/:id/status` |
+| Lab | `GET /lab`, `PATCH /lab/:id/collect-sample`, `PATCH /lab/:id/result`, `PATCH /lab/:id/verify` |
+| Inventory | `GET /inventory/lots`, `POST /inventory/lots`, `GET /inventory/summary` |
+| Pharmacy | `GET /pharmacy/dispenses`, `POST /pharmacy/dispenses`, `PATCH /pharmacy/dispenses/:id/cancel` |
+| Audit Log | `GET /audit-logs` |
+| Reports | `GET /reports/revenue-breakdown` |
+
+Chi tiết đầy đủ tại Swagger: **http://localhost:3000/api/docs**
 
 ---
 
 ## Kiến trúc hệ thống
 
 ```
-Browser — React SPA (Vite)
+Browser — React SPA (Vite :5173)
         │
         │  HTTPS REST + Bearer Token
         ▼
@@ -326,48 +452,15 @@ PostgreSQL Database
 ```
 
 **Nguyên tắc thiết kế:**
-
-- Frontend chỉ gọi API — không chứa business logic.
-- Backend là nguồn chốt cho mọi validation và phân quyền.
-- JWT stateless: access token ngắn hạn (1 ngày), refresh token rotation (7 ngày).
-- RBAC enforce ở backend bằng `RolesGuard` + `@Roles()` decorator trên từng route.
-- Mọi transaction quan trọng (tạo lượt khám, ghi nhận thanh toán) dùng `prisma.$transaction()`.
+- Frontend chỉ gọi API — không chứa business logic
+- Backend là nguồn chốt cho mọi validation và phân quyền
+- Mọi transaction quan trọng (tạo lượt khám, phát thuốc, thanh toán) dùng `prisma.$transaction()`
+- Snapshot pattern: giá dịch vụ và thuốc được snapshot tại thời điểm tạo để đảm bảo tính bất biến của hóa đơn cũ
 
 ---
 
-## Tài liệu kỹ thuật
-
-| Tài liệu | Đường dẫn |
-|---|---|
-| Business Rules | `docs/business/business-rules.md` |
-| Role Matrix | `docs/business/role-matrix.md` |
-| Architecture Overview | `docs/architecture/architecture-overview.md` |
-| API Scope | `docs/api/api-scope.md` |
-| Error Codes | `docs/api/error-codes.md` |
-| Sprint Plan | `docs/agile/sprint-plan.md` |
-| API Endpoint Inventory | `frontend-docs/api-endpoint-inventory.md` |
-| RBAC Matrix (Frontend) | `frontend-docs/rbac-matrix.md` |
-
----
-
-## Ngoài phạm vi Phase 1
-
-Những tính năng sau được xác định là **Phase 2** và chưa triển khai:
-
-- Đặt lịch hẹn online
-- Portal bệnh nhân (self-service)
-- SMS / Email nhắc nhở tự động
-- Quản lý tồn kho thuốc (nhập / xuất / tồn kho)
-- Hệ thống bảo hiểm y tế
-- Multi-branch / multi-tenant
-- Analytics nâng cao / BI dashboard
-- Telemedicine
-- Xét nghiệm / chẩn đoán hình ảnh
-
----
-
-## Đồ án SE104
+## Thông tin đồ án
 
 - **Môn học:** SE104 – Nhập môn Công nghệ Phần mềm
 - **Trường:** Đại học Công nghệ Thông tin – ĐHQG TP.HCM
-- **Phiên bản hiện tại:** Phase 1 (ver1)
+- **Phiên bản:** Phase 1 + Phase 2 (lâm sàng mở rộng)

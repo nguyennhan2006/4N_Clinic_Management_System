@@ -23,4 +23,10 @@ export class ReportsController {
   getMonthlySummary(@Query() query: QueryMonthlyDto) {
     return this.reportsService.getMonthlySummary(query.month);
   }
+
+  @Get('revenue-breakdown')
+  @Roles(ROLES.ADMIN, ROLES.MANAGER)
+  getRevenueBreakdown(@Query() query: QueryMonthlyDto) {
+    return this.reportsService.getRevenueBreakdown(query.month);
+  }
 }

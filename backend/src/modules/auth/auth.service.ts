@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -32,6 +33,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly auditService: AuditService,
   ) {}
 
   async login(dto: LoginDto) {
@@ -41,14 +43,31 @@ export class AuthService {
     });
 
     if (!user) {
+      await this.auditService.log({
+        action: 'LOGIN_FAILED',
+        entityType: 'Auth',
+        after: { username: dto.username, reason: 'user_not_found' },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.status === 'LOCKED') {
+      await this.auditService.log({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'Auth',
+        after: { username: dto.username, reason: 'account_locked' },
+      });
       throw new ForbiddenException('Account is locked');
     }
 
     if (user.status === 'INACTIVE') {
+      await this.auditService.log({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'Auth',
+        after: { username: dto.username, reason: 'account_inactive' },
+      });
       throw new ForbiddenException('Account is inactive');
     }
 
@@ -57,6 +76,12 @@ export class AuthService {
       user.passwordHash,
     );
     if (!isPasswordValid) {
+      await this.auditService.log({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'Auth',
+        after: { username: dto.username, reason: 'invalid_credentials' },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -72,6 +97,14 @@ export class AuthService {
 
     await this.prisma.refreshToken.create({
       data: { userId: user.id, tokenHash, expiresAt },
+    });
+
+    await this.auditService.log({
+      actorId: user.id,
+      action: 'LOGIN_SUCCESS',
+      entityType: 'Auth',
+      entityId: user.id,
+      after: { username: user.username, roles },
     });
 
     return {

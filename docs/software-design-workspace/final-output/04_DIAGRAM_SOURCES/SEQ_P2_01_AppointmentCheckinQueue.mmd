@@ -1,0 +1,62 @@
+%% SEQ-P2-01 — Appointment Check-in -> Visit + QueueTicket (PLANNED Phase 2A)
+%% Source: MODE_C_CONTEXT.md §3.7 BR-P2-01/02/03, §3.8 (Appointments/Queue), OQ-002
+%% Canonical (post CF-006/007/008): scheduledStartAt/scheduledEndAt, Visit.visitSource,
+%%   Visit.appointmentId @unique, Visit.departmentId, Visit.doctorProfileId
+%% Roles: RECEPTIONIST, NURSE (check-in) | Endpoint: POST /appointments/:id/checkin
+sequenceDiagram
+    autonumber
+    actor RC as Receptionist
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as AppointmentsController
+    participant SV as AppointmentsService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    note over CT,SV: PLANNED Phase 2A — not implemented in current backend
+    RC->>FE: Check in an appointment
+    FE->>GD: POST /appointments/:id/checkin + token
+    GD->>GD: verify JWT + role in {RECEPTIONIST, NURSE}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: checkIn(appointmentId, actorId)
+        SV->>DB: appointment.findUnique(id)
+        alt not found
+            DB-->>SV: null
+            SV-->>CT: throw NotFoundException
+            CT-->>FE: 404 "Appointment not found"
+        else found
+            alt status != SCHEDULED
+                SV-->>CT: throw ConflictException
+                CT-->>FE: 409 "Appointment not in SCHEDULED state"
+            else SCHEDULED
+                rect rgb(235,235,255)
+                    note over TX: BEGIN $transaction — BR-P2-02 atomic
+                    SV->>TX: run
+                    TX->>DB: visit.findUnique(appointmentId) (idempotency via @unique, OQ-002)
+                    alt already checked in
+                        TX-->>SV: throw ConflictException
+                        SV-->>CT: propagate
+                        CT-->>FE: 409 "Already checked in"
+                    else not yet
+                        TX->>DB: visit.create(visitSource=APPOINTMENT, appointmentId, departmentId, doctorProfileId, status=WAITING)
+                        note over TX: REGISTERED reserved; check-in creates WAITING visit
+                        TX->>DB: queueTicket.findFirst(departmentId, queueDate order queueNumber desc) (BR-P2-03)
+                        TX->>DB: queueTicket.create(queueNumber+1, priority=1, status=WAITING)
+                        TX->>DB: appointment.update(status=CHECKED_IN)
+                        note over TX: Appointment SCHEDULED -> CHECKED_IN
+                    end
+                    note over TX: COMMIT
+                end
+                SV->>AU: log(CHECKIN / CREATE_VISIT) [NEW audit — Phase 2A]
+                note right of AU: append-only, after COMMIT
+                SV-->>CT: {visit, queueTicket}
+                CT-->>FE: 201 {visit, queueTicket}
+                FE-->>RC: Show queue number (priority 1)
+            end
+        end
+    end
+    note over CT,SV: Walk-in variant (BR-P2-01): create Visit{visitSource=WALK_IN, no appointmentId} + QueueTicket{priority=0}

@@ -26,6 +26,12 @@ export function MonthlyReportPage() {
     enabled: !!month,
   })
 
+  const { data: breakdown } = useQuery({
+    queryKey: ['reports', 'revenue-breakdown', month],
+    queryFn: () => reportApi.getRevenueBreakdown(month),
+    enabled: !!month,
+  })
+
   const visitStatusLabels: Record<string, string> = {
     WAITING: 'Đang chờ',
     IN_EXAMINATION: 'Đang khám',
@@ -134,6 +140,32 @@ export function MonthlyReportPage() {
               </div>
             </div>
           </div>
+
+          {/* Revenue by type (Phase 2) */}
+          {breakdown && (
+            <div className="rounded-2xl bg-clinic-surface p-6 shadow-clinic">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-clinic-muted">
+                Doanh thu theo loại dịch vụ
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  { key: 'CONSULTATION', label: 'Tiền khám', color: 'bg-blue-50 text-blue-700 border-blue-100' },
+                  { key: 'SERVICE', label: 'Dịch vụ', color: 'bg-purple-50 text-purple-700 border-purple-100' },
+                  { key: 'DRUG', label: 'Thuốc', color: 'bg-green-50 text-green-700 border-green-100' },
+                ].map(({ key, label, color }) => {
+                  const value = breakdown.byType[key as keyof typeof breakdown.byType] ?? 0
+                  const pct = breakdown.total > 0 ? Math.round((value / breakdown.total) * 100) : 0
+                  return (
+                    <div key={key} className={`rounded-xl border p-4 ${color}`}>
+                      <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
+                      <p className="mt-2 text-xl font-bold">{formatVND(value)}</p>
+                      <p className="mt-1 text-xs opacity-70">{pct}% tổng doanh thu</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </>
       ) : null}
     </div>

@@ -1,0 +1,59 @@
+%% SEQ-P2-02 — Dispense with FEFO stock deduction (PLANNED Phase 2A)
+%% Source: MODE_C_CONTEXT.md §3.7 BR-P2-09/10/11, §3.8 (Pharmacy)
+%% Canonical (post CF-003/004): DispenseStatus = DISPENSED/REVERSED; StockMovementType includes OUT
+%% Roles: PHARMACIST, ADMIN | Endpoint: POST /pharmacy/dispense
+sequenceDiagram
+    autonumber
+    actor PH as Pharmacist
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as PharmacyController
+    participant SV as PharmacyService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    note over CT,SV: PLANNED Phase 2A — not implemented in current backend
+    PH->>FE: Select a COMPLETED prescription to dispense
+    FE->>GD: POST /pharmacy/dispense {prescriptionId} + token
+    GD->>GD: verify JWT + role in {PHARMACIST, ADMIN}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: dispense(dto, actorId)
+        SV->>DB: prescription.findUnique(id, include items, examination)
+        alt not found
+            DB-->>SV: null
+            SV-->>CT: throw NotFoundException
+            CT-->>FE: 404 "Prescription not found"
+        else examination not COMPLETED
+            SV-->>CT: throw ConflictException
+            CT-->>FE: 409 "Examination not completed"
+        else valid
+            rect rgb(235,235,255)
+                note over TX: BEGIN $transaction — BR-P2-10 atomic
+                SV->>TX: run
+                loop each PrescriptionItem
+                    TX->>DB: stockLot.findMany(drugId, quantityOnHand>0 order expiryDate asc) -- FEFO (BR-P2-09)
+                    alt insufficient stock
+                        TX-->>SV: throw ConflictException
+                        SV-->>CT: propagate (rollback)
+                        CT-->>FE: 409 "Insufficient stock"
+                    else enough stock
+                        TX->>DB: dispenseItem.create(prescriptionItemId, lotId, unitPriceSnapshot)
+                        TX->>DB: stockMovement.create(type=OUT, referenceType=Dispense)
+                        TX->>DB: stockLot.update(quantityOnHand -= qty)
+                    end
+                end
+                TX->>DB: dispense.create(status=DISPENSED, dispensedAt=now)
+                note over TX: COMMIT
+            end
+            note right of SV: BR-P2-11 — Stock is decreased ONLY during dispense,<br/>not when prescribing or completing exam
+            SV->>AU: log(DISPENSE, STOCK_MOVEMENT) [NEW audit — Phase 2A]
+            note right of AU: append-only, after COMMIT
+            SV-->>CT: dispense
+            CT-->>FE: 201 {dispense}
+            FE-->>PH: Dispense confirmed
+        end
+    end

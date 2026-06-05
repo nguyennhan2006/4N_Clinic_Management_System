@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -27,8 +28,11 @@ export class BillingController {
   @Post('visits/:visitId/invoice')
   @HttpCode(HttpStatus.CREATED)
   @Roles(ROLES.CASHIER, ROLES.ADMIN)
-  createInvoice(@Param('visitId') visitId: string) {
-    return this.billingService.createInvoiceFromVisit(visitId);
+  createInvoice(
+    @Param('visitId') visitId: string,
+    @CurrentUser() user: { sub: string },
+  ) {
+    return this.billingService.createInvoiceFromVisit(visitId, user.sub);
   }
 
   // UC-16: Danh sách hóa đơn
@@ -45,11 +49,21 @@ export class BillingController {
     return this.billingService.findInvoice(id);
   }
 
+  @Get('invoices/:id/items')
+  @Roles(ROLES.CASHIER, ROLES.MANAGER, ROLES.ADMIN)
+  getInvoiceItems(@Param('id') id: string) {
+    return this.billingService.getInvoiceItems(id);
+  }
+
   // UC-15
   @Post('invoices/:id/payments')
   @HttpCode(HttpStatus.CREATED)
   @Roles(ROLES.CASHIER, ROLES.ADMIN)
-  createPayment(@Param('id') id: string, @Body() dto: CreatePaymentDto) {
-    return this.billingService.createPayment(id, dto);
+  createPayment(
+    @Param('id') id: string,
+    @Body() dto: CreatePaymentDto,
+    @CurrentUser() user: { sub: string },
+  ) {
+    return this.billingService.createPayment(id, dto, user.sub);
   }
 }

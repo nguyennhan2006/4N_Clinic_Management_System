@@ -21,6 +21,16 @@ import { DiseaseCatalogPage } from '@/features/diseases/DiseaseCatalogPage'
 import { MedicineCatalogPage } from '@/features/medicines/MedicineCatalogPage'
 import { UserManagementPage } from '@/features/users/UserManagementPage'
 import { RoleManagementPage } from '@/features/users/RoleManagementPage'
+import { DepartmentListPage } from '@/features/organization/DepartmentListPage'
+import { DoctorProfilePage } from '@/features/organization/DoctorProfilePage'
+import { AppointmentListPage } from '@/features/appointments/AppointmentListPage'
+import { AppointmentCreatePage } from '@/features/appointments/AppointmentCreatePage'
+import { QueueDashboardPage } from '@/features/queue/QueueDashboardPage'
+import { LabWorklist } from '@/features/lab/LabWorklist'
+import { StockListPage } from '@/features/inventory/StockListPage'
+import { PharmacyWorklist } from '@/features/pharmacy/PharmacyWorklist'
+import { ServiceCatalogPage } from '@/features/services/ServiceCatalogPage'
+import { AuditLogPage } from '@/features/audit/AuditLogPage'
 
 export const router = createBrowserRouter([
   // Public
@@ -118,6 +128,61 @@ export const router = createBrowserRouter([
           {
             element: <RequireRole roles={['ADMIN', 'MANAGER']} />,
             children: [{ path: 'settings/regulations', element: <RegulationPage /> }],
+          },
+
+          // ── Organization (Phase 2A) ──────────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN', 'MANAGER']} />,
+            children: [
+              { path: 'organization/departments', element: <DepartmentListPage /> },
+              { path: 'organization/doctors', element: <DoctorProfilePage /> },
+            ],
+          },
+
+          // ── Appointments (Phase 2) ────────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN', 'RECEPTIONIST', 'DOCTOR', 'MANAGER']} />,
+            children: [{ path: 'appointments', element: <AppointmentListPage /> }],
+          },
+          {
+            element: <RequireRole roles={['ADMIN', 'RECEPTIONIST']} />,
+            children: [{ path: 'appointments/new', element: <AppointmentCreatePage /> }],
+          },
+
+          // ── Queue (Phase 2) ───────────────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN', 'RECEPTIONIST', 'DOCTOR', 'NURSE']} />,
+            children: [{ path: 'queue', element: <QueueDashboardPage /> }],
+          },
+
+          // ── Lab (Phase 2) ─────────────────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN', 'DOCTOR', 'NURSE', 'LAB_TECH']} />,
+            children: [{ path: 'lab', element: <LabWorklist /> }],
+          },
+
+          // ── Inventory (Phase 2) ───────────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN', 'PHARMACIST', 'MANAGER']} />,
+            children: [{ path: 'inventory', element: <StockListPage /> }],
+          },
+
+          // ── Pharmacy (Phase 2) ────────────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN', 'PHARMACIST']} />,
+            children: [{ path: 'pharmacy', element: <PharmacyWorklist /> }],
+          },
+
+          // ── Service catalog (Phase 2) ─────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN', 'MANAGER']} />,
+            children: [{ path: 'catalog/services', element: <ServiceCatalogPage /> }],
+          },
+
+          // ── Audit log (Phase 2) ───────────────────────────────────────
+          {
+            element: <RequireRole roles={['ADMIN']} />,
+            children: [{ path: 'admin/audit-log', element: <AuditLogPage /> }],
           },
 
           // ── Admin ─────────────────────────────────────────────────────

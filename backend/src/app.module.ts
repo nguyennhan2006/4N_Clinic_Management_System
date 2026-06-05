@@ -18,6 +18,14 @@ import { DrugsModule } from './modules/drugs/drugs.module';
 import { RegulationsModule } from './modules/regulations/regulations.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { VisitsModule } from './modules/visits/visits.module';
+import { OrganizationModule } from './modules/organization/organization.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { VitalsModule } from './modules/vitals/vitals.module';
+import { ServicesModule } from './modules/services/services.module';
+import { LabModule } from './modules/lab/lab.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { PharmacyModule } from './modules/pharmacy/pharmacy.module';
 
 @Module({
   imports: [
@@ -43,6 +51,14 @@ import { VisitsModule } from './modules/visits/visits.module';
     DiseasesModule,
     DrugsModule,
     ReportsModule,
+    OrganizationModule,
+    AppointmentsModule,
+    QueueModule,
+    VitalsModule,
+    ServicesModule,
+    LabModule,
+    InventoryModule,
+    PharmacyModule,
   ],
 })
 export class AppModule {}
