@@ -15,10 +15,10 @@ const STATUS_LABELS: Record<AppointmentStatus, string> = {
   NO_SHOW: 'Vắng',
 }
 const STATUS_COLORS: Record<AppointmentStatus, string> = {
-  SCHEDULED: 'bg-clinic-warning/20 text-yellow-700',
-  CHECKED_IN: 'bg-clinic-success/20 text-green-700',
-  CANCELLED: 'bg-clinic-danger/20 text-red-600',
-  NO_SHOW: 'bg-gray-100 text-gray-500',
+  SCHEDULED: 'bg-amber-500/15 text-amber-400',
+  CHECKED_IN: 'bg-green-500/15 text-green-400',
+  CANCELLED: 'bg-red-500/15 text-red-400',
+  NO_SHOW: 'bg-white/5 text-clinic-muted',
 }
 
 export function AppointmentListPage() {
@@ -61,8 +61,13 @@ export function AppointmentListPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <CalendarCheck className="h-6 w-6 text-clinic-sidebar" />
-          <h1 className="text-xl font-semibold text-clinic-text">Lịch hẹn</h1>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-clinic-primary/15">
+            <CalendarCheck className="h-5 w-5 text-clinic-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-clinic-text">Lịch hẹn</h1>
+            <p className="text-xs text-clinic-muted">Quản lý lịch hẹn bệnh nhân</p>
+          </div>
         </div>
         {canCreate && (
           <Link
@@ -81,12 +86,12 @@ export function AppointmentListPage() {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded-lg border border-clinic-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinic-primary"
+          className="rounded-lg border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40"
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as AppointmentStatus | '')}
-          className="rounded-lg border border-clinic-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinic-primary"
+          className="rounded-lg border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="SCHEDULED">Chờ khám</option>
@@ -97,11 +102,11 @@ export function AppointmentListPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-clinic-border bg-white shadow-clinic">
+      <div className="overflow-x-auto rounded-2xl border border-clinic-border bg-clinic-surface shadow-clinic">
         {isLoading ? (
           <div className="space-y-3 p-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100" />
+              <div key={i} className="h-10 animate-pulse rounded-lg bg-white/5" />
             ))}
           </div>
         ) : isError ? (
@@ -113,20 +118,20 @@ export function AppointmentListPage() {
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-clinic-border bg-clinic-sidebarMuted/30">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-clinic-muted">Giờ hẹn</th>
-                <th className="px-4 py-3 text-left font-medium text-clinic-muted">Bệnh nhân</th>
-                <th className="px-4 py-3 text-left font-medium text-clinic-muted">Bác sĩ</th>
-                <th className="px-4 py-3 text-left font-medium text-clinic-muted">Khoa</th>
-                <th className="px-4 py-3 text-left font-medium text-clinic-muted">Lý do</th>
-                <th className="px-4 py-3 text-left font-medium text-clinic-muted">Trạng thái</th>
-                <th className="px-4 py-3 text-left font-medium text-clinic-muted">Thao tác</th>
+            <thead>
+              <tr className="border-b border-clinic-border bg-clinic-bg">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Giờ hẹn</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Bệnh nhân</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Bác sĩ</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Khoa</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Lý do</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Trạng thái</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-clinic-border">
               {appointments.map((apt) => (
-                <tr key={apt.id} className="hover:bg-clinic-bg/50">
+                <tr key={apt.id} className="transition-colors hover:bg-clinic-primary/5">
                   <td className="px-4 py-3 font-medium text-clinic-text">
                     {formatTime(apt.scheduledAt)}
                     <span className="ml-1 text-xs text-clinic-muted">({apt.durationMinutes}p)</span>
@@ -156,7 +161,7 @@ export function AppointmentListPage() {
                         <button
                           onClick={() => checkinMut.mutate(apt.id)}
                           disabled={checkinMut.isPending}
-                          className="flex items-center gap-1 rounded-lg bg-clinic-success/20 px-2 py-1 text-xs font-medium text-green-700 hover:bg-clinic-success/40"
+                          className="flex items-center gap-1 rounded-lg bg-green-500/15 px-2 py-1 text-xs font-medium text-green-400 hover:bg-green-500/25"
                         >
                           <LogIn className="h-3 w-3" />
                           Check-in
@@ -168,7 +173,7 @@ export function AppointmentListPage() {
                             if (confirm('Xác nhận hủy lịch hẹn?')) cancelMut.mutate(apt.id)
                           }}
                           disabled={cancelMut.isPending}
-                          className="flex items-center gap-1 rounded-lg bg-clinic-danger/10 px-2 py-1 text-xs font-medium text-red-600 hover:bg-clinic-danger/20"
+                          className="flex items-center gap-1 rounded-lg bg-red-500/15 px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-500/25"
                         >
                           <XCircle className="h-3 w-3" />
                           Hủy
@@ -177,7 +182,7 @@ export function AppointmentListPage() {
                       {apt.status === 'CHECKED_IN' && apt.visit && (
                         <Link
                           to={`/app/examinations/${apt.visit.id}`}
-                          className="rounded-lg bg-clinic-sidebarMuted px-2 py-1 text-xs font-medium text-clinic-sidebar hover:bg-clinic-primary/20"
+                          className="rounded-lg bg-clinic-primary/15 px-2 py-1 text-xs font-medium text-clinic-primary hover:bg-clinic-primary/25"
                         >
                           Xem khám
                         </Link>

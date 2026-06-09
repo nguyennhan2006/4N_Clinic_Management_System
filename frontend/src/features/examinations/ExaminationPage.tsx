@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle, Trash2, X } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -467,7 +467,7 @@ export function ExaminationPage() {
               Yêu cầu: có triệu chứng, kết luận và ít nhất 1 chẩn đoán chính.
             </p>
             {completeError && (
-              <p className="mt-3 rounded-xl bg-[#FEE2E2] px-4 py-2 text-sm text-clinic-danger">{completeError}</p>
+              <p className="mt-3 rounded-xl bg-red-500/10 px-4 py-2 text-sm text-clinic-danger">{completeError}</p>
             )}
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -490,10 +490,10 @@ export function ExaminationPage() {
 
       {/* Messages */}
       {saveMsg && (
-        <div className="rounded-xl bg-[#D1FAE5] px-4 py-3 text-sm text-[#065F46]">{saveMsg}</div>
+        <div className="rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-400">{saveMsg}</div>
       )}
       {saveError && (
-        <div role="alert" className="rounded-xl bg-[#FEE2E2] px-4 py-3 text-sm text-clinic-danger">{saveError}</div>
+        <div role="alert" className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-clinic-danger">{saveError}</div>
       )}
 
       {/* Context cards */}
@@ -629,7 +629,7 @@ export function ExaminationPage() {
       )}
 
       {isReadOnly && exam?.status === 'COMPLETED' && (
-        <div className="flex items-center gap-2 rounded-xl bg-[#D1FAE5] px-4 py-3 text-sm text-[#065F46]">
+        <div className="flex items-center gap-2 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-400">
           <CheckCircle className="h-4 w-4" />
           Phiếu khám đã hoàn tất vào {formatDateTime(exam.completedAt)}
         </div>

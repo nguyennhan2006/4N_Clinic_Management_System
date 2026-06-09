@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CreditCard } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -44,7 +44,7 @@ function PaymentDialog({
         <p className="mt-1 text-sm text-clinic-muted">Còn cần thanh toán: {formatVND(remaining)}</p>
 
         {error && (
-          <div role="alert" className="mt-3 rounded-xl bg-[#FEE2E2] px-4 py-2 text-sm text-clinic-danger">{error}</div>
+          <div role="alert" className="mt-3 rounded-xl bg-red-500/10 px-4 py-2 text-sm text-clinic-danger">{error}</div>
         )}
 
         <div className="mt-4 space-y-4">
@@ -205,12 +205,12 @@ export function InvoiceDetailPage() {
                   {item.itemType && (
                     <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
                       item.itemType === 'CONSULTATION'
-                        ? 'bg-blue-50 text-blue-700'
+                        ? 'bg-blue-500/15 text-blue-400'
                         : item.itemType === 'SERVICE'
                         ? 'bg-purple-50 text-purple-700'
                         : item.itemType === 'DRUG'
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-gray-100 text-gray-500'
+                        ? 'bg-green-500/15 text-green-400'
+                        : 'bg-white/5 text-clinic-muted'
                     }`}>
                       {item.itemType === 'CONSULTATION' ? 'Khám' : item.itemType === 'SERVICE' ? 'Dịch vụ' : item.itemType === 'DRUG' ? 'Thuốc' : item.itemType}
                     </span>
@@ -231,7 +231,7 @@ export function InvoiceDetailPage() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-clinic-muted">Đã thanh toán</span>
-            <span className="text-[#065F46]">{formatVND(paidAmount)}</span>
+            <span className="text-green-400">{formatVND(paidAmount)}</span>
           </div>
           {remaining > 0 && (
             <div className="flex justify-between text-sm">

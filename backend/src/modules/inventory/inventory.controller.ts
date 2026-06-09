@@ -5,12 +5,12 @@ import {
   Param,
   Post,
   Query,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -43,9 +43,9 @@ export class InventoryController {
   @ApiOperation({ summary: 'Nhập lô thuốc mới vào kho' })
   createLot(
     @Body() dto: CreateStockLotDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.inventoryService.createLot(dto, req.user.userId);
+    return this.inventoryService.createLot(dto, user.sub);
   }
 
   @Get('lots/:id')

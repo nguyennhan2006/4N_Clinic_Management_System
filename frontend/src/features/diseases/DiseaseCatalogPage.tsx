@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { LoadingState } from '@/components/common/LoadingState'
@@ -101,7 +101,7 @@ export function DiseaseCatalogPage() {
         <div className="rounded-2xl bg-clinic-surface p-6 shadow-clinic">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-clinic-muted">Thêm bệnh mới</h2>
           {formError && (
-            <div role="alert" className="mb-4 rounded-xl bg-[#FEE2E2] px-4 py-3 text-sm text-clinic-danger">{formError}</div>
+            <div role="alert" className="mb-4 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-clinic-danger">{formError}</div>
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -210,8 +210,8 @@ export function DiseaseCatalogPage() {
                                 onClick={() => void handleToggleActive(d.id, d.isActive)}
                                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                                   d.isActive
-                                    ? 'text-clinic-danger hover:bg-[#FECACA]'
-                                    : 'text-[#065F46] hover:bg-[#D1FAE5]'
+                                    ? 'text-clinic-danger hover:bg-red-500/20'
+                                    : 'text-green-400 hover:bg-green-500/10'
                                 }`}
                               >
                                 {d.isActive ? 'Vô hiệu' : 'Kích hoạt'}

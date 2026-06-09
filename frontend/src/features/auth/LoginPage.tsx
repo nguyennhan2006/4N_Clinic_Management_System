@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+﻿import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -117,7 +117,7 @@ export function LoginPage() {
           {errors.root?.message && (
             <div
               role="alert"
-              className="mb-4 flex items-start gap-2 rounded-xl bg-[#FEE2E2] px-4 py-3 text-sm text-clinic-danger"
+              className="mb-4 flex items-start gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-clinic-danger"
             >
               <svg
                 className="mt-0.5 h-4 w-4 shrink-0"

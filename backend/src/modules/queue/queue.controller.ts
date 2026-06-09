@@ -5,12 +5,12 @@ import {
   Param,
   Patch,
   Query,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -64,8 +64,8 @@ export class QueueController {
   updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateQueueStatusDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.queueService.updateStatus(id, dto.status, req.user.userId);
+    return this.queueService.updateStatus(id, dto.status, user.sub);
   }
 }

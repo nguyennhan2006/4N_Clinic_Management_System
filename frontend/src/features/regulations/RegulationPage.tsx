@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { LoadingSpinner } from '@/components/common/LoadingState'
@@ -115,9 +115,9 @@ export function RegulationPage() {
       />
 
       {/* Warning */}
-      <div className="flex items-start gap-3 rounded-xl border border-clinic-warning bg-[#FEF3C7] px-4 py-3">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#92400E]" />
-        <p className="text-sm text-[#92400E]">
+      <div className="flex items-start gap-3 rounded-xl border border-clinic-warning bg-amber-500/10 px-4 py-3">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+        <p className="text-sm text-amber-400">
           Thay đổi quy định <strong>không có hiệu lực hồi tố</strong>. Chỉ áp dụng cho các lượt khám và hóa đơn tạo mới sau khi kích hoạt.
         </p>
       </div>
@@ -132,7 +132,7 @@ export function RegulationPage() {
               Lịch sử cũ không bị ảnh hưởng.
             </p>
             {activateError && (
-              <p className="mt-3 rounded-xl bg-[#FEE2E2] px-4 py-2 text-sm text-clinic-danger">{activateError}</p>
+              <p className="mt-3 rounded-xl bg-red-500/10 px-4 py-2 text-sm text-clinic-danger">{activateError}</p>
             )}
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -183,9 +183,9 @@ export function RegulationPage() {
 
       {/* Pending created version */}
       {created && (
-        <div className="rounded-2xl border border-clinic-warning bg-[#FEF3C7] p-6">
+        <div className="rounded-2xl border border-clinic-warning bg-amber-500/10 p-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[#92400E]">Phiên bản mới (chưa kích hoạt)</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-amber-400">Phiên bản mới (chưa kích hoạt)</h2>
             {isAdmin && (
               <button
                 onClick={() => setShowActivateConfirm(true)}
@@ -195,8 +195,8 @@ export function RegulationPage() {
               </button>
             )}
           </div>
-          {created.note && <p className="mb-2 text-xs text-[#92400E] italic">"{created.note}"</p>}
-          <p className="text-xs text-[#92400E]">Tạo lúc: {formatDateTime(created.createdAt)}</p>
+          {created.note && <p className="mb-2 text-xs text-amber-400 italic">"{created.note}"</p>}
+          <p className="text-xs text-amber-400">Tạo lúc: {formatDateTime(created.createdAt)}</p>
         </div>
       )}
 
@@ -206,7 +206,7 @@ export function RegulationPage() {
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-clinic-muted">Tạo phiên bản quy định mới</h2>
 
           {formError && (
-            <div role="alert" className="mb-4 rounded-xl bg-[#FEE2E2] px-4 py-3 text-sm text-clinic-danger">{formError}</div>
+            <div role="alert" className="mb-4 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-clinic-danger">{formError}</div>
           )}
 
           <div className="space-y-4">

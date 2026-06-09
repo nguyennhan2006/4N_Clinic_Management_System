@@ -3,17 +3,17 @@ import type { LabOrder, SubmitResultPayload } from './types'
 
 export const labApi = {
   list: (params?: Record<string, string>) =>
-    apiClient.get<LabOrder[]>('/lab', params),
+    apiClient.get<LabOrder[]>('/lab/orders', params),
 
   get: (id: string) =>
-    apiClient.get<LabOrder>(`/lab/${id}`),
+    apiClient.get<LabOrder>(`/lab/orders/${id}`),
 
   collectSample: (id: string) =>
-    apiClient.patch<LabOrder>(`/lab/${id}/collect-sample`, {}),
+    apiClient.post<LabOrder>(`/lab/orders/${id}/sample`, {}),
 
   submitResult: (id: string, data: SubmitResultPayload) =>
-    apiClient.patch<LabOrder>(`/lab/${id}/result`, data),
+    apiClient.post<LabOrder>(`/lab/orders/${id}/result`, data),
 
   verify: (id: string) =>
-    apiClient.patch<LabOrder>(`/lab/${id}/verify`, {}),
+    apiClient.post<LabOrder>(`/lab/orders/${id}/verify`, {}),
 }

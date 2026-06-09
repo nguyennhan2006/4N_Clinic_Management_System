@@ -33,7 +33,7 @@ export function ConfirmDialog({
         aria-hidden="true"
       />
       <div
-        className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-[0_8px_24px_rgba(47,47,58,0.12)]"
+        className="relative z-10 w-full max-w-md rounded-2xl bg-clinic-surface border border-clinic-border p-6 shadow-clinic"
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"

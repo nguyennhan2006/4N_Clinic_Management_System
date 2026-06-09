@@ -188,22 +188,22 @@ export class LabService {
   async submitResult(id: string, dto: CreateLabResultDto, actorId: string) {
     const order = await this.findOrder(id);
 
-    // BR-LAB-02: phải đã lấy mẫu trước khi nhập kết quả
-    if (order.status !== LabOrderStatus.SAMPLE_COLLECTED) {
-      throw new BadRequestException(
-        'Sample must be collected before entering results (current status: ' +
-          order.status +
-          ')',
-      );
-    }
-
-    // BR-LAB-04: Kết quả không được sửa sau khi đã nhập (immutable)
+    // BR-LAB-04: Kết quả không được sửa sau khi đã nhập (immutable) — check before status
     const existingResult = await this.prisma.labResult.findFirst({
       where: { labOrderId: id, status: { not: 'CANCELLED' } },
     });
     if (existingResult) {
       throw new ConflictException(
         'Lab result already entered and is immutable',
+      );
+    }
+
+    // BR-LAB-02: phải đã lấy mẫu trước khi nhập kết quả
+    if (order.status !== LabOrderStatus.SAMPLE_COLLECTED) {
+      throw new BadRequestException(
+        'Sample must be collected before entering results (current status: ' +
+          order.status +
+          ')',
       );
     }
 

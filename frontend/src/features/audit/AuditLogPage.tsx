@@ -1,44 +1,81 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { ShieldCheck, ChevronDown, ChevronRight } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { ShieldCheck, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { formatDateTime } from '@/lib/date'
 import { auditApi } from './api'
 import type { AuditLog } from './types'
 import { useAuthStore } from '@/features/auth/store'
 
+const LIMIT = 30
+
 export function AuditLogPage() {
   const { hasRole } = useAuthStore()
-  const isAdmin = hasRole(['ADMIN'])
+  const isAdmin = hasRole(['ADMIN', 'MANAGER'])
 
   const [entityType, setEntityType] = useState('')
-  const [action, setAction] = useState('')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
-  const [page, setPage] = useState(1)
+  const [actorId, setActorId] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const LIMIT = 20
+  // Debounce filter inputs to avoid spamming requests while typing
+  const [debouncedEntityType, setDebouncedEntityType] = useState('')
+  const [debouncedActorId, setDebouncedActorId] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedEntityType(entityType), 400)
+    return () => clearTimeout(t)
+  }, [entityType])
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedActorId(actorId), 400)
+    return () => clearTimeout(t)
+  }, [actorId])
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['audit-logs', { entityType, action, fromDate, toDate, page }],
-    queryFn: () =>
-      auditApi.listFlat({
-        ...(entityType ? { entityType } : {}),
-        ...(action ? { action } : {}),
-        ...(fromDate ? { fromDate } : {}),
-        ...(toDate ? { toDate } : {}),
-        page,
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['audit-logs', { entityType: debouncedEntityType, actorId: debouncedActorId }],
+    queryFn: ({ pageParam = 1 }) =>
+      auditApi.list({
+        ...(debouncedEntityType ? { entityType: debouncedEntityType } : {}),
+        ...(debouncedActorId ? { actorId: debouncedActorId } : {}),
+        page: pageParam as number,
         limit: LIMIT,
       }),
+    getNextPageParam: (lastPage) => {
+      const loaded = (lastPage.page - 1) * lastPage.limit + lastPage.data.length
+      return loaded < lastPage.total ? lastPage.page + 1 : undefined
+    },
+    initialPageParam: 1,
     enabled: isAdmin,
   })
 
-  const logs: AuditLog[] = Array.isArray(data) ? data : []
+  // Flatten pages into a single list
+  const logs: AuditLog[] = data?.pages.flatMap((p) => p.data) ?? []
+  const total = data?.pages[0]?.total ?? 0
+
+  // Sentinel div at the bottom — triggers fetchNextPage when visible
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { threshold: 0.1 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   if (!isAdmin) {
     return (
       <div className="p-6 text-center text-clinic-muted">
-        Chỉ Admin có quyền xem nhật ký hệ thống
+        Chỉ Admin/Manager có quyền xem nhật ký hệ thống
       </div>
     )
   }
@@ -46,70 +83,60 @@ export function AuditLogPage() {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center gap-3">
-        <ShieldCheck className="h-6 w-6 text-clinic-sidebar" />
-        <h1 className="text-xl font-semibold text-clinic-text">Nhật ký hệ thống (Audit Log)</h1>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-clinic-primary/15">
+          <ShieldCheck className="h-5 w-5 text-clinic-primary" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold text-clinic-text">Nhật ký hệ thống (Audit Log)</h1>
+          {total > 0 && (
+            <p className="text-xs text-clinic-muted">
+              Hiển thị {logs.length} / {total} bản ghi
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-3">
         <input
           type="text"
-          placeholder="Loại entity (User, Visit...)"
+          placeholder="Loại entity (Patient, Visit, Examination…)"
           value={entityType}
-          onChange={(e) => { setEntityType(e.target.value); setPage(1) }}
-          className="rounded-xl border border-clinic-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinic-primary"
+          onChange={(e) => setEntityType(e.target.value)}
+          className="rounded-xl border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40"
         />
         <input
           type="text"
-          placeholder="Hành động (CREATE, UPDATE...)"
-          value={action}
-          onChange={(e) => { setAction(e.target.value); setPage(1) }}
-          className="rounded-xl border border-clinic-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinic-primary"
+          placeholder="Actor ID (UUID người thực hiện)"
+          value={actorId}
+          onChange={(e) => setActorId(e.target.value)}
+          className="rounded-xl border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40 font-mono"
         />
-        <div className="flex items-center gap-1">
-          <label className="text-xs text-clinic-muted">Từ:</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="rounded-xl border border-clinic-border px-3 py-2 text-sm"
-          />
-        </div>
-        <div className="flex items-center gap-1">
-          <label className="text-xs text-clinic-muted">Đến:</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="rounded-xl border border-clinic-border px-3 py-2 text-sm"
-          />
-        </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-clinic-border bg-white shadow-clinic">
+      <div className="overflow-hidden rounded-2xl border border-clinic-border bg-clinic-surface shadow-clinic">
         <table className="w-full text-sm">
           <thead className="border-b border-clinic-border bg-clinic-bg">
             <tr>
               <th className="w-8 px-2 py-3" />
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Thời gian</th>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Người dùng</th>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Hành động</th>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Entity</th>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">IP</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Thời gian</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Actor ID</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Hành động</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Entity</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              Array.from({ length: 10 }).map((_, i) => (
-                <tr key={i}>
-                  <td colSpan={6} className="px-4 py-3">
-                    <div className="h-4 animate-pulse rounded bg-gray-100" />
+              Array.from({ length: 12 }).map((_, i) => (
+                <tr key={i} className="border-b border-clinic-border last:border-0">
+                  <td colSpan={5} className="px-4 py-3">
+                    <div className="h-4 animate-pulse rounded bg-clinic-border" />
                   </td>
                 </tr>
               ))
             ) : !logs.length ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-clinic-muted">
+                <td colSpan={5} className="py-12 text-center text-clinic-muted">
                   Không có nhật ký nào
                 </td>
               </tr>
@@ -119,52 +146,64 @@ export function AuditLogPage() {
                   <tr
                     key={log.id}
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                    className="cursor-pointer border-b border-clinic-border last:border-0 hover:bg-clinic-bg/50"
+                    className="cursor-pointer border-b border-clinic-border last:border-0 hover:bg-clinic-primary/5 transition-colors"
                   >
                     <td className="px-2 py-3 text-center text-clinic-muted">
-                      {expandedId === log.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      {expandedId === log.id
+                        ? <ChevronDown className="h-4 w-4" />
+                        : <ChevronRight className="h-4 w-4" />}
                     </td>
-                    <td className="px-4 py-3 text-xs text-clinic-muted">
+                    <td className="px-4 py-3 text-xs text-clinic-muted whitespace-nowrap">
                       {formatDateTime(log.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-clinic-text">
-                      {log.user?.fullName ?? log.userId ?? 'System'}
+                    <td className="px-4 py-3 font-mono text-xs text-clinic-muted">
+                      {log.actorId
+                        ? log.actorId.slice(0, 8) + '…'
+                        : <span className="italic">System</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        log.action.includes('DELETE') || log.action.includes('CANCEL')
-                          ? 'bg-red-50 text-red-600'
-                          : log.action.includes('CREATE')
-                          ? 'bg-green-50 text-green-700'
-                          : 'bg-blue-50 text-blue-700'
+                        log.action.includes('DELETE') || log.action.includes('CANCEL') || log.action.includes('FAIL')
+                          ? 'bg-red-500/15 text-red-400'
+                          : log.action.includes('CREATE') || log.action.includes('SUCCESS')
+                          ? 'bg-green-500/15 text-green-400'
+                          : 'bg-blue-500/15 text-blue-400'
                       }`}>
                         {log.action}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-clinic-muted">
-                      {log.entityType}{log.entityId ? ` #${log.entityId.slice(0, 8)}` : ''}
+                      {log.entityType}
+                      {log.entityId ? (
+                        <span className="ml-1 font-mono text-xs opacity-60">
+                          #{log.entityId.slice(0, 8)}
+                        </span>
+                      ) : null}
                     </td>
-                    <td className="px-4 py-3 text-xs text-clinic-muted">{log.ipAddress ?? '—'}</td>
                   </tr>
+
                   {expandedId === log.id && (
                     <tr key={`${log.id}-expand`} className="bg-clinic-bg">
-                      <td colSpan={6} className="px-6 py-3">
+                      <td colSpan={5} className="px-6 py-3">
                         <div className="grid grid-cols-2 gap-4 text-xs">
-                          {log.oldValues && (
+                          {log.before ? (
                             <div>
-                              <p className="mb-1 font-semibold text-red-600">Giá trị cũ</p>
-                              <pre className="overflow-auto rounded bg-white p-2 text-clinic-text">
-                                {JSON.stringify(log.oldValues, null, 2)}
+                              <p className="mb-1 font-semibold text-red-400">Trạng thái cũ (before)</p>
+                              <pre className="overflow-auto rounded-lg bg-black/5 p-2 text-clinic-text">
+                                {JSON.stringify(log.before, null, 2)}
                               </pre>
                             </div>
-                          )}
-                          {log.newValues && (
+                          ) : null}
+                          {log.after ? (
                             <div>
-                              <p className="mb-1 font-semibold text-green-600">Giá trị mới</p>
-                              <pre className="overflow-auto rounded bg-white p-2 text-clinic-text">
-                                {JSON.stringify(log.newValues, null, 2)}
+                              <p className="mb-1 font-semibold text-green-400">Trạng thái mới (after)</p>
+                              <pre className="overflow-auto rounded-lg bg-black/5 p-2 text-clinic-text">
+                                {JSON.stringify(log.after, null, 2)}
                               </pre>
                             </div>
+                          ) : null}
+                          {!log.before && !log.after && (
+                            <p className="col-span-2 italic text-clinic-muted">Không có chi tiết thay đổi</p>
                           )}
                         </div>
                       </td>
@@ -177,23 +216,17 @@ export function AuditLogPage() {
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="mt-4 flex justify-end gap-2">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="rounded-lg border border-clinic-border px-3 py-1.5 text-sm disabled:opacity-40"
-        >
-          Trước
-        </button>
-        <span className="px-3 py-1.5 text-sm text-clinic-muted">Trang {page}</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          disabled={(logs?.length ?? 0) < LIMIT}
-          className="rounded-lg border border-clinic-border px-3 py-1.5 text-sm disabled:opacity-40"
-        >
-          Sau
-        </button>
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="mt-4 flex justify-center py-4">
+        {isFetchingNextPage && (
+          <div className="flex items-center gap-2 text-sm text-clinic-muted">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Đang tải thêm…
+          </div>
+        )}
+        {!hasNextPage && logs.length > 0 && (
+          <p className="text-xs text-clinic-muted">— Đã hiển thị tất cả {total} bản ghi —</p>
+        )}
       </div>
     </div>
   )

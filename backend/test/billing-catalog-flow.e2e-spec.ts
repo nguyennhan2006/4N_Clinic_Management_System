@@ -12,11 +12,12 @@ import { AppModule } from '../src/app.module';
 const BASE = `/${APP_API_PREFIX}`;
 
 const USERS = {
-  admin: { email: 'admin@clinic.local', password: 'Admin@123456' },
-  doctor: { email: 'doctor@clinic.local', password: 'Doctor@123456' },
-  cashier: { email: 'cashier@clinic.local', password: 'Cashier@123456' },
-  manager: { email: 'manager@clinic.local', password: 'Manager@123456' },
+  admin: { username: 'admin', email: 'admin@clinic.local', password: 'Admin@123456' },
+  doctor: { username: 'doctor', email: 'doctor@clinic.local', password: 'Doctor@123456' },
+  cashier: { username: 'cashier', email: 'cashier@clinic.local', password: 'Cashier@123456' },
+  manager: { username: 'manager', email: 'manager@clinic.local', password: 'Manager@123456' },
   receptionist: {
+    username: 'receptionist',
     email: 'receptionist@clinic.local',
     password: 'Reception@123456',
   },
@@ -24,12 +25,12 @@ const USERS = {
 
 async function login(
   app: INestApplication<App>,
-  email: string,
+  username: string,
   password: string,
 ): Promise<string> {
   const res = await request(app.getHttpServer())
     .post(`${BASE}/auth/login`)
-    .send({ email, password })
+    .send({ username, password })
     .expect(201);
   return res.body.accessToken as string;
 }
@@ -72,14 +73,15 @@ describe('Billing & Catalog Flow UC-12 → UC-20 (e2e)', () => {
     );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
+    (app.getHttpServer() as import("http").Server).keepAliveTimeout = 120_000;
 
     [adminToken, doctorToken, cashierToken, managerToken, receptionToken] =
       await Promise.all([
-        login(app, USERS.admin.email, USERS.admin.password),
-        login(app, USERS.doctor.email, USERS.doctor.password),
-        login(app, USERS.cashier.email, USERS.cashier.password),
-        login(app, USERS.manager.email, USERS.manager.password),
-        login(app, USERS.receptionist.email, USERS.receptionist.password),
+        login(app, USERS.admin.username, USERS.admin.password),
+        login(app, USERS.doctor.username, USERS.doctor.password),
+        login(app, USERS.cashier.username, USERS.cashier.password),
+        login(app, USERS.manager.username, USERS.manager.password),
+        login(app, USERS.receptionist.username, USERS.receptionist.password),
       ]);
 
     // Seed test data: patient → visit → examination (COMPLETED) via DB directly
@@ -108,8 +110,12 @@ describe('Billing & Catalog Flow UC-12 → UC-20 (e2e)', () => {
         where: { email: USERS.receptionist.email },
       });
 
-      // Create visit with a unique queueNumber per run to avoid @@unique([visitDate, queueNumber]) conflict
-      const queueNumber = 900 + (Date.now() % 99);
+      // Use max+1 to guarantee uniqueness across repeated test runs
+      const maxVisit = await prisma.visit.findFirst({
+        where: { visitDate: new Date(visitDate) },
+        orderBy: { queueNumber: 'desc' },
+      });
+      const queueNumber = (maxVisit?.queueNumber ?? 0) + 1;
       const visit = await prisma.visit.create({
         data: {
           patientId,
@@ -165,6 +171,7 @@ describe('Billing & Catalog Flow UC-12 → UC-20 (e2e)', () => {
   });
 
   afterAll(async () => {
+    (app.getHttpServer() as import("http").Server).closeAllConnections?.();
     await app.close();
   });
 
@@ -561,11 +568,16 @@ describe('Billing & Catalog Flow UC-12 → UC-20 (e2e)', () => {
             phone: `08${Date.now().toString().slice(-8)}`,
           },
         });
+        const ovrDate = new Date('2099-07-01');
+        const ovrMax = await prisma.visit.findFirst({
+          where: { visitDate: ovrDate },
+          orderBy: { queueNumber: 'desc' },
+        });
         const newVisit = await prisma.visit.create({
           data: {
             patientId: newPatient.id,
-            visitDate: new Date('2099-07-01'),
-            queueNumber: 800 + (Date.now() % 99),
+            visitDate: ovrDate,
+            queueNumber: (ovrMax?.queueNumber ?? 0) + 1,
             status: 'COMPLETED',
             createdByUserId: receptionist!.id,
           },

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/common/PageHeader'
 import { LoadingSpinner } from '@/components/common/LoadingState'
@@ -130,7 +130,7 @@ export function MonthlyReportPage() {
               </div>
               <div className="flex justify-between rounded-xl bg-clinic-bg px-4 py-3 text-sm">
                 <span className="text-clinic-text">Đã thu</span>
-                <span className="font-semibold text-[#065F46]">{formatVND(data.revenue.totalCollected)}</span>
+                <span className="font-semibold text-green-400">{formatVND(data.revenue.totalCollected)}</span>
               </div>
               <div className="flex justify-between rounded-xl bg-clinic-bg px-4 py-3 text-sm">
                 <span className="text-clinic-text">Chưa thu</span>
@@ -149,9 +149,9 @@ export function MonthlyReportPage() {
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[
-                  { key: 'CONSULTATION', label: 'Tiền khám', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-                  { key: 'SERVICE', label: 'Dịch vụ', color: 'bg-purple-50 text-purple-700 border-purple-100' },
-                  { key: 'DRUG', label: 'Thuốc', color: 'bg-green-50 text-green-700 border-green-100' },
+                  { key: 'CONSULTATION', label: 'Tiền khám', color: 'bg-blue-500/15 text-blue-400 border-blue-100' },
+                  { key: 'SERVICE', label: 'Dịch vụ', color: 'bg-purple-500/15 text-purple-400 border-purple-500/20' },
+                  { key: 'DRUG', label: 'Thuốc', color: 'bg-green-500/15 text-green-400 border-green-100' },
                 ].map(({ key, label, color }) => {
                   const value = breakdown.byType[key as keyof typeof breakdown.byType] ?? 0
                   const pct = breakdown.total > 0 ? Math.round((value / breakdown.total) * 100) : 0

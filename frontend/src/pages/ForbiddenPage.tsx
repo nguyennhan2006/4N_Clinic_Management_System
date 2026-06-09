@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { ShieldOff } from 'lucide-react'
 
 export function ForbiddenPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-clinic-bg text-center">
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#FEE2E2]">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
         <ShieldOff className="h-10 w-10 text-clinic-danger" />
       </div>
       <h1 className="mb-2 text-4xl font-bold text-clinic-text">403</h1>

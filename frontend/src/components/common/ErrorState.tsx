@@ -14,7 +14,7 @@ export function ErrorState({ error, onRetry, className }: ErrorStateProps) {
 
   return (
     <div className={cn('flex flex-col items-center justify-center py-16 text-center', className)}>
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#FEE2E2]">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/15">
         <svg
           className="h-8 w-8 text-clinic-danger"
           fill="none"

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Stethoscope } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -104,7 +104,7 @@ export function VisitListPage() {
       </div>
 
       {openError && (
-        <div role="alert" className="rounded-xl bg-[#FEE2E2] px-4 py-3 text-sm text-clinic-danger">
+        <div role="alert" className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-clinic-danger">
           {openError}
         </div>
       )}

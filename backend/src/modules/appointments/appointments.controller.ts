@@ -6,12 +6,12 @@ import {
   Patch,
   Post,
   Query,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -47,9 +47,9 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Đặt lịch hẹn mới' })
   create(
     @Body() dto: CreateAppointmentDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.appointmentsService.create(dto, req.user.userId);
+    return this.appointmentsService.create(dto, user.sub);
   }
 
   @Get(':id')
@@ -72,9 +72,9 @@ export class AppointmentsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateAppointmentDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.appointmentsService.update(id, dto, req.user.userId);
+    return this.appointmentsService.update(id, dto, user.sub);
   }
 
   @Patch(':id/cancel')
@@ -82,9 +82,9 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Hủy lịch hẹn' })
   cancel(
     @Param('id') id: string,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.appointmentsService.cancel(id, req.user.userId);
+    return this.appointmentsService.cancel(id, user.sub);
   }
 
   @Post(':id/checkin')
@@ -93,8 +93,8 @@ export class AppointmentsController {
   checkin(
     @Param('id') id: string,
     @Body() dto: CheckinDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.appointmentsService.checkin(id, dto, req.user.userId);
+    return this.appointmentsService.checkin(id, dto, user.sub);
   }
 }

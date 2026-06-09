@@ -47,14 +47,21 @@ export class AppointmentsService {
     const durationMinutes = dto.durationMinutes ?? 30;
     const newEnd = new Date(scheduledAt.getTime() + durationMinutes * 60_000);
 
-    const conflicts = await this.prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM "Appointment"
-      WHERE "doctorProfileId" = ${dto.doctorProfileId}
-        AND status NOT IN ('CANCELLED', 'NO_SHOW')
-        AND "scheduledAt" < ${newEnd}
-        AND ("scheduledAt" + ("durationMinutes" * INTERVAL '1 minute')) > ${scheduledAt}
-    `;
-    if (conflicts.length > 0) {
+    // Fetch candidates whose start time is before new appointment ends
+    const candidates = await this.prisma.appointment.findMany({
+      where: {
+        doctorProfileId: dto.doctorProfileId,
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        scheduledAt: { lt: newEnd },
+      },
+      select: { scheduledAt: true, durationMinutes: true },
+    });
+    const hasOverlap = candidates.some(
+      (a) =>
+        new Date(a.scheduledAt.getTime() + a.durationMinutes * 60_000) >
+        scheduledAt,
+    );
+    if (hasOverlap) {
       throw new ConflictException(
         'Doctor has a conflicting appointment at this time',
       );
@@ -251,20 +258,20 @@ export class AppointmentsService {
   async checkin(id: string, dto: CheckinDto, actorId: string) {
     const appointment = await this.findOne(id);
 
-    // BR-APT-06: chỉ checkin SCHEDULED
-    if (appointment.status !== AppointmentStatus.SCHEDULED) {
-      throw new BadRequestException(
-        'Only SCHEDULED appointments can be checked in',
-      );
-    }
-
-    // Kiểm tra appointment này chưa tạo visit (Visit.appointmentId unique)
+    // Kiểm tra appointment này chưa tạo visit (Visit.appointmentId unique) — 409 takes priority
     const existingVisit = await this.prisma.visit.findUnique({
       where: { appointmentId: id },
     });
     if (existingVisit) {
       throw new ConflictException(
         'This appointment has already been checked in',
+      );
+    }
+
+    // BR-APT-06: chỉ checkin SCHEDULED
+    if (appointment.status !== AppointmentStatus.SCHEDULED) {
+      throw new BadRequestException(
+        'Only SCHEDULED appointments can be checked in',
       );
     }
 

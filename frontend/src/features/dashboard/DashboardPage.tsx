@@ -22,7 +22,7 @@ function StatCard({
   loading?: boolean
 }) {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-[0_8px_24px_rgba(47,47,58,0.08)]">
+    <div className="rounded-2xl bg-clinic-surface border border-clinic-border p-5 shadow-clinic">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-xs font-medium text-clinic-muted">{label}</p>
         <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${colorClass}`}>
@@ -30,7 +30,7 @@ function StatCard({
         </div>
       </div>
       {loading ? (
-        <div className="h-8 w-16 animate-pulse rounded-lg bg-gray-100" />
+        <div className="h-8 w-16 animate-pulse rounded-lg bg-white/5" />
       ) : (
         <p className="text-2xl font-bold text-clinic-text">{value}</p>
       )}
@@ -79,21 +79,21 @@ export function DashboardPage() {
           label="Lượt khám hôm nay"
           value={totalToday}
           icon={Activity}
-          colorClass="bg-[#EEEAFB] text-clinic-sidebar"
+          colorClass="bg-blue-500/15 text-blue-400"
           loading={visitsLoading}
         />
         <StatCard
           label="Đang chờ khám"
           value={waitingToday}
           icon={Clock}
-          colorClass="bg-[#FEF3C7] text-[#92400E]"
+          colorClass="bg-amber-500/15 text-amber-400"
           loading={visitsLoading}
         />
         <StatCard
           label="Đã hoàn tất hôm nay"
           value={completedToday}
           icon={CheckCircle2}
-          colorClass="bg-[#D1FAE5] text-[#065F46]"
+          colorClass="bg-green-500/15 text-green-400"
           loading={visitsLoading}
         />
         {canViewRevenue ? (
@@ -101,7 +101,7 @@ export function DashboardPage() {
             label={`Doanh thu tháng ${formatMonth(currentMonth)}`}
             value={formatVND(monthRevenue)}
             icon={TrendingUp}
-            colorClass="bg-[#DBEAFE] text-[#1D4ED8]"
+            colorClass="bg-blue-500/15 text-blue-400"
             loading={reportLoading}
           />
         ) : (
@@ -109,21 +109,21 @@ export function DashboardPage() {
             label="Đang khám"
             value={visitsToday?.filter((v) => v.status === 'IN_EXAMINATION').length ?? 0}
             icon={TrendingUp}
-            colorClass="bg-[#DBEAFE] text-[#1D4ED8]"
+            colorClass="bg-blue-500/15 text-blue-400"
             loading={visitsLoading}
           />
         )}
       </div>
 
       {/* Visit status breakdown */}
-      <div className="rounded-2xl bg-white p-6 shadow-[0_8px_24px_rgba(47,47,58,0.08)]">
+      <div className="rounded-2xl bg-clinic-surface border border-clinic-border p-6 shadow-clinic">
         <h2 className="mb-4 text-sm font-semibold text-clinic-text">
           Lượt khám hôm nay — {formatDate(new Date())}
         </h2>
         {visitsLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100" />
+              <div key={i} className="h-10 animate-pulse rounded-lg bg-white/5" />
             ))}
           </div>
         ) : !visitsToday || visitsToday.length === 0 ? (
@@ -164,7 +164,7 @@ export function DashboardPage() {
 
       {/* Revenue summary for admin/manager/cashier */}
       {canViewRevenue && report && (
-        <div className="rounded-2xl bg-white p-6 shadow-[0_8px_24px_rgba(47,47,58,0.08)]">
+        <div className="rounded-2xl bg-clinic-surface border border-clinic-border p-6 shadow-clinic">
           <h2 className="mb-4 text-sm font-semibold text-clinic-text">
             Tổng kết tháng {formatMonth(currentMonth)}
           </h2>
@@ -182,12 +182,12 @@ export function DashboardPage() {
 
 function VisitStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
-    WAITING: { label: 'Chờ khám', className: 'bg-[#FEF3C7] text-[#92400E]' },
-    IN_EXAMINATION: { label: 'Đang khám', className: 'bg-[#DBEAFE] text-[#1D4ED8]' },
-    COMPLETED: { label: 'Hoàn tất', className: 'bg-[#D1FAE5] text-[#065F46]' },
-    CANCELLED: { label: 'Đã hủy', className: 'bg-[#FEE2E2] text-[#991B1B]' },
+    WAITING: { label: 'Chờ khám', className: 'bg-amber-500/15 text-amber-400' },
+    IN_EXAMINATION: { label: 'Đang khám', className: 'bg-blue-500/15 text-blue-400' },
+    COMPLETED: { label: 'Hoàn tất', className: 'bg-green-500/15 text-green-400' },
+    CANCELLED: { label: 'Đã hủy', className: 'bg-red-500/15 text-red-400' },
   }
-  const config = map[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' }
+  const config = map[status] ?? { label: status, className: 'bg-white/5 text-clinic-muted' }
   return (
     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${config.className}`}>
       {config.label}

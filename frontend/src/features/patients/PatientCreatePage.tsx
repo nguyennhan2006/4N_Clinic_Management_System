@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+﻿import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -71,7 +71,7 @@ export function PatientCreatePage() {
 
       <div className="rounded-2xl bg-clinic-surface p-6 shadow-clinic">
         {errors.root?.message && (
-          <div role="alert" className="mb-5 rounded-xl bg-[#FEE2E2] px-4 py-3 text-sm text-clinic-danger">
+          <div role="alert" className="mb-5 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-clinic-danger">
             {errors.root.message}
           </div>
         )}

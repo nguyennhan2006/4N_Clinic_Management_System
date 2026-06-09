@@ -12,22 +12,22 @@ import { AppModule } from '../src/app.module';
 const BASE = `/${APP_API_PREFIX}`;
 
 const USERS = {
-  admin: { email: 'admin@clinic.local', password: 'Admin@123456' },
-  doctor: { email: 'doctor@clinic.local', password: 'Doctor@123456' },
+  admin: { username: 'admin', password: 'Admin@123456' },
+  doctor: { username: 'doctor', password: 'Doctor@123456' },
   receptionist: {
-    email: 'receptionist@clinic.local',
+    username: 'receptionist',
     password: 'Reception@123456',
   },
 };
 
 async function login(
   app: INestApplication<App>,
-  email: string,
+  username: string,
   password: string,
 ): Promise<string> {
   const res = await request(app.getHttpServer())
     .post(`${BASE}/auth/login`)
-    .send({ email, password })
+    .send({ username, password })
     .expect(201);
   return res.body.accessToken as string;
 }
@@ -63,14 +63,15 @@ describe('Clinic Flow UC-07 → UC-11 (e2e)', () => {
     );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
+    (app.getHttpServer() as import("http").Server).keepAliveTimeout = 120_000;
 
     // Lấy token cho 2 role chính trong flow
     receptionToken = await login(
       app,
-      USERS.receptionist.email,
+      USERS.receptionist.username,
       USERS.receptionist.password,
     );
-    doctorToken = await login(app, USERS.doctor.email, USERS.doctor.password);
+    doctorToken = await login(app, USERS.doctor.username, USERS.doctor.password);
 
     // Lấy diseaseId và drugId trực tiếp từ DB (không qua API vì endpoint catalog chưa implement)
     const prisma = new PrismaClient();
@@ -82,12 +83,33 @@ describe('Clinic Flow UC-07 → UC-11 (e2e)', () => {
 
       const drug = await prisma.drug.findFirst({ where: { isActive: true } });
       if (drug) drugId = drug.id;
+
+      // Cancel stale test visits for today to prevent daily limit accumulation
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const testPatients = await prisma.patient.findMany({
+        where: {
+          patientCode: {
+            startsWith: 'BN-',
+            not: { in: ['BN001','BN002','BN003','BN004','BN005','BN006','BN007'] },
+          },
+        },
+        select: { id: true },
+      });
+      if (testPatients.length > 0) {
+        const ids = testPatients.map((p) => p.id);
+        await prisma.visit.updateMany({
+          where: { patientId: { in: ids }, visitDate: today, status: { not: 'CANCELLED' } },
+          data: { status: 'CANCELLED' },
+        });
+      }
     } finally {
       await prisma.$disconnect();
     }
   });
 
   afterAll(async () => {
+    (app.getHttpServer() as import("http").Server).closeAllConnections?.();
     await app.close();
   });
 

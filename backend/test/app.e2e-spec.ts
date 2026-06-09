@@ -16,6 +16,7 @@ describe('Health (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix(APP_API_PREFIX);
     await app.init();
+    (app.getHttpServer() as import("http").Server).keepAliveTimeout = 120_000;
   });
 
   it('/health (GET)', async () => {
@@ -34,6 +35,7 @@ describe('Health (e2e)', () => {
   });
 
   afterEach(async () => {
+    (app.getHttpServer() as import("http").Server).closeAllConnections?.();
     await app.close();
   });
 });

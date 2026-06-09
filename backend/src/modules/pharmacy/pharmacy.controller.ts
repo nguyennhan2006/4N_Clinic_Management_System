@@ -6,12 +6,12 @@ import {
   Patch,
   Post,
   Query,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -37,9 +37,9 @@ export class PharmacyController {
   @ApiOperation({ summary: 'Phát thuốc theo đơn — trừ kho trong transaction' })
   dispense(
     @Body() dto: CreateDispenseDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.pharmacyService.dispense(dto, req.user.userId);
+    return this.pharmacyService.dispense(dto, user.sub);
   }
 
   @Get('dispense')
@@ -61,8 +61,8 @@ export class PharmacyController {
   @ApiOperation({ summary: 'Hủy phát thuốc — hoàn trả kho' })
   cancelDispense(
     @Param('id') id: string,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.pharmacyService.cancelDispense(id, req.user.userId);
+    return this.pharmacyService.cancelDispense(id, user.sub);
   }
 }

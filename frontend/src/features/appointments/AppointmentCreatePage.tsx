@@ -80,7 +80,7 @@ export function AppointmentCreatePage() {
   return (
     <div className="mx-auto max-w-xl p-6">
       <div className="mb-6 flex items-center gap-3">
-        <CalendarCheck className="h-6 w-6 text-clinic-sidebar" />
+        <CalendarCheck className="h-6 w-6 text-clinic-primary" />
         <h1 className="text-xl font-semibold text-clinic-text">Đặt lịch hẹn mới</h1>
       </div>
 

@@ -15,11 +15,11 @@ const STATUS_LABELS: Record<LabStatus, string> = {
   CANCELLED: 'Đã hủy',
 }
 const STATUS_COLORS: Record<LabStatus, string> = {
-  PENDING: 'bg-yellow-50 text-yellow-700',
-  SAMPLE_COLLECTED: 'bg-blue-50 text-blue-700',
-  RESULT_ENTERED: 'bg-purple-50 text-purple-700',
-  VERIFIED: 'bg-green-50 text-green-700',
-  CANCELLED: 'bg-gray-100 text-gray-400',
+  PENDING: 'bg-amber-500/15 text-amber-400',
+  SAMPLE_COLLECTED: 'bg-blue-500/15 text-blue-400',
+  RESULT_ENTERED: 'bg-purple-500/15 text-purple-400',
+  VERIFIED: 'bg-green-500/15 text-green-400',
+  CANCELLED: 'bg-white/5 text-clinic-muted',
 }
 
 export function LabWorklist() {
@@ -87,7 +87,7 @@ export function LabWorklist() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <FlaskConical className="h-6 w-6 text-clinic-sidebar" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/15"><FlaskConical className="h-5 w-5 text-purple-400" /></div>
           <div>
             <h1 className="text-xl font-semibold text-clinic-text">Danh sách xét nghiệm</h1>
             <p className="text-xs text-clinic-muted">Tự động làm mới mỗi 60 giây</p>
@@ -106,7 +106,7 @@ export function LabWorklist() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as LabStatus | '')}
-          className="rounded-xl border border-clinic-border px-3 py-2 text-sm"
+          className="rounded-xl border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text"
         >
           <option value="">Tất cả trạng thái</option>
           {(Object.keys(STATUS_LABELS) as LabStatus[]).map((s) => (
@@ -115,15 +115,15 @@ export function LabWorklist() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-clinic-border bg-white shadow-clinic">
+      <div className="overflow-hidden rounded-2xl border border-clinic-border bg-clinic-surface shadow-clinic">
         <table className="w-full text-sm">
           <thead className="border-b border-clinic-border bg-clinic-bg">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Bệnh nhân</th>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Dịch vụ</th>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Trạng thái</th>
-              <th className="px-4 py-3 text-left font-semibold text-clinic-text">Thời gian</th>
-              <th className="px-4 py-3 text-center font-semibold text-clinic-text">Thao tác</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Bệnh nhân</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Dịch vụ</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Trạng thái</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-clinic-muted">Thời gian</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-clinic-muted">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -131,7 +131,7 @@ export function LabWorklist() {
               Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i}>
                   <td colSpan={5} className="px-4 py-3">
-                    <div className="h-4 animate-pulse rounded bg-gray-100" />
+                    <div className="h-4 animate-pulse rounded bg-white/5" />
                   </td>
                 </tr>
               ))
@@ -143,7 +143,7 @@ export function LabWorklist() {
               </tr>
             ) : (
               orders.map((order) => (
-                <tr key={order.id} className="border-b border-clinic-border last:border-0 hover:bg-clinic-bg/50">
+                <tr key={order.id} className="border-b border-clinic-border last:border-0 hover:bg-clinic-primary/5">
                   <td className="px-4 py-3 font-medium text-clinic-text">
                     {order.visit?.patient?.fullName ?? '—'}
                   </td>
@@ -169,7 +169,7 @@ export function LabWorklist() {
                         <button
                           onClick={() => collectMut.mutate(order.id)}
                           disabled={collectMut.isPending}
-                          className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                          className="rounded-lg bg-blue-500/15 px-2 py-1 text-xs font-medium text-blue-400 hover:bg-blue-500/25 disabled:opacity-50"
                         >
                           Lấy mẫu
                         </button>
@@ -177,7 +177,7 @@ export function LabWorklist() {
                       {order.status === 'SAMPLE_COLLECTED' && canEnterResult && (
                         <button
                           onClick={() => { setResultModal(order); setResultData('{}'); setResultNotes('') }}
-                          className="rounded-lg bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100"
+                          className="rounded-lg bg-purple-500/15 px-2 py-1 text-xs font-medium text-purple-400 hover:bg-purple-500/25"
                         >
                           Nhập KQ
                         </button>
@@ -186,7 +186,7 @@ export function LabWorklist() {
                         <button
                           onClick={() => verifyMut.mutate(order.id)}
                           disabled={verifyMut.isPending}
-                          className="rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
+                          className="rounded-lg bg-green-500/15 px-2 py-1 text-xs font-medium text-green-400 hover:bg-green-500/25 disabled:opacity-50"
                         >
                           Xác nhận
                         </button>
@@ -194,7 +194,7 @@ export function LabWorklist() {
                       {order.resultData && (
                         <button
                           onClick={() => { setResultModal(order); setResultData(JSON.stringify(order.resultData, null, 2)); setResultNotes(order.resultNotes ?? '') }}
-                          className="rounded-lg bg-gray-50 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
+                          className="rounded-lg bg-white/5 px-2 py-1 text-xs text-clinic-muted hover:bg-white/10"
                         >
                           Xem KQ
                         </button>
@@ -211,7 +211,7 @@ export function LabWorklist() {
       {/* Result entry modal */}
       {resultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl bg-clinic-surface border border-clinic-border p-6 shadow-clinic">
             <h2 className="mb-4 font-semibold text-clinic-text">
               {resultModal.status === 'RESULT_ENTERED' || resultModal.status === 'VERIFIED'
                 ? 'Kết quả xét nghiệm'
@@ -229,7 +229,7 @@ export function LabWorklist() {
                 value={resultData}
                 onChange={(e) => setResultData(e.target.value)}
                 readOnly={resultModal.status !== 'SAMPLE_COLLECTED'}
-                className="w-full rounded-lg border border-clinic-border px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-clinic-primary"
+                className="w-full rounded-lg border border-clinic-border bg-clinic-bg px-3 py-2 font-mono text-xs text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40"
                 placeholder='{"glucose": 5.1, "hba1c": 6.2}'
               />
             </div>
@@ -240,7 +240,7 @@ export function LabWorklist() {
                 value={resultNotes}
                 onChange={(e) => setResultNotes(e.target.value)}
                 readOnly={resultModal.status !== 'SAMPLE_COLLECTED'}
-                className="w-full rounded-lg border border-clinic-border px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40"
               />
             </div>
 

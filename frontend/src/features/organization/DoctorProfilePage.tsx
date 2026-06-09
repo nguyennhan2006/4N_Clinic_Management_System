@@ -7,9 +7,9 @@ import { useAuthStore } from '@/features/auth/store'
 
 function DoctorCard({ doctor }: { doctor: DoctorProfile }) {
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-clinic-border bg-white p-4 shadow-clinic">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-clinic-sidebarMuted">
-        <Stethoscope className="h-5 w-5 text-clinic-sidebar" />
+    <div className="flex items-start gap-4 rounded-2xl border border-clinic-border bg-clinic-surface p-4 shadow-clinic">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-clinic-primary/15">
+        <Stethoscope className="h-5 w-5 text-clinic-primary" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-clinic-text">
@@ -18,19 +18,19 @@ function DoctorCard({ doctor }: { doctor: DoctorProfile }) {
         <p className="text-sm text-clinic-muted">{doctor.user?.email ?? '—'}</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {doctor.department && (
-            <span className="rounded-full bg-clinic-sidebarMuted px-2.5 py-0.5 text-xs text-clinic-sidebar">
+            <span className="rounded-full bg-clinic-primary/15 px-2.5 py-0.5 text-xs text-clinic-primary">
               {doctor.department.name}
             </span>
           )}
           {doctor.specialty && (
-            <span className="rounded-full bg-clinic-secondary/20 px-2.5 py-0.5 text-xs text-teal-700">
+            <span className="rounded-full bg-clinic-secondary/20 px-2.5 py-0.5 text-xs text-teal-400">
               {doctor.specialty}
             </span>
           )}
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
             doctor.isActive
-              ? 'bg-clinic-success/20 text-green-700'
-              : 'bg-clinic-danger/20 text-red-600'
+              ? 'bg-green-500/15 text-green-400'
+              : 'bg-red-500/15 text-red-400'
           }`}>
             {doctor.isActive ? 'Đang làm việc' : 'Nghỉ'}
           </span>
@@ -54,7 +54,7 @@ export function DoctorProfilePage() {
       <div className="p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl bg-gray-100" />
+            <div key={i} className="h-28 animate-pulse rounded-2xl bg-white/5" />
           ))}
         </div>
       </div>
@@ -75,7 +75,9 @@ export function DoctorProfilePage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Stethoscope className="h-6 w-6 text-clinic-sidebar" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-clinic-primary/15">
+            <Stethoscope className="h-5 w-5 text-clinic-primary" />
+          </div>
           <div>
             <h1 className="text-xl font-semibold text-clinic-text">Hồ sơ bác sĩ</h1>
             <p className="text-sm text-clinic-muted">{doctors?.length ?? 0} bác sĩ đang hoạt động</p>

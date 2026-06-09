@@ -4,13 +4,12 @@ export interface DispenseItem {
   id: string
   dispenseId: string
   prescriptionItemId: string
-  stockLotId: string
+  lotId: string              // schema field name (not stockLotId)
   drugId: string
   quantity: number
   unitPriceSnapshot: number
-  lineTotal: number
-  stockLot?: { lotNumber: string; expiryDate: string }
   drug?: { name: string; unit: string }
+  lot?: { lotNumber: string; expiryDate: string }
 }
 
 export interface Dispense {
@@ -19,15 +18,18 @@ export interface Dispense {
   prescriptionId: string
   dispensedById: string
   status: DispenseStatus
-  totalAmount: number
-  notes: string | null
-  dispensedAt: string
+  totalAmount: number        // computed: sum(unitPriceSnapshot * quantity)
+  note: string | null
+  dispensedAt: string | null
   createdAt: string
+  updatedAt: string
   items?: DispenseItem[]
   visit?: {
-    patient?: { fullName: string }
+    id: string
     queueNumber?: number
+    patient?: { id: string; fullName: string; phone?: string }
   }
+  dispensedBy?: { fullName: string }
 }
 
 export interface PrescriptionItem {
@@ -42,6 +44,14 @@ export interface Prescription {
   id: string
   examinationId: string
   items?: PrescriptionItem[]
+  examination?: {
+    visit?: {
+      id: string
+      queueNumber?: number
+      patient?: { id: string; fullName: string; phone?: string }
+    }
+    doctor?: { fullName: string }
+  }
 }
 
 export interface CreateDispensePayload {

@@ -191,7 +191,7 @@ export function InvoiceListPage() {
                         <td className="px-5 py-3">
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${inv.id}`) }}
-                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-clinic-primary transition hover:bg-clinic-sidebarMuted"
+                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-clinic-primary transition hover:bg-clinic-primary/10"
                           >
                             Chi tiết
                           </button>
@@ -247,7 +247,7 @@ export function InvoiceListPage() {
                   {pendingVisits.map((visit) => (
                     <tr key={visit.id} className="transition hover:bg-clinic-bg/40">
                       <td className="px-5 py-3">
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-clinic-sidebarMuted text-xs font-bold text-clinic-sidebar">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-clinic-primary/15 text-xs font-bold text-clinic-primary">
                           {visit.queueNumber}
                         </span>
                       </td>

@@ -3,15 +3,14 @@ import {
   Controller,
   Get,
   Param,
-  Patch,
   Post,
   Query,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ROLES } from '../../common/constants/roles.constant';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -33,9 +32,9 @@ export class LabController {
   @ApiOperation({ summary: 'Tạo lab order từ service order type=LAB_TEST' })
   createOrder(
     @Body() dto: CreateLabOrderDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.labService.createOrder(dto, req.user.userId);
+    return this.labService.createOrder(dto, user.sub);
   }
 
   @Get('orders')
@@ -64,9 +63,9 @@ export class LabController {
   collectSample(
     @Param('id') id: string,
     @Body() dto: UpdateLabSampleDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.labService.collectSample(id, dto, req.user.userId);
+    return this.labService.collectSample(id, dto, user.sub);
   }
 
   @Post('orders/:id/result')
@@ -77,9 +76,9 @@ export class LabController {
   submitResult(
     @Param('id') id: string,
     @Body() dto: CreateLabResultDto,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.labService.submitResult(id, dto, req.user.userId);
+    return this.labService.submitResult(id, dto, user.sub);
   }
 
   @Post('orders/:id/verify')
@@ -87,9 +86,9 @@ export class LabController {
   @ApiOperation({ summary: 'Xác nhận kết quả (RESULT_ENTERED → VERIFIED)' })
   verifyResult(
     @Param('id') id: string,
-    @Request() req: { user: { userId: string } },
+    @CurrentUser() user: { sub: string },
   ) {
-    return this.labService.verifyResult(id, req.user.userId);
+    return this.labService.verifyResult(id, user.sub);
   }
 
   @Get('orders/:id/result')

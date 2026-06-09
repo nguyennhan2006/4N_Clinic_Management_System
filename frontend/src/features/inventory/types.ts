@@ -20,9 +20,11 @@ export interface StockLot {
 }
 
 export interface StockSummaryItem {
-  drugId: string
-  drugName: string
-  unit: string
+  drug: {
+    id: string
+    name: string
+    unit: string
+  }
   totalOnHand: number
   lots: StockLot[]
 }

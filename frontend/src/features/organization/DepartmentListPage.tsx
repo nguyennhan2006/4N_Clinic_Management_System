@@ -39,7 +39,7 @@ function DepartmentFormDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-clinic">
+      <div className="w-full max-w-md rounded-2xl bg-clinic-surface border border-clinic-border p-6 shadow-clinic">
         <h2 className="mb-4 text-lg font-semibold text-clinic-text">
           {defaultValues?.code ? 'Cập nhật khoa' : 'Thêm khoa mới'}
         </h2>
@@ -52,7 +52,7 @@ function DepartmentFormDialog({
               {...register('code')}
               disabled={!!defaultValues?.code}
               placeholder="VD: GENERAL"
-              className="w-full rounded-xl border border-clinic-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinic-primary disabled:bg-gray-50"
+              className="w-full rounded-xl border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40 disabled:opacity-50"
             />
             {errors.code && <p className="mt-1 text-xs text-clinic-danger">{errors.code.message}</p>}
           </div>
@@ -63,7 +63,7 @@ function DepartmentFormDialog({
             <input
               {...register('name')}
               placeholder="VD: Nội khoa tổng quát"
-              className="w-full rounded-xl border border-clinic-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinic-primary"
+              className="w-full rounded-xl border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40"
             />
             {errors.name && <p className="mt-1 text-xs text-clinic-danger">{errors.name.message}</p>}
           </div>
@@ -73,14 +73,14 @@ function DepartmentFormDialog({
               {...register('description')}
               rows={2}
               placeholder="Mô tả ngắn về khoa..."
-              className="w-full rounded-xl border border-clinic-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-clinic-primary"
+              className="w-full rounded-xl border border-clinic-border bg-clinic-bg px-3 py-2 text-sm text-clinic-text focus:outline-none focus:ring-2 focus:ring-clinic-primary/40"
             />
           </div>
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-clinic-border py-2 text-sm text-clinic-muted hover:bg-gray-50"
+              className="flex-1 rounded-xl border border-clinic-border bg-clinic-bg py-2 text-sm text-clinic-muted hover:bg-white/5"
             >
               Hủy
             </button>
@@ -116,7 +116,7 @@ function DepartmentRow({
 
   return (
     <>
-      <tr className="border-b border-clinic-border hover:bg-clinic-bg/50">
+      <tr className="border-b border-clinic-border hover:bg-clinic-primary/5">
         <td className="px-4 py-3">
           <button
             onClick={() => setExpanded(!expanded)}
@@ -137,8 +137,8 @@ function DepartmentRow({
         <td className="px-4 py-3">
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
             dept.isActive
-              ? 'bg-clinic-success/20 text-green-700'
-              : 'bg-clinic-danger/20 text-red-600'
+              ? 'bg-green-500/15 text-green-400'
+              : 'bg-red-500/15 text-red-400'
           }`}>
             {dept.isActive ? 'Đang hoạt động' : 'Ngừng'}
           </span>
@@ -148,13 +148,13 @@ function DepartmentRow({
             <div className="flex gap-2">
               <button
                 onClick={() => onEdit(dept)}
-                className="rounded-lg p-1.5 text-clinic-muted hover:bg-clinic-sidebarMuted hover:text-clinic-sidebar"
+                className="rounded-lg p-1.5 text-clinic-muted hover:bg-clinic-primary/10 hover:text-clinic-primary"
               >
                 <Pencil className="h-4 w-4" />
               </button>
               <button
                 onClick={() => onToggle(dept)}
-                className="rounded-lg px-2 py-1 text-xs text-clinic-muted hover:bg-clinic-sidebarMuted"
+                className="rounded-lg px-2 py-1 text-xs text-clinic-muted hover:bg-clinic-primary/10"
               >
                 {dept.isActive ? 'Tắt' : 'Bật'}
               </button>
@@ -226,10 +226,10 @@ export function DepartmentListPage() {
   if (isLoading) {
     return (
       <div className="p-6">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-gray-200" />
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-white/5" />
         <div className="mt-4 space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded-xl bg-gray-100" />
+            <div key={i} className="h-12 animate-pulse rounded-xl bg-white/5" />
           ))}
         </div>
       </div>
@@ -251,7 +251,9 @@ export function DepartmentListPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Building2 className="h-6 w-6 text-clinic-sidebar" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-clinic-primary/15">
+            <Building2 className="h-5 w-5 text-clinic-primary" />
+          </div>
           <div>
             <h1 className="text-xl font-semibold text-clinic-text">Khoa & Phòng</h1>
             <p className="text-sm text-clinic-muted">{departments?.length ?? 0} khoa</p>
@@ -283,7 +285,7 @@ export function DepartmentListPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-clinic-border bg-white shadow-clinic">
+        <div className="overflow-hidden rounded-2xl border border-clinic-border bg-clinic-surface shadow-clinic">
           <table className="w-full text-left">
             <thead className="border-b border-clinic-border bg-clinic-bg text-xs font-medium uppercase tracking-wide text-clinic-muted">
               <tr>

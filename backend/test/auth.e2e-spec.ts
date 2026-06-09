@@ -12,26 +12,31 @@ const BASE = `/${APP_API_PREFIX}`;
 
 const USERS = {
   admin: {
+    username: 'admin',
     email: 'admin@clinic.local',
     password: 'Admin@123456',
     role: 'ADMIN',
   },
   doctor: {
+    username: 'doctor',
     email: 'doctor@clinic.local',
     password: 'Doctor@123456',
     role: 'DOCTOR',
   },
   receptionist: {
+    username: 'receptionist',
     email: 'receptionist@clinic.local',
     password: 'Reception@123456',
     role: 'RECEPTIONIST',
   },
   cashier: {
+    username: 'cashier',
     email: 'cashier@clinic.local',
     password: 'Cashier@123456',
     role: 'CASHIER',
   },
   manager: {
+    username: 'manager',
     email: 'manager@clinic.local',
     password: 'Manager@123456',
     role: 'MANAGER',
@@ -58,9 +63,11 @@ describe('Auth & RBAC (e2e)', () => {
     );
     app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
+    (app.getHttpServer() as import("http").Server).keepAliveTimeout = 120_000;
   });
 
   afterAll(async () => {
+    (app.getHttpServer() as import("http").Server).closeAllConnections?.();
     await app.close();
   });
 
@@ -69,15 +76,15 @@ describe('Auth & RBAC (e2e)', () => {
   describe('POST /auth/login', () => {
     it.each(Object.entries(USERS))(
       'login %s trả về accessToken và role đúng',
-      async (key, { email, password, role }) => {
+      async (key, { username, password, role }) => {
         const res = await request(app.getHttpServer())
           .post(`${BASE}/auth/login`)
-          .send({ email, password })
+          .send({ username, password })
           .expect(201);
 
         expect(res.body).toHaveProperty('accessToken');
-        expect(res.body.user.role).toBe(role);
-        expect(res.body.user.email).toBe(email);
+        expect(res.body.user.roles).toContain(role);
+        expect(res.body.user.username).toBe(username);
 
         tokens[key] = res.body.accessToken as string;
       },
@@ -86,18 +93,18 @@ describe('Auth & RBAC (e2e)', () => {
     it('sai password → 401', async () => {
       await request(app.getHttpServer())
         .post(`${BASE}/auth/login`)
-        .send({ email: USERS.admin.email, password: 'WrongPass' })
+        .send({ username: USERS.admin.username, password: 'WrongPass' })
         .expect(401);
     });
 
-    it('email không tồn tại → 401', async () => {
+    it('username không tồn tại → 401', async () => {
       await request(app.getHttpServer())
         .post(`${BASE}/auth/login`)
-        .send({ email: 'nobody@clinic.local', password: 'Whatever123' })
+        .send({ username: 'nobody', password: 'Whatever123' })
         .expect(401);
     });
 
-    it('thiếu email → 400', async () => {
+    it('thiếu username → 400', async () => {
       await request(app.getHttpServer())
         .post(`${BASE}/auth/login`)
         .send({ password: 'Admin@123456' })
@@ -115,7 +122,7 @@ describe('Auth & RBAC (e2e)', () => {
         .expect(200);
 
       expect(res.body.email).toBe(USERS.admin.email);
-      expect(res.body.role).toBe('ADMIN');
+      expect(res.body.roles).toContain('ADMIN');
       expect(res.body).not.toHaveProperty('passwordHash');
     });
 

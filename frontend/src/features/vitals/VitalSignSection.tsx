@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Activity } from 'lucide-react'
 import { toast } from 'sonner'
@@ -68,7 +68,7 @@ export function VitalSignSection({ visitId, visitStatus }: Props) {
   ] as const
 
   return (
-    <div className="rounded-xl border border-clinic-border bg-white p-4">
+    <div className="rounded-xl border border-clinic-border bg-clinic-surface p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-clinic-primary" />
@@ -77,7 +77,7 @@ export function VitalSignSection({ visitId, visitStatus }: Props) {
         {canEdit && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="rounded-lg bg-clinic-sidebarMuted px-3 py-1 text-xs font-medium text-clinic-sidebar hover:bg-clinic-primary/20"
+            className="rounded-lg bg-clinic-primary/15 px-3 py-1 text-xs font-medium text-clinic-primary hover:bg-clinic-primary/25"
           >
             {showForm ? 'Hủy' : vitals ? 'Cập nhật' : 'Ghi chỉ số'}
           </button>
@@ -85,7 +85,7 @@ export function VitalSignSection({ visitId, visitStatus }: Props) {
       </div>
 
       {isLoading ? (
-        <div className="h-10 animate-pulse rounded-lg bg-gray-100" />
+        <div className="h-10 animate-pulse rounded-lg bg-white/5" />
       ) : vitals ? (
         <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
           {vitals.pulse && (

@@ -9,23 +9,23 @@ type StatusVariant = VisitStatus | ExaminationStatus | InvoiceStatus | UserStatu
 
 const STATUS_CONFIG: Record<StatusVariant, { label: string; className: string }> = {
   // Visit
-  REGISTERED:    { label: 'Đã đăng ký',          className: 'bg-clinic-sidebar-muted text-clinic-sidebar' },
-  WAITING:       { label: 'Đang chờ',             className: 'bg-[#FEF3C7] text-[#92400E]' },
-  IN_EXAMINATION:{ label: 'Đang khám',            className: 'bg-[#CCFBF1] text-[#0F766E]' },
-  COMPLETED:     { label: 'Hoàn tất',             className: 'bg-[#D1FAE5] text-[#065F46]' },
-  CANCELLED:     { label: 'Đã hủy',               className: 'bg-[#FEE2E2] text-clinic-danger' },
+  REGISTERED:    { label: 'Đã đăng ký',          className: 'bg-blue-500/15 text-blue-400' },
+  WAITING:       { label: 'Đang chờ',             className: 'bg-amber-500/15 text-amber-400' },
+  IN_EXAMINATION:{ label: 'Đang khám',            className: 'bg-cyan-500/15 text-cyan-400' },
+  COMPLETED:     { label: 'Hoàn tất',             className: 'bg-green-500/15 text-green-400' },
+  CANCELLED:     { label: 'Đã hủy',               className: 'bg-red-500/15 text-red-400' },
   // Examination
-  OPEN:          { label: 'Đang mở',              className: 'bg-[#CCFBF1] text-[#0F766E]' },
+  OPEN:          { label: 'Đang mở',              className: 'bg-cyan-500/15 text-cyan-400' },
   // Invoice
-  DRAFT:         { label: 'Nháp',                 className: 'bg-clinic-border text-clinic-muted' },
-  ISSUED:        { label: 'Đã phát hành',          className: 'bg-[#DBEAFE] text-[#1D4ED8]' },
-  PARTIALLY_PAID:{ label: 'Thanh toán một phần',  className: 'bg-[#FEF3C7] text-[#92400E]' },
-  PAID:          { label: 'Đã thanh toán',         className: 'bg-[#D1FAE5] text-[#065F46]' },
-  VOID:          { label: 'Đã hủy',               className: 'bg-[#FEE2E2] text-clinic-danger' },
+  DRAFT:         { label: 'Nháp',                 className: 'bg-white/5 text-clinic-muted' },
+  ISSUED:        { label: 'Đã phát hành',          className: 'bg-blue-500/15 text-blue-400' },
+  PARTIALLY_PAID:{ label: 'Thanh toán một phần',  className: 'bg-amber-500/15 text-amber-400' },
+  PAID:          { label: 'Đã thanh toán',         className: 'bg-green-500/15 text-green-400' },
+  VOID:          { label: 'Đã hủy',               className: 'bg-red-500/15 text-red-400' },
   // User
-  ACTIVE:        { label: 'Hoạt động',            className: 'bg-[#D1FAE5] text-[#065F46]' },
-  INACTIVE:      { label: 'Không hoạt động',       className: 'bg-clinic-border text-clinic-muted' },
-  LOCKED:        { label: 'Đã khóa',              className: 'bg-[#FEE2E2] text-clinic-danger' },
+  ACTIVE:        { label: 'Hoạt động',            className: 'bg-green-500/15 text-green-400' },
+  INACTIVE:      { label: 'Không hoạt động',       className: 'bg-white/5 text-clinic-muted' },
+  LOCKED:        { label: 'Đã khóa',              className: 'bg-red-500/15 text-red-400' },
 }
 
 interface StatusBadgeProps {
@@ -34,7 +34,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = STATUS_CONFIG[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' }
+  const config = STATUS_CONFIG[status] ?? { label: status, className: 'bg-white/5 text-clinic-muted' }
 
   return (
     <span

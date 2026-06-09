@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronDown, LogOut, User } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, Moon, Sun, User } from 'lucide-react'
 import { useAuthStore } from '@/features/auth/store'
 import { authApi } from '@/features/auth/api'
+import { useTheme } from '@/hooks/useTheme'
 import { RoleBadge } from './RoleBadge'
 
 export function Topbar() {
@@ -12,6 +13,7 @@ export function Topbar() {
   const logout = useAuthStore((s) => s.logout)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const { theme, toggle } = useTheme()
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -34,7 +36,7 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-clinic-border bg-clinic-surface px-6">
+    <header className="flex h-14 items-center justify-between border-b border-clinic-border bg-clinic-surface/80 backdrop-blur-sm px-6">
       {/* Left: breadcrumb slot (empty for now) */}
       <div className="flex-1" />
 
@@ -48,6 +50,15 @@ export function Topbar() {
           <Bell className="h-5 w-5" />
         </button>
 
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          aria-label={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+          className="rounded-lg p-1.5 text-clinic-muted transition hover:bg-clinic-bg hover:text-clinic-text"
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+
         {/* User dropdown */}
         <div className="relative" ref={menuRef}>
           <button
@@ -57,7 +68,7 @@ export function Topbar() {
             className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition hover:bg-clinic-bg"
           >
             {/* Avatar */}
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-clinic-sidebar-muted text-sm font-semibold text-clinic-sidebar">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-clinic-primary/20 text-sm font-semibold text-clinic-primary">
               {user?.fullName?.[0]?.toUpperCase() ?? <User className="h-4 w-4" />}
             </div>
 
@@ -101,7 +112,7 @@ export function Topbar() {
               <button
                 role="menuitem"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-clinic-muted transition hover:bg-[#FECACA] hover:text-clinic-danger"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-clinic-muted transition hover:bg-red-500/10 hover:text-clinic-danger"
               >
                 <LogOut className="h-4 w-4" />
                 Đăng xuất

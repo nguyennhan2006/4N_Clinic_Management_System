@@ -228,14 +228,28 @@ export class PharmacyService {
       where.createdAt = { gte: day, lt: nextDay };
     }
 
-    return this.prisma.dispense.findMany({
+    const dispenses = await this.prisma.dispense.findMany({
       where,
       include: {
         dispensedBy: { select: { fullName: true } },
+        visit: {
+          include: {
+            patient: { select: { id: true, fullName: true, phone: true } },
+          },
+        },
         items: { include: { drug: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return dispenses.map((d) => ({
+      ...d,
+      totalAmount: d.items.reduce(
+        (sum, item) =>
+          sum + Number(item.unitPriceSnapshot) * item.quantity,
+        0,
+      ),
+    }));
   }
 
   async cancelDispense(id: string, actorId: string) {

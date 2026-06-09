@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, Lock, Unlock, UserCheck } from 'lucide-react'
 import { PageHeader } from '@/components/common/PageHeader'
@@ -67,7 +67,7 @@ function CreateUserDialog({
         <h2 className="mb-4 text-base font-semibold text-clinic-text">Thêm tài khoản mới</h2>
 
         {error && (
-          <p className="mb-3 rounded-xl bg-[#FEE2E2] px-4 py-2 text-sm text-clinic-danger">{error}</p>
+          <p className="mb-3 rounded-xl bg-red-500/10 px-4 py-2 text-sm text-clinic-danger">{error}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -176,7 +176,7 @@ function AssignRolesDialog({
         <p className="mb-4 text-xs text-clinic-muted">{user.fullName} ({user.username})</p>
 
         {error && (
-          <p className="mb-3 rounded-xl bg-[#FEE2E2] px-4 py-2 text-sm text-clinic-danger">{error}</p>
+          <p className="mb-3 rounded-xl bg-red-500/10 px-4 py-2 text-sm text-clinic-danger">{error}</p>
         )}
 
         <div className="flex flex-wrap gap-2">
@@ -324,7 +324,7 @@ export function UserManagementPage() {
                 </thead>
                 <tbody className="divide-y divide-clinic-border">
                   {data.data.map((u) => (
-                    <tr key={u.id} className="transition hover:bg-clinic-bg/50">
+                    <tr key={u.id} className="transition hover:bg-clinic-primary/5">
                       <td className="px-4 py-3">
                         <p className="font-medium text-clinic-text">{u.fullName}</p>
                         <p className="text-xs text-clinic-muted">@{u.username}</p>
