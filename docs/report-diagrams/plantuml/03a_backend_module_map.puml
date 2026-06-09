@@ -1,0 +1,48 @@
+@startuml
+!include common-style.puml
+
+title Backend Module Map\nNestJS Modular Monolith — 21 Modules
+
+top to bottom direction
+
+package "Foundation" #E0F2FE {
+  component "PrismaModule\nShared DB client" as Prisma
+  component "AuthModule\nJWT login / refresh" as Auth
+  component "HealthModule\nHealth check" as Health
+}
+
+package "Phase 1 — Core Clinical Flow" #CCFBF1 {
+  component "PatientsModule\nPatient CRUD + search" as Patients
+  component "VisitsModule\nVisit + queue + open-exam" as Visits
+  component "ExaminationsModule\nExam + diagnosis + complete" as Exams
+  component "PrescriptionsModule\n(service-only, no controller)" as Prescriptions
+  component "BillingModule\nInvoice + payment" as Billing
+}
+
+package "Phase 1 — Catalog & Configuration" #DCFCE7 {
+  component "DiseasesModule\nDisease catalog" as Diseases
+  component "DrugsModule\nDrug / medicine catalog" as Drugs
+  component "RegulationsModule\nVersion-controlled rules" as Regulations
+  component "ReportsModule\nMonthly summary report" as Reports
+  component "UsersModule\nUser CRUD + RBAC" as Users
+}
+
+package "Phase 2 — Extended Operations" #FFF7ED {
+  component "AppointmentsModule\nOnline scheduling" as Appointments
+  component "QueueModule\nQueue ticket management" as Queue
+  component "VitalsModule\nVital signs + BMI" as Vitals
+  component "ServicesModule\nService catalog + orders" as Services
+  component "LabModule\nLab orders + results" as Lab
+  component "InventoryModule\nStock lots + movements" as Inventory
+  component "PharmacyModule\nFEFO dispense" as Pharmacy
+  component "OrganizationModule\nDepartment / doctor profile" as Organization
+  component "AuditModule\nAudit log" as Audit
+}
+
+note bottom of Prisma
+All 21 modules import PrismaModule.
+Database access goes only through PrismaService.
+No direct SQL in controllers.
+end note
+
+@enduml

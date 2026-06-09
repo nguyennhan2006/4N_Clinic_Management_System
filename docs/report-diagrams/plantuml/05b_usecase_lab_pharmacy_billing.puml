@@ -1,0 +1,69 @@
+@startuml
+!include common-style.puml
+
+title Use Case Diagram — Phase 2 (Part 2)\nServices, Lab, Inventory, Pharmacy, Extended Billing
+
+top to bottom direction
+
+actor Admin #DBEAFE
+actor Doctor #DCFCE7
+actor "Lab Technician" as LabTech #FCE7F3
+actor Pharmacist #FEE2E2
+actor Cashier #FFEDD5
+actor Manager #F3E8FF
+
+rectangle "4N Clinic — Lab, Pharmacy & Extended Operations" {
+
+  package "Service & Lab Orders" {
+    usecase "UC25\nOrder clinic service" as UC25
+    usecase "UC26\nCreate lab test order" as UC26
+    usecase "UC27\nCollect sample" as UC27
+    usecase "UC28\nEnter lab result" as UC28
+    usecase "UC29\nVerify lab result" as UC29
+  }
+
+  package "Inventory & Pharmacy" {
+    usecase "UC30\nReceive drug lot" as UC30
+    usecase "UC31\nTrack stock / expiry" as UC31
+    usecase "UC32\nDispense drugs (FEFO)" as UC32
+  }
+
+  package "Extended Billing & Reports" {
+    usecase "UC33\nMulti-item invoice" as UC33
+    usecase "UC34\nExtended reports" as UC34
+  }
+}
+
+Doctor --> UC25
+Doctor --> UC26
+Doctor --> UC29
+
+LabTech --> UC27
+LabTech --> UC28
+LabTech --> UC29
+
+Pharmacist --> UC30
+Pharmacist --> UC31
+Pharmacist --> UC32
+
+Cashier --> UC33
+
+Manager --> UC34
+Admin --> UC30
+Admin --> UC34
+
+UC26 .> UC25 : lab is a service
+UC27 .> UC26 : <<include>>
+UC28 .> UC27 : after sample collected
+UC29 .> UC28 : verify result
+UC32 .> UC31 : FEFO lot selection
+UC33 .> UC25 : service line items
+UC33 .> UC32 : drug line items
+
+note bottom of UC32
+FEFO = First Expired, First Out.
+Lots with earliest expiry date
+are consumed first.
+end note
+
+@enduml

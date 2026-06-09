@@ -1,0 +1,144 @@
+\chapter{Phụ lục}
+
+\section{Phụ lục A -- Danh mục sơ đồ kỹ thuật trong báo cáo}
+
+Các sơ đồ kiến trúc và luồng dữ liệu được viết bằng Mermaid, render ra PDF vector và lưu trong \code{figures/mermaid-source/}. Các sơ đồ dạng sequence diagram và state machine đã được chuyển sang dạng bảng trong thân báo cáo để tiết kiệm không gian và dễ theo dõi hơn.
+
+\begin{longtable}{|p{5cm}|p{8.5cm}|}
+\caption{Danh mục sơ đồ kỹ thuật còn dùng trong báo cáo}\\
+\hline
+\textbf{Artifact} & \textbf{Vai trò trong báo cáo} \\
+\hline
+\code{figures/ch00-overview/process-overview.pdf} & Quy trình thực hiện đồ án từ khảo sát đến triển khai. \\
+\hline
+\code{figures/ch01-requirements/usecase-phase1.png} & Use case tổng quan Phase 1 (trang ngang). \\
+\hline
+\code{figures/ch01-requirements/usecase-phase2.png} & Use case tổng quan Phase 2 (trang ngang). \\
+\hline
+\code{figures/ch02-system-design/system-context.pdf} & System context: actor, hệ thống, JWT service và database. \\
+\hline
+\code{figures/ch02-system-design/container-diagram.pdf} & Container diagram: React SPA, NestJS API, Prisma, PostgreSQL. \\
+\hline
+\code{figures/ch02-system-design/backend-component.pdf} & Component diagram backend theo module nghiệp vụ (trang ngang). \\
+\hline
+\code{figures/ch02-system-design/layered-architecture.pdf} & Layered architecture của backend. \\
+\hline
+\code{figures/ch03-software-design/erd-phase1.pdf} & ERD Phase 1 -- 20 models nghiệp vụ lõi (trang ngang). \\
+\hline
+\code{figures/ch03-software-design/erd-phase2-delta.pdf} & ERD Phase 2 Delta -- 17 models mở rộng (trang ngang). \\
+\hline
+\code{figures/ch05-testing/testing-strategy.pdf} & Tổng quan chiến lược kiểm thử theo tầng. \\
+\hline
+\code{figures/ch06-deployment/local-deployment.pdf} & Deployment view cho môi trường local. \\
+\hline
+\end{longtable}
+
+Các sơ đồ đã chuyển sang bảng trong thân báo cáo:
+
+\begin{itemize}
+    \item Luồng đăng nhập JWT (Bảng~\ref{tab:auth-sequence}, Chương 2).
+    \item Chuyển trạng thái entity lõi: Visit, Examination, Invoice, QueueTicket (Bảng~\ref{tab:state-transitions}, Chương 3).
+    \item Luồng tạo lượt khám (Bảng~\ref{tab:visit-sequence}, Chương 3).
+    \item Luồng khám bệnh và kê đơn (Bảng~\ref{tab:examination-sequence}, Chương 3).
+    \item Luồng lập hóa đơn và thanh toán (Bảng~\ref{tab:payment-sequence}, Chương 3).
+    \item Luồng cấp phát thuốc FEFO (Bảng~\ref{tab:fefo-sequence}, Chương 3).
+\end{itemize}
+
+\section{Phụ lục B -- API inventory rút gọn}
+
+Hệ thống có 92 endpoints với prefix \code{/api/v1}. Bảng dưới đây tóm tắt inventory theo module để hỗ trợ đối chiếu nhanh khi demo hoặc kiểm tra Swagger.
+
+\begin{longtable}{|p{4cm}|p{2cm}|p{8cm}|}
+\caption{API inventory rút gọn theo module}\\
+\hline
+\textbf{Module} & \textbf{Số endpoint} & \textbf{Nội dung chính} \\
+\hline
+auth & 4 & Login, refresh, logout, lấy thông tin người dùng hiện tại. \\
+\hline
+users, rbac & 9 & Quản lý tài khoản, vai trò và quyền. \\
+\hline
+patients, visits, examinations & 13 & Hồ sơ bệnh nhân, lượt khám, mở khám, cập nhật phiếu khám, kê đơn, hoàn tất khám. \\
+\hline
+billing, diseases, drugs, regulations, reports & 15 & Hóa đơn, thanh toán, danh mục, quy định và báo cáo tháng. \\
+\hline
+appointments, queue, vitals & 12 & Lịch hẹn, check-in, hàng đợi và sinh hiệu. \\
+\hline
+services, lab & 14 & Danh mục dịch vụ, chỉ định dịch vụ và quy trình xét nghiệm. \\
+\hline
+inventory, pharmacy, organization, audit & 25 & Lô thuốc, biến động kho, cấp phát thuốc, tổ chức phòng khám và audit log. \\
+\hline
+\textbf{Tổng cộng} & \textbf{92} & \textbf{41 endpoints Phase 1 và 51 endpoints Phase 2.} \\
+\hline
+\end{longtable}
+
+\section{Phụ lục C -- Phân công và đóng góp của các thành viên}
+
+Nhóm gồm 4 thành viên, mỗi người phụ trách một mảng chính nhưng đều tham gia kiểm tra chéo, review và đóng góp vào các hoạt động chung. Nhóm xác nhận mức độ đóng góp của 4 thành viên là tương đương; sự khác biệt nằm ở loại công việc, không phải khối lượng.
+
+\begin{longtable}{|p{3.2cm}|p{3.2cm}|p{6.8cm}|}
+\caption{Phân công và đóng góp của các thành viên trong nhóm}\\
+\hline
+\textbf{Thành viên} & \textbf{Vai trò chính} & \textbf{Đóng góp chính} \\
+\hline
+Trần Trọng Nhân & Frontend \& UI/UX &
+Thiết kế và kiểm tra giao diện, bố cục màn hình, sidebar theo vai trò, user flow, screenshot demo và hỗ trợ tích hợp frontend với API. \\
+\hline
+Nguyễn Chơn Nhân & Project Lead / BA / Documentation &
+Điều phối nhóm, phân tích yêu cầu, chốt phạm vi, chuẩn hóa REQ/UC, traceability matrix, tổng hợp nội dung báo cáo và kiểm tra tính thống nhất tài liệu. \\
+\hline
+Nguyễn Trọng Phan Nhật & QA / Integration &
+Xây dựng test plan, kiểm thử thủ công Phase 2, kiểm tra luồng tích hợp, hỗ trợ chạy e2e test, ghi nhận lỗi và chuẩn bị minh chứng kiểm thử. \\
+\hline
+Trần Đức Nguyên & Backend \& Database &
+Thiết kế schema, migration, seed data, hiện thực backend module, business rules, API, transaction và hỗ trợ Swagger/API evidence. \\
+\hline
+\end{longtable}
+
+Mặc dù các vai trò chính khác nhau, nhóm thống nhất rằng mức độ đóng góp của 4 thành viên là tương đương. Các thành viên đều tham gia vào quá trình phân tích yêu cầu, review thiết kế, kiểm thử tích hợp, chuẩn bị demo và hoàn thiện báo cáo. Một số phần việc được thực hiện theo hình thức pair programming hoặc review trực tiếp nên không phải mọi đóng góp đều thể hiện đầy đủ trong Git commit history.
+
+\begin{longtable}{|p{4.2cm}|c|c|c|c|}
+\caption{Ma trận trách nhiệm RACI của nhóm}\\
+\hline
+\textbf{Hoạt động} & \textbf{PM/BA/Docs} & \textbf{Backend/DB} & \textbf{Frontend/UI} & \textbf{QA/Integration} \\
+\hline
+Khảo sát và đặc tả yêu cầu & R & C & C & C \\
+\hline
+Chốt scope Phase 1 / Phase 2 & R & C & C & C \\
+\hline
+Thiết kế database & C & R & C & C \\
+\hline
+Thiết kế API và business rules & C & R & C & C \\
+\hline
+Thiết kế giao diện và user flow & C & C & R & C \\
+\hline
+Hiện thực backend & C & R & C & C \\
+\hline
+Hiện thực frontend & C & C & R & C \\
+\hline
+Tích hợp frontend--backend & C & R & R & R \\
+\hline
+Kiểm thử API / E2E / manual & C & C & C & R \\
+\hline
+Chuẩn bị screenshot / demo & C & C & R & R \\
+\hline
+Viết và rà soát báo cáo & R & C & C & C \\
+\hline
+Review cuối trước khi nộp & R & R & R & R \\
+\hline
+\end{longtable}
+
+Trong bảng trên, \textbf{R} là người phụ trách chính của hoạt động, \textbf{C} là người tham gia góp ý, kiểm tra hoặc hỗ trợ. Dòng \textit{Review cuối trước khi nộp} được đánh dấu R cho cả 4 thành viên vì toàn nhóm cùng chịu trách nhiệm rà soát sản phẩm, báo cáo, minh chứng demo và tính thống nhất trước khi nộp.
+
+\section{Phụ lục D -- Checklist screenshot đã dùng trong báo cáo}
+
+Các screenshot sau đã được chèn vào báo cáo (tất cả nằm trong \code{figures/screenshots/}):
+
+\begin{itemize}
+    \item \code{dashboard-doctor.png} -- Dashboard Bác sĩ (Mở đầu).
+    \item \code{sidebar-admin.png}, \code{sidebar-doctor.png} -- Phân quyền sidebar theo role (Chương 2).
+    \item \code{visit-create.png}, \code{examination-page.png} -- UC tạo lượt khám và phiếu khám (Chương 1).
+    \item \code{patient-list.png}, \code{invoice-detail.png} -- Giao diện bệnh nhân và hóa đơn (Chương 3).
+    \item \code{pharmacy-worklist.png} -- Giao diện cấp phát thuốc Phase 2 (Chương 4).
+\end{itemize}
+
+Nhóm cần đảm bảo tất cả file screenshot trên tồn tại trong thư mục \code{figures/screenshots/} trước khi compile báo cáo lần cuối.

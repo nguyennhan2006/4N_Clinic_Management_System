@@ -1,0 +1,183 @@
+\chapter{Triển khai và vận hành}
+
+\section{Mục tiêu của chương}
+
+Chương này trình bày cách cài đặt, cấu hình, khởi động và vận hành hệ thống trong môi trường development local. Nội dung bao gồm yêu cầu môi trường, biến môi trường, cách chạy backend, frontend, database migration, seed data, tài khoản demo, API documentation và các giới hạn triển khai.
+
+\section{Phạm vi triển khai}
+
+Phiên bản hiện tại hỗ trợ triển khai local/development. Codebase chưa có bằng chứng Docker, docker-compose, CI/CD pipeline hoặc production deployment. Vì vậy, trong báo cáo chỉ nên khẳng định hệ thống chạy được trong môi trường local phục vụ demo và kiểm thử đồ án.
+
+\ReportFigure{figures/ch06-deployment/local-deployment.pdf}{Sơ đồ triển khai và vận hành local/development}{fig:local-deployment}
+
+\section{Yêu cầu môi trường}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu môi trường triển khai local}
+\begin{tabularx}{\textwidth}{|p{4cm}|p{3cm}|X|}
+\hline
+\textbf{Phần mềm} & \textbf{Phiên bản} & \textbf{Mục đích} \\
+\hline
+Node.js & 20+ LTS & Chạy backend, frontend và tooling \\
+\hline
+npm & 10+ & Package manager \\
+\hline
+PostgreSQL & 15+ & Database quan hệ \\
+\hline
+Git & 2.x+ & Quản lý mã nguồn \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Biến môi trường backend}
+
+File \code{backend/.env.example} được copy thành \code{backend/.env}. Các biến quan trọng gồm database URL, JWT access secret, JWT refresh secret và port backend.
+
+\begin{lstlisting}[language=bash,caption={Ví dụ biến môi trường backend}]
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/clinic_db?schema=public"
+JWT_ACCESS_SECRET="change_me_to_a_random_secret"
+JWT_ACCESS_EXPIRES="1d"
+JWT_REFRESH_SECRET="change_me_to_another_random_secret"
+JWT_REFRESH_EXPIRES="7d"
+PORT=3000
+\end{lstlisting}
+
+\section{Cài đặt và chạy backend}
+
+\begin{lstlisting}[language=bash,caption={Cài đặt và chạy backend}]
+git clone <repository-url>
+cd 4N_Clinic_Management_System
+cd backend
+npm install
+cp .env.example .env
+# Fill DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET
+npx prisma migrate dev
+npx prisma db seed
+npm run start:dev
+\end{lstlisting}
+
+Sau khi chạy thành công:
+
+\begin{itemize}
+    \item Backend: \code{http://localhost:3000}
+    \item API prefix: \code{http://localhost:3000/api/v1}
+    \item Swagger UI: \code{http://localhost:3000/api/docs}
+\end{itemize}
+
+\section{Cài đặt và chạy frontend}
+
+\begin{lstlisting}[language=bash,caption={Cài đặt và chạy frontend}]
+cd frontend
+npm install
+echo "VITE_API_BASE_URL=http://localhost:3000/api/v1" > .env.local
+npm run dev
+\end{lstlisting}
+
+Sau khi chạy thành công, frontend truy cập tại \code{http://localhost:5173}.
+
+\section{Tài khoản demo}
+
+Seed data cung cấp các tài khoản demo theo từng role để phục vụ kiểm thử và trình bày sản phẩm.
+
+\begin{longtable}{|p{3.2cm}|p{5.5cm}|p{4cm}|}
+\caption{Tài khoản demo từ seed data}\\
+\hline
+\textbf{Role} & \textbf{Email} & \textbf{Password} \\
+\hline
+ADMIN & admin@clinic.local & Admin@123456 \\
+\hline
+DOCTOR & doctor@clinic.local & Doctor@123456 \\
+\hline
+RECEPTIONIST & receptionist@clinic.local & Reception@123456 \\
+\hline
+CASHIER & cashier@clinic.local & Cashier@123456 \\
+\hline
+MANAGER & manager@clinic.local & Manager@123456 \\
+\hline
+NURSE & nurse@clinic.local & Nurse@123456 \\
+\hline
+LAB\_TECHNICIAN & lab@clinic.local & Lab@123456 \\
+\hline
+PHARMACIST & pharmacist@clinic.local & Pharma@123456 \\
+\hline
+\end{longtable}
+
+\section{Quản lý database}
+
+\begin{lstlisting}[language=bash,caption={Các lệnh quản lý database}]
+cd backend
+npx prisma studio
+npx prisma validate
+npx prisma migrate dev --name <migration-name>
+npx prisma migrate reset
+\end{lstlisting}
+
+\section{Lệnh kiểm tra chất lượng code}
+
+\begin{lstlisting}[language=bash,caption={Các lệnh kiểm tra build, lint và test}]
+# Backend
+cd backend
+npm run build
+npm run lint
+npm run test
+npm run test:e2e
+
+# Frontend
+cd frontend
+npm run build
+npm run lint
+\end{lstlisting}
+
+Các lệnh trên cần được nhóm chạy thực tế và chụp log kết quả trước khi nộp báo cáo. Riêng \code{npm run test:e2e} cần database thật và dữ liệu test phù hợp.
+
+\section{Troubleshooting khi triển khai local}
+
+\begin{longtable}{|p{4cm}|p{5cm}|p{5.2cm}|}
+\caption{Một số lỗi thường gặp khi chạy local}\\
+\hline
+\textbf{Vấn đề} & \textbf{Nguyên nhân thường gặp} & \textbf{Cách xử lý} \\
+\hline
+Backend không kết nối được database & Sai \code{DATABASE\_URL}, PostgreSQL chưa chạy hoặc database chưa tạo & Kiểm tra service PostgreSQL, tạo database, cập nhật \code{backend/.env}, chạy \code{npx prisma validate}. \\
+\hline
+Prisma migrate lỗi & Schema chưa đồng bộ hoặc migration cũ bị lệch với database local & Sao lưu dữ liệu cần thiết, chạy \code{npx prisma migrate dev}; nếu là môi trường demo có thể dùng \code{npx prisma migrate reset}. \\
+\hline
+Frontend gọi API lỗi CORS/Network & Backend chưa chạy, sai \code{VITE\_API\_BASE\_URL} hoặc port backend khác 3000 & Kiểm tra backend tại \code{/api/docs}, cập nhật \code{frontend/.env.local}. \\
+\hline
+Đăng nhập thất bại với tài khoản seed & Chưa chạy seed hoặc password seed không khớp & Chạy \code{npx prisma db seed}, kiểm tra lại danh sách tài khoản demo. \\
+\hline
+Test e2e fail do dữ liệu cũ & Database test còn dữ liệu từ lần chạy trước & Reset database test hoặc dùng seed/test setup sạch trước khi chạy \code{npm run test:e2e -- --runInBand}. \\
+\hline
+\end{longtable}
+
+\section{Ghi chú vận hành production trong tương lai}
+
+Dự án chưa có cấu hình production. Nếu triển khai production trong tương lai, nhóm cần bổ sung:
+
+\begin{itemize}
+    \item Dockerfile và docker-compose hoặc phương án container hóa tương đương.
+    \item CI/CD pipeline để build, lint, test tự động.
+    \item HTTPS, CORS chặt chẽ, secret đủ mạnh và rotation policy.
+    \item PostgreSQL connection pooling, backup database và monitoring.
+    \item Quy trình deploy frontend production build qua Nginx/CDN hoặc hosting phù hợp.
+\end{itemize}
+
+\section{Demo các chức năng trọng tâm}
+
+\begin{longtable}{|p{3.2cm}|p{5.2cm}|p{5.5cm}|}
+\caption{Demo triển khai và vận hành}\\
+\hline
+\textbf{Demo} & \textbf{Nội dung trình bày} & \textbf{Minh chứng cần chèn} \\
+\hline
+Demo chạy backend & Server NestJS chạy tại localhost:3000 & Screenshot terminal backend \\
+\hline
+Demo Swagger & API docs tại /api/docs & Screenshot Swagger UI \\
+\hline
+Demo database & Prisma migrate và seed thành công & Screenshot terminal hoặc Prisma Studio \\
+\hline
+Demo frontend & React app chạy tại localhost:5173 & Screenshot login/dashboard \\
+\hline
+Demo tài khoản seed & Đăng nhập admin, doctor, receptionist & Screenshot dashboard theo role \\
+\hline
+\end{longtable}
+

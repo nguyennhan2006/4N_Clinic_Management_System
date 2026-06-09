@@ -1,0 +1,58 @@
+@startuml
+!include common-style.puml
+
+title State Machine - Core Operational Statuses\nVisit, Examination, Invoice, Queue
+
+skinparam state {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+  StartColor #0F766E
+  EndColor #0F766E
+}
+
+state "Visit Status" as VisitStatus {
+  [*] --> WAITING : Receptionist creates visit\n(POST /visits)
+  WAITING --> IN_EXAM : Doctor opens examination\n(POST /visits/{id}/open-examination)
+  IN_EXAM --> DONE : Doctor completes examination\n(POST /examinations/{id}/complete)
+  WAITING --> CANCELLED : Administrative cancel
+  IN_EXAM --> CANCELLED : Administrative cancel
+  DONE --> [*]
+  CANCELLED --> [*]
+}
+
+state "Examination Status" as ExamStatus {
+  [*] --> IN_PROGRESS : open examination
+  IN_PROGRESS --> DONE : complete exam\n(all data saved)
+  IN_PROGRESS --> CANCELLED : cancel
+  DONE --> [*]
+  CANCELLED --> [*]
+}
+
+state "Invoice Status" as InvoiceStatus {
+  [*] --> UNPAID : Cashier creates invoice\n(POST /invoices)
+  UNPAID --> PARTIAL : First partial payment\n(paidAmount < totalAmount)
+  PARTIAL --> PARTIAL : Additional partial payment
+  UNPAID --> PAID : Full payment in one go
+  PARTIAL --> PAID : Remaining amount paid
+  UNPAID --> CANCELLED : Void invoice
+  PARTIAL --> CANCELLED : Void invoice
+  PAID --> [*]
+  CANCELLED --> [*]
+}
+
+state "Queue Status (Phase 2)" as QueueStatus {
+  [*] --> WAITING : Check-in / create queue ticket
+  WAITING --> CALLED : Call patient number
+  CALLED --> IN_SERVICE : Patient starts service
+  IN_SERVICE --> DONE : Service complete
+  WAITING --> CANCELLED : Cancel ticket
+  CALLED --> CANCELLED : Cancel ticket
+  DONE --> [*]
+  CANCELLED --> [*]
+}
+
+note "State transitions are enforced at service layer.\nVisit and Examination statuses are synchronized:\n- open-examination: Visit WAITING -> IN_EXAM + Exam IN_PROGRESS\n- complete: Exam IN_PROGRESS -> DONE + Visit IN_EXAM -> DONE" as SyncNote
+
+@enduml

@@ -1,0 +1,88 @@
+@startuml
+!include common-style.puml
+
+title Use Case Diagram - Phase 1\nCore clinic workflow
+
+left to right direction
+
+actor Admin
+actor Receptionist
+actor Doctor
+actor Cashier
+actor Manager
+
+rectangle "4N Clinic Management System - Phase 1" as System {
+  package "Authentication & Access" {
+    usecase "UC01\nDang nhap" as UC01
+    usecase "UC02\nQuan ly tai khoan" as UC02
+    usecase "UC03\nQuan ly vai tro / quyen" as UC03
+  }
+
+  package "Patient & Visit" {
+    usecase "UC04\nTra cuu ho so benh nhan" as UC04
+    usecase "UC05\nTao / cap nhat ho so benh nhan" as UC05
+    usecase "UC06\nTao luot kham" as UC06
+    usecase "UC07\nXem danh sach luot kham" as UC07
+  }
+
+  package "Examination & Prescription" {
+    usecase "UC08\nMo phien kham" as UC08
+    usecase "UC09\nGhi phieu kham" as UC09
+    usecase "UC10\nChan doan benh" as UC10
+    usecase "UC11\nKe don thuoc" as UC11
+    usecase "UC12\nXem lich su kham" as UC12
+  }
+
+  package "Billing" {
+    usecase "UC13\nLap hoa don" as UC13
+    usecase "UC14\nGhi nhan thanh toan" as UC14
+  }
+
+  package "Catalog, Regulation & Report" {
+    usecase "UC15\nQuan ly danh muc benh" as UC15
+    usecase "UC16\nQuan ly danh muc thuoc" as UC16
+    usecase "UC17\nQuan ly quy dinh" as UC17
+    usecase "UC18\nXem bao cao thang" as UC18
+  }
+}
+
+Admin --> UC01
+Admin --> UC02
+Admin --> UC03
+Admin --> UC15
+Admin --> UC16
+Admin --> UC17
+
+Receptionist --> UC01
+Receptionist --> UC04
+Receptionist --> UC05
+Receptionist --> UC06
+Receptionist --> UC07
+
+Doctor --> UC01
+Doctor --> UC04
+Doctor --> UC08
+Doctor --> UC09
+Doctor --> UC10
+Doctor --> UC11
+Doctor --> UC12
+
+Cashier --> UC01
+Cashier --> UC13
+Cashier --> UC14
+
+Manager --> UC01
+Manager --> UC18
+
+UC06 .> UC04 : <<include>>
+UC08 .> UC07 : <<include>>
+UC09 .> UC08 : <<include>>
+UC11 .> UC09 : <<extend>>
+UC13 .> UC09 : requires completed exam
+UC14 .> UC13 : <<include>>
+
+legend bottom
+Phase 1 focuses on minimum usable clinic workflow: authentication, patient intake, examination, prescription, billing and reporting.
+endlegend
+
+@enduml

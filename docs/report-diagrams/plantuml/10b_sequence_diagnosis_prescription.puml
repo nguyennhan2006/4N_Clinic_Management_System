@@ -1,0 +1,74 @@
+@startuml
+!include common-style.puml
+
+title Sequence: Diagnosis & Prescription\nDoctor records diagnosis and drug prescription
+
+actor Doctor
+participant "Exam Page\n(Frontend)" as FE
+participant "ExaminationsController" as EC
+participant "ExaminationsService" as ES
+participant "PrescriptionsService" as PS
+database "PostgreSQL" as DB
+
+== Save Diagnosis ==
+
+Doctor -> FE : Enter symptoms, select disease, set fee
+FE -> EC : PATCH /api/v1/examinations/{id}\n{ diagnosis, diseaseId, consultationFee }
+activate EC
+EC -> ES : update(id, dto)
+activate ES
+
+ES -> DB : SELECT Examination WHERE id
+DB --> ES : Examination
+
+alt Examination status = DONE
+  ES --> EC : BadRequestException\n"Cannot edit completed exam"
+  EC --> FE : 400 Bad Request
+else IN_PROGRESS
+  ES -> DB : UPDATE Examination\n{ diagnosis, diseaseId, consultationFee }
+  DB --> ES : updated
+  ES --> EC : ExaminationDTO
+  EC --> FE : 200 OK
+  FE --> Doctor : Saved
+end
+
+deactivate ES
+deactivate EC
+
+== Save Prescription ==
+
+Doctor -> FE : Add drug items\n(drug, quantity, instruction)
+FE -> EC : PATCH /api/v1/examinations/{id}\n{ prescriptionItems: [...] }
+activate EC
+EC -> ES : update(id, dto with items)
+activate ES
+
+ES -> PS : upsertPrescription(examId, items)
+activate PS
+
+PS -> DB : Validate each drug is active
+DB --> PS : Drug records
+
+alt No items provided
+  PS --> ES : BadRequestException\n"Prescription must have at least 1 item"
+else All drugs active
+  PS -> DB : $transaction:\n  UPSERT Prescription\n  DELETE old PrescriptionItems\n  INSERT new PrescriptionItems
+  DB --> PS : Saved
+  PS --> ES : PrescriptionDTO
+end
+
+deactivate PS
+ES --> EC : updated ExaminationDTO + PrescriptionDTO
+EC --> FE : 200 OK
+FE --> Doctor : Prescription saved
+
+deactivate ES
+deactivate EC
+
+note over PS
+Prescription is replaced atomically.
+Each PrescriptionItem stores: drugId,
+quantity, unitPrice (snapshot at creation time).
+end note
+
+@enduml

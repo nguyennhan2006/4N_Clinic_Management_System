@@ -1,0 +1,53 @@
+@startuml
+!include common-style.puml
+
+title Testing Strategy\n4N Clinic Management System
+
+top to bottom direction
+
+skinparam rectangle {
+  FontSize 13
+  RoundCorner 10
+}
+
+rectangle "Requirements\nREQ-01..30 / UC01..35 / BR-01..29" as Req #DBEAFE
+rectangle "Design Review\nDB schema / API contract / UI spec" as Design #CCFBF1
+rectangle "Unit Testing\nService layer logic (limited coverage)" as Unit #FEF9C3
+rectangle "API / E2E Testing\nPhase 1 — 3 suites / 104 tests" as E2E #DCFCE7
+rectangle "Manual UI Testing\nPer-screen checklist + screenshots" as Manual #FFEDD5
+rectangle "Regression Testing\nPhase 1 re-run after Phase 2 changes" as Reg #FCE7F3
+rectangle "Acceptance Evidence\nPass/fail table + test logs" as Accept #F1F5F9
+
+Req -down-> Design : drives
+Design -down-> Unit : informs
+Unit -down-> E2E : escalates to
+E2E -down-> Manual : UI workflow coverage
+Manual -down-> Reg : regression trigger
+Reg -down-> Accept : report evidence
+
+note right of E2E
+Phase 1 E2E suites:
+1. auth.e2e-spec.ts
+   Login + RBAC (5 roles)
+2. clinic-flow.e2e-spec.ts
+   UC07-UC13 core flow
+3. billing-catalog-flow.e2e-spec.ts
+   Invoice + catalog
+Result: 104/104 PASSED
+end note
+
+note right of Manual
+Phase 2 testing approach:
+- Manual test per feature screen
+- Screenshot evidence
+- No automated E2E yet
+end note
+
+note right of Unit
+Current coverage:
+- app.controller.spec.ts (boilerplate)
+- No service-layer unit tests
+- Planned for future sprint
+end note
+
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+!include common-style.puml
+
+title System Context Diagram\n4N Clinic Management System
+
+left to right direction
+
+actor "Admin" as Admin #DBEAFE
+actor "Receptionist" as Receptionist #CCFBF1
+actor "Doctor" as Doctor #DCFCE7
+actor "Cashier" as Cashier #FFEDD5
+actor "Manager" as Manager #F3E8FF
+actor "Nurse" as Nurse #FEF9C3
+actor "Lab Technician" as LabTech #FCE7F3
+actor "Pharmacist" as Pharmacist #FEE2E2
+
+rectangle "JWT Auth Service\n--\nStateless authentication\nAccess + Refresh tokens" as JWT #F1F5F9
+
+rectangle "[Software System]\n4N Clinic Management System\n--\nWeb application quan ly phong mach tu nhan\nPhase 1 + Phase 2\nReact + NestJS + PostgreSQL" as System #E0F2FE
+
+database "PostgreSQL Database\n--\nPersistent storage\nPrisma ORM" as DB #F3E8FF
+
+Admin --> System : HTTPS REST API\nBearer Token\nCau hinh, danh muc,\nnguoi dung, quy dinh
+Receptionist --> System : HTTPS REST API\nBearer Token\nBenh nhan, luot kham,\nlich hen, check-in
+Doctor --> System : HTTPS REST API\nBearer Token\nKham, chan doan,\nke don, chi dinh dich vu
+Cashier --> System : HTTPS REST API\nBearer Token\nHoa don, thanh toan
+Manager --> System : HTTPS REST API\nBearer Token\nBao cao, thong ke
+Nurse --> System : HTTPS REST API\nBearer Token\nSinh hieu, hang doi
+LabTech --> System : HTTPS REST API\nBearer Token\nMau xet nghiem,\nket qua, xac nhan
+Pharmacist --> System : HTTPS REST API\nBearer Token\nKho thuoc, cap phat
+
+System ..> JWT : authenticate / refresh / revoke
+System --> DB : Prisma ORM / SQL
+
+legend bottom
+Muc tieu: xac dinh bien he thong, actor ben ngoai, dich vu xac thuc va kho du lieu chinh.
+endlegend
+
+@enduml

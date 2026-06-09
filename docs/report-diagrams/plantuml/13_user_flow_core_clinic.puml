@@ -1,0 +1,58 @@
+@startuml
+!include common-style.puml
+
+title User Flow - Core Clinic Demo Path
+
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+  DiamondBackgroundColor #FEF9C3
+  DiamondBorderColor #A16207
+  StartColor #0F766E
+  EndColor #0F766E
+}
+
+|Receptionist|
+start
+:Login as receptionist;
+:Search patient by name / phone;
+if (Patient record exists?) then (yes)
+  :Select existing patient;
+else (no)
+  :Create new patient profile;
+endif
+:Create visit for today;
+note right: System assigns queue number\nVisit status = WAITING
+:Patient waits in queue;
+
+|Doctor|
+:Login as doctor;
+:View visit worklist;
+:Open examination;
+note right: Visit status -> IN_EXAM\nExam status -> IN_PROGRESS
+:Enter diagnosis and disease code;
+:Prescribe drugs;
+:Complete examination;
+note right: Visit status -> DONE\nExam status -> DONE
+
+|Cashier|
+:Login as cashier;
+:Find completed visit;
+:Create invoice;
+note right: Total = consultation + drug fees
+:Record payment;
+if (Fully paid?) then (yes)
+  :Invoice status = PAID;
+else (no)
+  :Invoice status = PARTIAL;
+endif
+
+|Manager|
+:Login as manager;
+:Open monthly report;
+:Review visit count and revenue;
+stop
+
+@enduml

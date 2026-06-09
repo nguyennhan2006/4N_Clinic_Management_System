@@ -1,0 +1,59 @@
+@startuml
+!include common-style.puml
+
+title Use Case Diagram — Phase 2 (Part 1)\nAppointment, Queue, Vital Signs
+
+top to bottom direction
+
+actor Admin #DBEAFE
+actor Receptionist #CCFBF1
+actor Nurse #FEF9C3
+actor Doctor #DCFCE7
+
+rectangle "4N Clinic — Appointment, Queue & Vitals" {
+
+  package "Appointment Scheduling" {
+    usecase "UC19\nBook appointment" as UC19
+    usecase "UC20\nManage appointments" as UC20
+    usecase "UC21\nCheck-in to visit" as UC21
+  }
+
+  package "Queue Management" {
+    usecase "UC22\nManage queue" as UC22
+    usecase "UC22a\nCall patient" as UC22a
+    usecase "UC22b\nTrack queue status" as UC22b
+  }
+
+  package "Vital Signs" {
+    usecase "UC23\nRecord vital signs" as UC23
+    usecase "UC24\nAuto-calculate BMI" as UC24
+  }
+}
+
+Receptionist --> UC19
+Receptionist --> UC20
+Receptionist --> UC21
+Receptionist --> UC22
+Receptionist --> UC22a
+
+Nurse --> UC22
+Nurse --> UC22b
+Nurse --> UC23
+Nurse --> UC24
+
+Doctor --> UC20
+
+Admin --> UC20
+
+UC21 .> UC19 : check-in from booking
+UC22a .> UC22 : <<include>>
+UC22b .> UC22 : <<include>>
+UC24 .> UC23 : <<include>>
+
+note bottom of UC21
+UC21: convert appointment to visit.
+Creates Visit record with status WAITING
+and assigns queue number automatically.
+end note
+
+@enduml

@@ -1,0 +1,45 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend Login Page
+    participant AC as AuthController
+    participant AS as AuthService
+    participant US as UsersService
+    participant DB as PostgreSQL
+    participant JWT as JWT Token Generator
+
+    User->>FE: Enter email + password
+    FE->>AC: POST /auth/login
+    AC->>AS: login(dto)
+
+    AS->>US: findByEmail(email)
+    US->>DB: SELECT user by email
+    DB-->>US: user record / null
+    US-->>AS: user
+
+    alt Invalid email or inactive user
+        AS-->>AC: UnauthorizedException
+        AC-->>FE: 401 Unauthorized
+        FE-->>User: Show login error
+    else Password verification
+        AS->>AS: Compare password hash
+
+        alt Wrong password
+            AS-->>AC: UnauthorizedException
+            AC-->>FE: 401 Unauthorized
+            FE-->>User: Show "Email hoặc mật khẩu không đúng"
+        else Valid credentials
+            AS->>JWT: Sign access token
+            JWT-->>AS: accessToken
+            AS->>JWT: Sign refresh token
+            JWT-->>AS: refreshToken
+            AS->>DB: Store refresh token hash / session
+            DB-->>AS: saved
+            AS-->>AC: tokens + user info
+            AC-->>FE: 200 OK
+            FE->>FE: Store token and bootstrap session
+            FE-->>User: Redirect to dashboard
+        end
+    end
+
+    Note over AS,JWT: Stateless API authentication<br/>Access token for API calls<br/>Refresh token for renewal/revoke

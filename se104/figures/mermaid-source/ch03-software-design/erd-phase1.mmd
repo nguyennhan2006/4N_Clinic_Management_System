@@ -1,0 +1,120 @@
+erDiagram
+    USER {
+        UUID id PK
+        VARCHAR email UK
+        VARCHAR passwordHash
+        VARCHAR fullName
+        UserRole role
+        BOOLEAN isActive
+    }
+
+    PATIENT {
+        UUID id PK
+        VARCHAR patientCode UK
+        VARCHAR fullName
+        DATE dateOfBirth
+        Gender gender
+        VARCHAR phone
+        TEXT address
+        TEXT notes
+    }
+
+    VISIT {
+        UUID id PK
+        UUID patientId FK
+        DATE visitDate
+        INT queueNumber
+        VisitStatus status
+        UUID examinedById FK
+    }
+
+    EXAMINATION {
+        UUID id PK
+        UUID visitId UK,FK
+        UUID doctorId FK
+        UUID diseaseId FK
+        TEXT diagnosis
+        DECIMAL consultationFee
+        TIMESTAMP examinedAt
+        ExaminationStatus status
+    }
+
+    DISEASE {
+        UUID id PK
+        VARCHAR code
+        VARCHAR name
+        VARCHAR category
+        TEXT description
+        BOOLEAN isActive
+    }
+
+    DRUG {
+        UUID id PK
+        VARCHAR code UK
+        VARCHAR name
+        VARCHAR unit
+        DECIMAL pricePerUnit
+        INT stockQuantity
+        BOOLEAN isActive
+    }
+
+    PRESCRIPTION {
+        UUID id PK
+        UUID examinationId UK,FK
+        TEXT notes
+        TIMESTAMP issuedAt
+    }
+
+    PRESCRIPTION_ITEM {
+        UUID id PK
+        UUID prescriptionId FK
+        UUID drugId FK
+        INT quantity
+        DECIMAL unitPrice
+        TEXT dosageInstruction
+    }
+
+    INVOICE {
+        UUID id PK
+        UUID visitId UK,FK
+        VARCHAR invoiceNumber
+        DECIMAL totalAmount
+        DECIMAL paidAmount
+        InvoiceStatus status
+        TIMESTAMP issuedAt
+    }
+
+    PAYMENT {
+        UUID id PK
+        UUID invoiceId FK
+        DECIMAL amount
+        PaymentMethod method
+        TIMESTAMP paidAt
+        UUID receivedById FK
+        TEXT note
+    }
+
+    REGULATION_VERSION {
+        UUID id PK
+        VARCHAR key
+        JSONB value
+        TEXT description
+        BOOLEAN isActive
+        TIMESTAMP activatedAt
+        UUID activatedById FK
+    }
+
+    PATIENT ||--o{ VISIT : has
+    VISIT ||--|| EXAMINATION : opens
+    VISIT ||--|| INVOICE : billed_by
+    INVOICE ||--o{ PAYMENT : receives
+
+    USER ||--o{ VISIT : examined_by
+    USER ||--o{ EXAMINATION : doctor
+    USER ||--o{ PAYMENT : received_by
+    USER ||--o{ REGULATION_VERSION : activated_by
+
+    DISEASE ||--o{ EXAMINATION : referenced_by
+    EXAMINATION ||--|| PRESCRIPTION : has
+    PRESCRIPTION ||--o{ PRESCRIPTION_ITEM : contains
+    DRUG ||--o{ PRESCRIPTION_ITEM : selected_in

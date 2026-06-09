@@ -1,0 +1,46 @@
+@startuml
+!include common-style.puml
+
+title Sequence: Open Examination\nDoctor opens a WAITING visit
+
+actor Doctor
+participant "Exam Page\n(Frontend)" as FE
+participant "VisitsController" as VC
+participant "ExaminationsService" as ES
+database "PostgreSQL" as DB
+
+Doctor -> FE : Select visit from worklist
+FE -> VC : POST /api/v1/visits/{id}/open-examination
+activate VC
+
+VC -> ES : openExamination(visitId, doctorId)
+activate ES
+
+ES -> DB : SELECT Visit WHERE id = visitId
+DB --> ES : Visit record
+
+alt Visit not found
+  ES --> VC : NotFoundException
+  VC --> FE : 404 Not Found
+else Visit status != WAITING
+  ES --> VC : BadRequestException\n"Visit is not in WAITING status"
+  VC --> FE : 400 Bad Request
+else Valid WAITING visit
+  ES -> DB : $transaction:\n  INSERT Examination { status: IN_PROGRESS, doctorId }\n  UPDATE Visit { status: IN_EXAM }
+  DB --> ES : Examination created
+  ES --> VC : ExaminationDTO
+  VC --> FE : 201 Created
+  FE --> Doctor : Show examination form\n(editable)
+end
+
+deactivate ES
+deactivate VC
+
+note over ES
+Business rule:
+Only one examination per visit (visitId is UNIQUE on Examination).
+Visit transitions: WAITING -> IN_EXAM.
+Examination starts as: IN_PROGRESS.
+end note
+
+@enduml

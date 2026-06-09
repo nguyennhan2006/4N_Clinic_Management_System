@@ -1,0 +1,45 @@
+@startuml
+!include common-style.puml
+
+title Sequence: Complete Examination\nDoctor finalizes the examination
+
+actor Doctor
+participant "Exam Page\n(Frontend)" as FE
+participant "ExaminationsController" as EC
+participant "ExaminationsService" as ES
+database "PostgreSQL" as DB
+
+Doctor -> FE : Click "Complete Examination"
+FE -> EC : POST /api/v1/examinations/{id}/complete
+activate EC
+
+EC -> ES : completeExamination(id)
+activate ES
+
+ES -> DB : SELECT Examination + Visit
+DB --> ES : Examination + Visit data
+
+alt Examination not IN_PROGRESS
+  ES --> EC : BadRequestException\n"Exam is not in IN_PROGRESS status"
+  EC --> FE : 400 Bad Request
+  FE --> Doctor : Show error
+else Valid IN_PROGRESS exam
+  ES -> DB : $transaction:\n  UPDATE Examination { status: DONE }\n  UPDATE Visit { status: DONE }
+  DB --> ES : committed
+  ES --> EC : completed ExaminationDTO
+  EC --> FE : 200 OK
+  FE --> Doctor : Show read-only completed exam
+end
+
+deactivate ES
+deactivate EC
+
+note over ES
+After completion:
+- Examination becomes read-only (no PATCH allowed).
+- Visit status = DONE enables invoice creation.
+- State: Visit IN_EXAM -> DONE.
+- State: Examination IN_PROGRESS -> DONE.
+end note
+
+@enduml

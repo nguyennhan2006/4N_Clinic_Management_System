@@ -1,0 +1,58 @@
+@startuml
+!include common-style.puml
+
+title Use Case Diagram — Phase 1 (Part 1)\nAuthentication, Patient Management, Visit Workflow
+
+top to bottom direction
+
+actor Admin #DBEAFE
+actor Receptionist #CCFBF1
+actor Doctor #DCFCE7
+
+rectangle "4N Clinic — Authentication & Patient & Visit" {
+
+  package "Authentication & Account" {
+    usecase "UC01\nLogin" as UC01
+    usecase "UC02\nManage accounts" as UC02
+    usecase "UC03\nManage roles" as UC03
+  }
+
+  package "Patient Management" {
+    usecase "UC04\nSearch patient record" as UC04
+    usecase "UC05\nCreate / update patient" as UC05
+  }
+
+  package "Visit Workflow" {
+    usecase "UC06\nCreate visit" as UC06
+    usecase "UC07\nView visit list" as UC07
+    usecase "UC08\nOpen examination" as UC08
+  }
+}
+
+Admin --> UC01
+Admin --> UC02
+Admin --> UC03
+
+Receptionist --> UC01
+Receptionist --> UC04
+Receptionist --> UC05
+Receptionist --> UC06
+Receptionist --> UC07
+
+Doctor --> UC01
+Doctor --> UC04
+Doctor --> UC07
+Doctor --> UC08
+
+UC06 .> UC04 : <<include>>
+UC06 .> UC07 : updates list
+UC08 .> UC07 : <<include>>
+
+note bottom of UC06
+Business rules:
+- BR-05: No duplicate visit per patient per day
+- BR-06: Daily quota enforced by regulation
+- BR-07: Queue number auto-assigned
+end note
+
+@enduml

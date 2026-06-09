@@ -1,0 +1,45 @@
+@startuml
+!include common-style.puml
+
+title State Machine — Visit Status
+
+skinparam state {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+  StartColor #0F766E
+  EndColor #B91C1C
+  ArrowColor #455A64
+}
+
+[*] --> WAITING : Receptionist creates visit\n(POST /api/v1/visits)
+
+WAITING --> IN_EXAM : Doctor opens examination\n(POST /visits/{id}/open-examination)
+WAITING --> CANCELLED : Administrative cancel
+
+IN_EXAM --> DONE : Doctor completes examination\n(POST /examinations/{id}/complete)
+IN_EXAM --> CANCELLED : Administrative cancel
+
+DONE --> [*]
+CANCELLED --> [*]
+
+note right of WAITING
+queueNumber auto-assigned.
+Status enforced at VisitsService.
+Duplicate same-day visit rejected (BR-05).
+end note
+
+note right of IN_EXAM
+Visit is synchronized with Examination:
+- WAITING -> IN_EXAM when exam opens
+- IN_EXAM -> DONE when exam completes
+end note
+
+note right of DONE
+DONE status enables:
+- Invoice creation (BillingService)
+- Medical history view
+end note
+
+@enduml

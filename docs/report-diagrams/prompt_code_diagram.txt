@@ -1,0 +1,1699 @@
+Được. Tôi chuyển sang hướng **PlantUML source code**, không dùng Gemini tạo ảnh nữa. Các sơ đồ dưới đây bám theo tư duy chuẩn của Software Engineering: đặc tả yêu cầu, mô hình hệ thống, kiến trúc, thiết kế dữ liệu/xử lý/giao diện, hiện thực, kiểm thử và triển khai; đây cũng là các nhóm hoạt động chính trong quy trình phần mềm và mô hình hóa hệ thống theo Sommerville. 
+
+Bạn nên tạo thư mục:
+
+```text
+plantuml/
+├── common-style.puml
+├── 00_process_overview_activity.puml
+├── 01_system_context.puml
+├── 02_container_diagram.puml
+├── 03_backend_component_diagram.puml
+├── 04_usecase_phase1.puml
+├── 05_usecase_phase2.puml
+├── 06_erd_phase1.puml
+├── 07_erd_phase2_delta.puml
+├── 08_sequence_auth_login.puml
+├── 09_sequence_create_visit.puml
+├── 10_sequence_examination_prescription.puml
+├── 11_sequence_invoice_payment.puml
+├── 12_sequence_fefo_dispensing.puml
+├── 13_user_flow_core_clinic.puml
+├── 14_local_deployment.puml
+├── 15_testing_strategy.puml
+└── 16_state_machine_core_status.puml
+```
+
+Render bằng:
+
+```bash
+java -jar plantuml.jar -tsvg plantuml/*.puml
+java -jar plantuml.jar -tpng plantuml/*.puml
+java -jar plantuml.jar -tpdf plantuml/*.puml
+```
+
+---
+
+## 0. `common-style.puml`
+
+```plantuml
+' =========================================================
+' Common PlantUML style for SE104 4N Clinic diagrams
+' Target: A4 report, clean academic style, readable labels
+' =========================================================
+
+!pragma layout smetana
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam dpi 180
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 14
+skinparam roundCorner 14
+skinparam ArrowColor #455A64
+skinparam ArrowThickness 1.4
+skinparam linetype ortho
+
+skinparam title {
+  FontSize 22
+  FontStyle bold
+  FontColor #1F2937
+}
+
+skinparam rectangle {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam package {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+  FontColor #111827
+  FontSize 15
+  FontStyle bold
+}
+
+skinparam component {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam database {
+  BackgroundColor #F3E8FF
+  BorderColor #7E22CE
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam actor {
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+}
+
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #334155
+  FontColor #111827
+  FontSize 12
+  HeaderBackgroundColor #DBEAFE
+  StereotypeFontSize 11
+}
+
+skinparam sequence {
+  ArrowColor #455A64
+  LifeLineBorderColor #64748B
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBorderColor #334155
+  ParticipantBackgroundColor #E0F2FE
+  ParticipantFontColor #111827
+  ParticipantFontSize 13
+  BoxBackgroundColor #F8FAFC
+  BoxBorderColor #CBD5E1
+}
+
+skinparam note {
+  BackgroundColor #FFF7ED
+  BorderColor #F97316
+  FontColor #111827
+  FontSize 12
+}
+```
+
+---
+
+## 1. `00_process_overview_activity.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Software Process Overview\n4N Clinic Management System
+
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+  DiamondBackgroundColor #FDE68A
+  DiamondBorderColor #92400E
+  StartColor #0F766E
+  EndColor #0F766E
+}
+
+start
+
+:1. Khảo sát nghiệp vụ;
+note right
+Stakeholders:
+- Chủ phòng mạch / Manager
+- Lễ tân
+- Bác sĩ
+- Thu ngân
+- Admin
+- Nurse / Lab / Pharmacist
+end note
+
+:2. Xác định và đặc tả yêu cầu;
+note right
+Outputs:
+- Customer needs
+- Functional requirements
+- Non-functional requirements
+- Business rules
+- Use cases
+- Acceptance criteria
+end note
+
+:3. Thiết kế hệ thống;
+note right
+Outputs:
+- System context
+- Container diagram
+- Backend component diagram
+- Auth/RBAC architecture
+end note
+
+:4. Thiết kế phần mềm;
+note right
+Outputs:
+- Database design
+- Processing design
+- UI/UX design
+- Sequence diagrams
+- User flow / wireframes
+end note
+
+:5. Hiện thực;
+note right
+Implementation:
+- NestJS backend
+- React frontend
+- PostgreSQL + Prisma
+- Git version control
+- Module-based development
+end note
+
+:6. Kiểm thử;
+note right
+Validation:
+- API tests
+- E2E tests for Phase 1
+- Manual tests for Phase 2
+- UI checklist
+- Regression tests
+end note
+
+:7. Triển khai, vận hành, bảo trì;
+note right
+Current scope:
+- Local/development deployment
+- Migration + seed
+- Swagger
+- Prisma Studio
+- Future: Docker / CI-CD / production
+end note
+
+stop
+
+legend bottom
+Sơ đồ bám theo quy trình: specification → development → validation → evolution.
+endlegend
+
+@enduml
+```
+
+---
+
+## 2. `01_system_context.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title System Context Diagram\n4N Clinic Management System
+
+left to right direction
+
+actor "Admin" as Admin #DBEAFE
+actor "Receptionist" as Receptionist #CCFBF1
+actor "Doctor" as Doctor #DCFCE7
+actor "Cashier" as Cashier #FFEDD5
+actor "Manager" as Manager #F3E8FF
+actor "Nurse" as Nurse #FEF9C3
+actor "Lab Technician" as LabTech #FCE7F3
+actor "Pharmacist" as Pharmacist #FEE2E2
+
+rectangle "JWT Auth Service\n--\nStateless authentication\nAccess + Refresh tokens" as JWT #F1F5F9
+
+rectangle "[Software System]\n4N Clinic Management System\n--\nWeb application quản lý phòng mạch tư nhân\nPhase 1 + Phase 2\nReact + NestJS + PostgreSQL" as System #E0F2FE
+
+database "PostgreSQL Database\n--\nPersistent storage\nPrisma ORM" as DB #F3E8FF
+
+Admin --> System : HTTPS REST API\nBearer Token\nCấu hình, danh mục,\nngười dùng, quy định
+Receptionist --> System : HTTPS REST API\nBearer Token\nBệnh nhân, lượt khám,\nlịch hẹn, check-in
+Doctor --> System : HTTPS REST API\nBearer Token\nKhám, chẩn đoán,\nkê đơn, chỉ định dịch vụ
+Cashier --> System : HTTPS REST API\nBearer Token\nHóa đơn, thanh toán
+Manager --> System : HTTPS REST API\nBearer Token\nBáo cáo, thống kê
+Nurse --> System : HTTPS REST API\nBearer Token\nSinh hiệu, hàng đợi
+LabTech --> System : HTTPS REST API\nBearer Token\nMẫu xét nghiệm,\nkết quả, xác nhận
+Pharmacist --> System : HTTPS REST API\nBearer Token\nKho thuốc, cấp phát
+
+System ..> JWT : authenticate / refresh / revoke
+System --> DB : Prisma ORM / SQL
+
+legend bottom
+Mục tiêu: xác định biên hệ thống, actor bên ngoài, dịch vụ xác thực và kho dữ liệu chính.
+endlegend
+
+@enduml
+```
+
+---
+
+## 3. `02_container_diagram.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Container Diagram\n4N Clinic Management System
+
+left to right direction
+
+actor "Clinic Staff\nAdmin / Receptionist / Doctor /\nCashier / Manager / Nurse /\nLab / Pharmacist" as Staff #E0F2FE
+
+node "User Device" as Device #F8FAFC {
+  rectangle "Web Browser\nChrome / Edge" as Browser #FFFFFF
+}
+
+rectangle "4N Clinic Management System" as Boundary #FFFFFF {
+  rectangle "Frontend SPA\n--\nReact + Vite + TypeScript\nRole-based UI\nProtected routes\nForm validation" as FE #DBEAFE
+
+  rectangle "Backend REST API\n--\nNestJS + TypeScript\nJWT Auth + RBAC\nBusiness rules\nSwagger API docs" as BE #CCFBF1
+
+  database "PostgreSQL Database\n--\nRelational data store\n37 models / 12 enums\nMigration + seed" as DB #F3E8FF
+
+  rectangle "Prisma ORM\n--\nSchema mapping\nMigrations\nTyped database access" as Prisma #FEF9C3
+
+  rectangle "Swagger UI\n--\nAPI documentation\nManual API testing" as Swagger #F1F5F9
+}
+
+Staff --> Browser : uses
+Browser --> FE : renders SPA
+FE --> BE : HTTPS / JSON REST API\nBearer token
+BE --> Prisma : calls PrismaService
+Prisma --> DB : SQL queries
+BE ..> Swagger : exposes /api/docs
+
+note bottom of BE
+Backend is organized as a modular monolith:
+Controller → Service → PrismaService
+end note
+
+@enduml
+```
+
+---
+
+## 4. `03_backend_component_diagram.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Backend Component Diagram\nNestJS Modular Monolith
+
+left to right direction
+
+rectangle "Frontend SPA\nReact" as FE #DBEAFE
+
+package "API Layer" as API #F8FAFC {
+  component "REST Controllers\n@Controller\n@Get / @Post / @Patch" as Controllers #E0F2FE
+  component "DTO Validation\nclass-validator\nclass-transformer" as DTO #FEF9C3
+  component "Swagger Decorators\nOpenAPI docs" as Swagger #F1F5F9
+}
+
+package "Cross-cutting Modules" as Cross #F8FAFC {
+  component "Auth Module\nLogin / refresh / logout" as Auth #DBEAFE
+  component "JWT Guard" as JwtGuard #F1F5F9
+  component "Roles Guard\nRBAC" as RolesGuard #F1F5F9
+  component "Common Filters\nException handling" as Filters #F1F5F9
+}
+
+package "Phase 1 Core Modules" as P1 #E0F2FE {
+  component "Users" as Users
+  component "RBAC" as RBAC
+  component "Patients" as Patients
+  component "Visits" as Visits
+  component "Examinations" as Exams
+  component "Prescriptions\nservice-only" as Prescriptions
+  component "Diseases" as Diseases
+  component "Drugs" as Drugs
+  component "Billing" as Billing
+  component "Regulations" as Regulations
+  component "Reports" as Reports
+}
+
+package "Phase 2 Extension Modules" as P2 #FFF7ED {
+  component "Appointments" as Appointments
+  component "Queue" as Queue
+  component "Vitals" as Vitals
+  component "Services" as Services
+  component "Lab" as Lab
+  component "Inventory" as Inventory
+  component "Pharmacy" as Pharmacy
+  component "Organization" as Organization
+  component "Audit" as Audit
+}
+
+package "Data Access Layer" as DAL #F8FAFC {
+  component "PrismaService" as Prisma #FEF9C3
+}
+
+database "PostgreSQL" as DB #F3E8FF
+
+FE --> Controllers : REST API calls
+Controllers --> DTO : validate input
+Controllers --> Auth
+Controllers --> Patients
+Controllers --> Visits
+Controllers --> Exams
+Controllers --> Billing
+Controllers --> Appointments
+Controllers --> Queue
+Controllers --> Lab
+Controllers --> Inventory
+Controllers --> Pharmacy
+
+JwtGuard ..> Controllers : authenticate
+RolesGuard ..> Controllers : authorize
+Filters ..> Controllers : format errors
+
+Auth --> Users
+Users --> RBAC
+Visits --> Patients
+Visits --> Regulations
+Exams --> Visits
+Exams --> Diseases
+Exams --> Prescriptions
+Prescriptions --> Drugs
+Billing --> Visits
+Billing --> Exams
+Billing --> Prescriptions
+Reports --> Billing
+Reports --> Visits
+
+Appointments --> Patients
+Appointments --> Users
+Queue --> Visits
+Vitals --> Visits
+Services --> Visits
+Services --> Exams
+Lab --> Services
+Inventory --> Drugs
+Pharmacy --> Prescriptions
+Pharmacy --> Inventory
+Audit ..> Controllers : record actions
+
+Auth --> Prisma
+Users --> Prisma
+Patients --> Prisma
+Visits --> Prisma
+Exams --> Prisma
+Prescriptions --> Prisma
+Billing --> Prisma
+Reports --> Prisma
+Appointments --> Prisma
+Queue --> Prisma
+Vitals --> Prisma
+Services --> Prisma
+Lab --> Prisma
+Inventory --> Prisma
+Pharmacy --> Prisma
+Organization --> Prisma
+Audit --> Prisma
+
+Prisma --> DB
+
+legend bottom
+Controller → Service → PrismaService. Phase 1 provides clinic core; Phase 2 extends operational workflow.
+endlegend
+
+@enduml
+```
+
+---
+
+## 5. `04_usecase_phase1.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Use Case Diagram – Phase 1\nCore clinic workflow
+
+left to right direction
+
+actor Admin
+actor Receptionist
+actor Doctor
+actor Cashier
+actor Manager
+
+rectangle "4N Clinic Management System – Phase 1" as System {
+  package "Authentication & Access" {
+    usecase "UC01\nĐăng nhập" as UC01
+    usecase "UC02\nQuản lý tài khoản" as UC02
+    usecase "UC03\nQuản lý vai trò / quyền" as UC03
+  }
+
+  package "Patient & Visit" {
+    usecase "UC04\nTra cứu hồ sơ bệnh nhân" as UC04
+    usecase "UC05\nTạo / cập nhật hồ sơ bệnh nhân" as UC05
+    usecase "UC06\nTạo lượt khám" as UC06
+    usecase "UC07\nXem danh sách lượt khám" as UC07
+  }
+
+  package "Examination & Prescription" {
+    usecase "UC08\nMở phiên khám" as UC08
+    usecase "UC09\nGhi phiếu khám" as UC09
+    usecase "UC10\nChẩn đoán bệnh" as UC10
+    usecase "UC11\nKê đơn thuốc" as UC11
+    usecase "UC12\nXem lịch sử khám" as UC12
+  }
+
+  package "Billing" {
+    usecase "UC13\nLập hóa đơn" as UC13
+    usecase "UC14\nGhi nhận thanh toán" as UC14
+  }
+
+  package "Catalog, Regulation & Report" {
+    usecase "UC15\nQuản lý danh mục bệnh" as UC15
+    usecase "UC16\nQuản lý danh mục thuốc" as UC16
+    usecase "UC17\nQuản lý quy định" as UC17
+    usecase "UC18\nXem báo cáo tháng" as UC18
+  }
+}
+
+Admin --> UC01
+Admin --> UC02
+Admin --> UC03
+Admin --> UC15
+Admin --> UC16
+Admin --> UC17
+
+Receptionist --> UC01
+Receptionist --> UC04
+Receptionist --> UC05
+Receptionist --> UC06
+Receptionist --> UC07
+
+Doctor --> UC01
+Doctor --> UC04
+Doctor --> UC08
+Doctor --> UC09
+Doctor --> UC10
+Doctor --> UC11
+Doctor --> UC12
+
+Cashier --> UC01
+Cashier --> UC13
+Cashier --> UC14
+
+Manager --> UC01
+Manager --> UC18
+
+UC06 .> UC04 : <<include>>
+UC08 .> UC07 : <<include>>
+UC09 .> UC08 : <<include>>
+UC11 .> UC09 : <<extend>>
+UC13 .> UC09 : requires completed exam
+UC14 .> UC13 : <<include>>
+
+legend bottom
+Phase 1 focuses on minimum usable clinic workflow: authentication, patient intake, examination, prescription, billing and reporting.
+endlegend
+
+@enduml
+```
+
+---
+
+## 6. `05_usecase_phase2.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Use Case Diagram – Phase 2\nExtended clinic operations
+
+left to right direction
+
+actor Receptionist
+actor Nurse
+actor Doctor
+actor "Lab Technician" as LabTech
+actor Pharmacist
+actor Cashier
+actor Manager
+actor Admin
+
+rectangle "4N Clinic Management System – Phase 2" as System {
+  package "Appointment & Queue" {
+    usecase "UC19\nĐặt lịch hẹn" as UC19
+    usecase "UC20\nQuản lý lịch hẹn" as UC20
+    usecase "UC21\nCheck-in thành lượt khám" as UC21
+    usecase "UC22\nQuản lý hàng đợi" as UC22
+  }
+
+  package "Vitals" {
+    usecase "UC23\nGhi nhận sinh hiệu" as UC23
+    usecase "UC24\nTính BMI tự động" as UC24
+  }
+
+  package "Services & Lab" {
+    usecase "UC25\nChỉ định dịch vụ" as UC25
+    usecase "UC26\nTạo yêu cầu xét nghiệm" as UC26
+    usecase "UC27\nThu mẫu xét nghiệm" as UC27
+    usecase "UC28\nNhập kết quả xét nghiệm" as UC28
+    usecase "UC29\nXác nhận kết quả" as UC29
+  }
+
+  package "Inventory & Pharmacy" {
+    usecase "UC30\nNhập lô thuốc" as UC30
+    usecase "UC31\nTheo dõi tồn kho / hạn dùng" as UC31
+    usecase "UC32\nCấp phát thuốc theo đơn" as UC32
+    usecase "UC33\nTrừ tồn kho FEFO" as UC33
+  }
+
+  package "Extended Billing & Reports" {
+    usecase "UC34\nHóa đơn nhiều khoản mục" as UC34
+    usecase "UC35\nBáo cáo mở rộng" as UC35
+  }
+}
+
+Receptionist --> UC19
+Receptionist --> UC20
+Receptionist --> UC21
+Receptionist --> UC22
+
+Nurse --> UC22
+Nurse --> UC23
+Nurse --> UC24
+
+Doctor --> UC25
+Doctor --> UC26
+Doctor --> UC29
+
+LabTech --> UC27
+LabTech --> UC28
+LabTech --> UC29
+
+Pharmacist --> UC30
+Pharmacist --> UC31
+Pharmacist --> UC32
+Pharmacist --> UC33
+
+Cashier --> UC34
+Manager --> UC35
+Admin --> UC30
+Admin --> UC35
+
+UC21 .> UC19 : check-in from appointment
+UC23 .> UC24 : <<include>>
+UC26 .> UC25 : lab service order
+UC27 .> UC26 : <<include>>
+UC28 .> UC27 : after sample collected
+UC29 .> UC28 : verify result
+UC32 .> UC33 : <<include>>
+UC34 .> UC25 : service items
+UC34 .> UC32 : drug items
+
+legend bottom
+Phase 2 extends operational workflow: appointments, queue, vitals, lab, inventory, pharmacy and multi-item billing.
+endlegend
+
+@enduml
+```
+
+---
+
+## 7. `06_erd_phase1.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Entity Relationship Diagram – Phase 1\n4N Clinic Management System
+
+left to right direction
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+entity "User\nTài khoản hệ thống" as User #DBEAFE {
+  * id : UUID <<PK>>
+  --
+  * email : VARCHAR <<UNIQUE>>
+  * passwordHash : VARCHAR
+  * fullName : VARCHAR
+  * role : UserRole
+  * isActive : BOOLEAN
+}
+
+entity "Patient\nBệnh nhân" as Patient #CCFBF1 {
+  * id : UUID <<PK>>
+  --
+  * patientCode : VARCHAR <<UNIQUE>>
+  * fullName : VARCHAR
+  dateOfBirth : DATE
+  gender : Gender
+  phone : VARCHAR
+  address : TEXT
+  notes : TEXT?
+}
+
+entity "Visit\nLượt khám" as Visit #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  * patientId : UUID <<FK>>
+  * visitDate : DATE
+  * queueNumber : INT
+  * status : VisitStatus
+  examinedById : UUID? <<FK>>
+}
+
+entity "Examination\nPhiên khám" as Examination #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  * visitId : UUID <<UNIQUE, FK>>
+  * doctorId : UUID <<FK>>
+  diseaseId : UUID? <<FK>>
+  diagnosis : TEXT
+  consultationFee : DECIMAL(12,2)
+  examinedAt : TIMESTAMP
+  status : ExaminationStatus
+}
+
+entity "Disease\nDanh mục bệnh" as Disease #F1F5F9 {
+  * id : UUID <<PK>>
+  --
+  * code : VARCHAR
+  * name : VARCHAR
+  category : VARCHAR
+  description : TEXT?
+  isActive : BOOLEAN
+}
+
+entity "Drug\nDanh mục thuốc" as Drug #F1F5F9 {
+  * id : UUID <<PK>>
+  --
+  * code : VARCHAR <<UNIQUE>>
+  * name : VARCHAR
+  unit : VARCHAR
+  pricePerUnit : DECIMAL(12,2)
+  stockQuantity : INT
+  isActive : BOOLEAN
+}
+
+entity "Prescription\nĐơn thuốc" as Prescription #E0F2FE {
+  * id : UUID <<PK>>
+  --
+  * examinationId : UUID <<UNIQUE, FK>>
+  notes : TEXT?
+  issuedAt : TIMESTAMP
+}
+
+entity "PrescriptionItem\nChi tiết đơn thuốc" as PrescriptionItem #E0F2FE {
+  * id : UUID <<PK>>
+  --
+  * prescriptionId : UUID <<FK>>
+  * drugId : UUID <<FK>>
+  * quantity : INT
+  * unitPrice : DECIMAL(12,2)
+  dosageInstruction : TEXT
+}
+
+entity "Invoice\nHóa đơn" as Invoice #FFEDD5 {
+  * id : UUID <<PK>>
+  --
+  * visitId : UUID <<UNIQUE, FK>>
+  * invoiceNumber : VARCHAR
+  * totalAmount : DECIMAL(12,2)
+  * paidAmount : DECIMAL(12,2)
+  * status : InvoiceStatus
+  issuedAt : TIMESTAMP
+}
+
+entity "Payment\nThanh toán" as Payment #FFEDD5 {
+  * id : UUID <<PK>>
+  --
+  * invoiceId : UUID <<FK>>
+  * amount : DECIMAL(12,2)
+  * method : PaymentMethod
+  * paidAt : TIMESTAMP
+  receivedById : UUID <<FK>>
+  note : TEXT?
+}
+
+entity "RegulationVersion\nCấu hình quy định" as RegulationVersion #F3E8FF {
+  * id : UUID <<PK>>
+  --
+  * key : VARCHAR
+  * value : JSONB
+  description : TEXT?
+  isActive : BOOLEAN
+  activatedAt : TIMESTAMP
+  activatedById : UUID <<FK>>
+}
+
+Patient ||--o{ Visit : has
+Visit ||--|| Examination : opens
+Visit ||--|| Invoice : billed by
+Invoice ||--o{ Payment : receives
+
+User ||--o{ Visit : examinedBy
+User ||--o{ Examination : doctor
+User ||--o{ Payment : receivedBy
+User ||--o{ RegulationVersion : activatedBy
+
+Disease ||--o{ Examination : referenced by
+Examination ||--|| Prescription : has
+Prescription ||--o{ PrescriptionItem : contains
+Drug ||--o{ PrescriptionItem : selected in
+
+note bottom of Visit
+Business rule:
+unique(patientId, visitDate)
+prevents duplicate same-day visit.
+end note
+
+note bottom of Invoice
+Invoice status:
+UNPAID / PARTIAL / PAID / CANCELLED
+end note
+
+legend bottom
+Phase 1 ERD shows the core clinical workflow: Patient → Visit → Examination → Prescription / Invoice → Payment.
+endlegend
+
+@enduml
+```
+
+---
+
+## 8. `07_erd_phase2_delta.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Entity Relationship Diagram – Phase 2 Extension\nDelta from Phase 1
+
+left to right direction
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+entity "Patient\n<Phase 1>" as Patient #CCFBF1 {
+  * id : UUID <<PK>>
+  --
+  fullName : VARCHAR
+}
+
+entity "Visit\n<Phase 1>" as Visit #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  patientId : UUID <<FK>>
+  status : VisitStatus
+}
+
+entity "Examination\n<Phase 1>" as Examination #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  visitId : UUID <<FK>>
+}
+
+entity "Prescription\n<Phase 1>" as Prescription #E0F2FE {
+  * id : UUID <<PK>>
+  --
+  examinationId : UUID <<FK>>
+}
+
+entity "Drug\n<Phase 1>" as Drug #F1F5F9 {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+}
+
+entity "User\n<Phase 1>" as User #DBEAFE {
+  * id : UUID <<PK>>
+  --
+  role : UserRole
+}
+
+package "Appointment & Queue" #F8FAFC {
+  entity "Appointment" as Appointment #DBEAFE {
+    * id : UUID <<PK>>
+    --
+    * patientId : UUID <<FK>>
+    doctorId : UUID? <<FK>>
+    scheduledAt : TIMESTAMP
+    status : AppointmentStatus
+    note : TEXT?
+  }
+
+  entity "QueueTicket" as QueueTicket #DBEAFE {
+    * id : UUID <<PK>>
+    --
+    * visitId : UUID <<FK>>
+    queueNumber : INT
+    status : QueueStatus
+    calledAt : TIMESTAMP?
+    startedAt : TIMESTAMP?
+    completedAt : TIMESTAMP?
+  }
+}
+
+package "Vitals" #F8FAFC {
+  entity "VitalSign" as VitalSign #FEF9C3 {
+    * id : UUID <<PK>>
+    --
+    * visitId : UUID <<FK>>
+    height : DECIMAL?
+    weight : DECIMAL?
+    pulse : INT?
+    temperature : DECIMAL?
+    systolicBP : INT?
+    diastolicBP : INT?
+    bmi : DECIMAL?
+  }
+}
+
+package "Services & Lab" #F8FAFC {
+  entity "ServiceCatalog" as ServiceCatalog #FCE7F3 {
+    * id : UUID <<PK>>
+    --
+    code : VARCHAR
+    name : VARCHAR
+    type : ServiceType
+    price : DECIMAL(12,2)
+    isActive : BOOLEAN
+  }
+
+  entity "ServiceOrder" as ServiceOrder #FCE7F3 {
+    * id : UUID <<PK>>
+    --
+    visitId : UUID <<FK>>
+    examinationId : UUID? <<FK>>
+    serviceId : UUID <<FK>>
+    status : ServiceOrderStatus
+    isRequired : BOOLEAN
+    orderedAt : TIMESTAMP
+  }
+
+  entity "LabOrder" as LabOrder #FCE7F3 {
+    * id : UUID <<PK>>
+    --
+    serviceOrderId : UUID <<FK>>
+    status : LabOrderStatus
+    sampleCollectedAt : TIMESTAMP?
+    resultValue : TEXT?
+    resultNote : TEXT?
+    verifiedAt : TIMESTAMP?
+  }
+}
+
+package "Inventory & Pharmacy" #F8FAFC {
+  entity "StockLot" as StockLot #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    drugId : UUID <<FK>>
+    batchNumber : VARCHAR
+    expiryDate : DATE
+    quantityOnHand : INT
+    receivedAt : TIMESTAMP
+    unitCost : DECIMAL?
+  }
+
+  entity "StockMovement" as StockMovement #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    stockLotId : UUID <<FK>>
+    type : StockMovementType
+    quantity : INT
+    createdAt : TIMESTAMP
+    note : TEXT?
+  }
+
+  entity "Dispense" as Dispense #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    prescriptionId : UUID <<FK>>
+    dispensedById : UUID <<FK>>
+    dispensedAt : TIMESTAMP
+    status : DispenseStatus
+  }
+
+  entity "DispenseItem" as DispenseItem #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    dispenseId : UUID <<FK>>
+    stockLotId : UUID <<FK>>
+    drugId : UUID <<FK>>
+    quantity : INT
+  }
+}
+
+Patient ||--o{ Appointment : books
+User ||--o{ Appointment : doctor
+Visit ||--|| QueueTicket : has
+Visit ||--|| VitalSign : records
+
+Visit ||--o{ ServiceOrder : has
+Examination ||--o{ ServiceOrder : orders
+ServiceCatalog ||--o{ ServiceOrder : selected
+ServiceOrder ||--o| LabOrder : may create
+
+Drug ||--o{ StockLot : stocked as
+StockLot ||--o{ StockMovement : movements
+Prescription ||--o| Dispense : dispensed by
+User ||--o{ Dispense : pharmacist
+Dispense ||--o{ DispenseItem : contains
+StockLot ||--o{ DispenseItem : allocated from
+Drug ||--o{ DispenseItem : drug
+
+note bottom of StockLot
+FEFO rule:
+dispense from earliest expiryDate first.
+end note
+
+note bottom of LabOrder
+Lab flow:
+ORDERED → SAMPLE_COLLECTED → RESULTED → VERIFIED
+end note
+
+legend bottom
+This diagram shows only Phase 2 delta entities and their anchor links to Phase 1 core entities.
+endlegend
+
+@enduml
+```
+
+---
+
+## 9. `08_sequence_auth_login.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Sequence Diagram – Login and JWT Authentication
+
+actor User
+participant "Frontend\nLogin Page" as FE
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "UsersService" as Users
+database "PostgreSQL" as DB
+participant "JWT Token\nGenerator" as JWT
+
+User -> FE : Enter email + password
+FE -> Controller : POST /auth/login\n{email, password}
+activate Controller
+
+Controller -> Service : login(dto)
+activate Service
+
+Service -> Users : findByEmail(email)
+activate Users
+Users -> DB : SELECT user by email
+DB --> Users : user record / null
+Users --> Service : user
+deactivate Users
+
+alt Invalid email or inactive user
+  Service --> Controller : throw UnauthorizedException
+  Controller --> FE : 401 Unauthorized
+  FE --> User : Show "Email hoặc mật khẩu không đúng"
+else Password verification
+  Service -> Service : compare password hash
+  alt Wrong password
+    Service --> Controller : throw UnauthorizedException
+    Controller --> FE : 401 Unauthorized
+    FE --> User : Show login error
+  else Valid credentials
+    Service -> JWT : sign access token
+    JWT --> Service : accessToken
+    Service -> JWT : sign refresh token
+    JWT --> Service : refreshToken
+    Service -> DB : Store refresh token hash/session
+    DB --> Service : saved
+    Service --> Controller : tokens + user info
+    Controller --> FE : 200 OK\n{accessToken, refreshToken, user}
+    FE -> FE : Store token\nbootstrap session
+    FE --> User : Redirect to dashboard
+  end
+end
+
+deactivate Service
+deactivate Controller
+
+note right of JWT
+Stateless API authentication:
+Access token for API calls.
+Refresh token for renewal/revoke.
+end note
+
+@enduml
+```
+
+---
+
+## 10. `09_sequence_create_visit.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Sequence Diagram – Create Visit\nReceptionist creates a same-day clinic visit
+
+actor Receptionist
+participant "Frontend\nVisit Page" as FE
+participant "VisitsController" as Controller
+participant "VisitsService" as Service
+participant "RegulationsService" as Reg
+database "PostgreSQL" as DB
+
+Receptionist -> FE : Select patient\nClick "Create Visit"
+FE -> Controller : POST /visits\n{patientId, visitDate}
+activate Controller
+Controller -> Service : createVisit(dto, currentUser)
+activate Service
+
+Service -> DB : SELECT Patient by id
+DB --> Service : patient / null
+
+alt Patient not found
+  Service --> Controller : throw NotFoundException
+  Controller --> FE : 404 Not Found
+else Patient exists
+  Service -> DB : SELECT Visit\nWHERE patientId AND visitDate
+  DB --> Service : existing visit / null
+
+  alt Duplicate same-day visit
+    Service --> Controller : throw ConflictException
+    Controller --> FE : 409 Conflict\nDuplicate visit
+  else No duplicate
+    Service -> Reg : getActive(MAX_PATIENTS_PER_DAY)
+    activate Reg
+    Reg -> DB : SELECT active regulation
+    DB --> Reg : quota value / default
+    Reg --> Service : maxPatientsPerDay
+    deactivate Reg
+
+    Service -> DB : COUNT visits by date
+    DB --> Service : count
+
+    alt Quota exceeded
+      Service --> Controller : throw ConflictException
+      Controller --> FE : 409 Conflict\nDaily quota exceeded
+    else Valid request
+      Service -> DB : SELECT MAX(queueNumber)\nfor visitDate
+      DB --> Service : lastQueueNumber
+      Service -> Service : nextQueueNumber = last + 1
+      Service -> DB : INSERT Visit\nstatus = WAITING
+      DB --> Service : created Visit
+      Service --> Controller : VisitDTO
+      Controller --> FE : 201 Created\nVisitDTO
+      FE --> Receptionist : Show success\nUpdate waiting list
+    end
+  end
+end
+
+deactivate Service
+deactivate Controller
+
+note bottom
+Key business rules:
+1. A patient cannot have two visits on the same date.
+2. Daily patient quota is checked before creating a visit.
+3. Queue number is generated automatically.
+end note
+
+@enduml
+```
+
+---
+
+## 11. `10_sequence_examination_prescription.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Sequence Diagram – Examination and Prescription
+
+actor Doctor
+participant "Frontend\nExamination Page" as FE
+participant "ExaminationsController" as Controller
+participant "ExaminationsService" as Service
+participant "PrescriptionsService" as RxService
+database "PostgreSQL" as DB
+
+== Open examination ==
+Doctor -> FE : Select waiting visit
+FE -> Controller : POST /visits/{id}/open-examination
+activate Controller
+Controller -> Service : openExamination(visitId, doctorId)
+activate Service
+Service -> DB : SELECT Visit by id
+DB --> Service : Visit
+alt Invalid visit status
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Bad Request
+else Valid visit
+  Service -> DB : INSERT Examination\nvisitId, doctorId, status=IN_PROGRESS
+  Service -> DB : UPDATE Visit\nstatus=IN_EXAM
+  DB --> Service : Examination
+  Service --> Controller : ExaminationDTO
+  Controller --> FE : 201 Created
+  FE --> Doctor : Show examination form
+end
+deactivate Service
+deactivate Controller
+
+== Save diagnosis ==
+Doctor -> FE : Enter symptoms,\ndiagnosis, disease, fee
+FE -> Controller : PATCH /examinations/{id}
+activate Controller
+Controller -> Service : updateExamination(id, dto)
+activate Service
+Service -> DB : SELECT Examination
+DB --> Service : Examination
+alt Examination completed
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Cannot update completed exam
+else Editable
+  Service -> DB : UPDATE Examination\nDiagnosis + disease + fee
+  DB --> Service : updated
+  Service --> Controller : updated DTO
+  Controller --> FE : 200 OK
+end
+deactivate Service
+deactivate Controller
+
+== Save prescription ==
+Doctor -> FE : Add prescription items
+FE -> Controller : PATCH /examinations/{id}\nwith prescription items
+activate Controller
+Controller -> Service : update with prescription
+activate Service
+Service -> RxService : upsertPrescription(examId, items)
+activate RxService
+RxService -> DB : Validate active drugs
+DB --> RxService : Drug records
+
+alt No prescription item
+  RxService --> Service : throw BadRequestException
+  Service --> Controller : 400
+  Controller --> FE : 400 Prescription must have items
+else Valid prescription
+  RxService -> DB : Transaction:\nupsert Prescription\nreplace PrescriptionItems
+  DB --> RxService : saved prescription
+  RxService --> Service : PrescriptionDTO
+  Service --> Controller : updated exam + prescription
+  Controller --> FE : 200 OK
+end
+deactivate RxService
+deactivate Service
+deactivate Controller
+
+== Complete examination ==
+Doctor -> FE : Click "Complete"
+FE -> Controller : POST /examinations/{id}/complete
+activate Controller
+Controller -> Service : completeExamination(id)
+activate Service
+Service -> DB : Validate exam + required data
+alt Pending required lab/service exists
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Pending required orders
+else Valid completion
+  Service -> DB : UPDATE Examination status=DONE\nUPDATE Visit status=DONE
+  DB --> Service : committed
+  Service --> Controller : completed DTO
+  Controller --> FE : 200 OK
+  FE --> Doctor : Show completed status
+end
+deactivate Service
+deactivate Controller
+
+@enduml
+```
+
+---
+
+## 12. `11_sequence_invoice_payment.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Sequence Diagram – Invoice and Payment
+
+actor Cashier
+participant "Frontend\nBilling Page" as FE
+participant "BillingController" as Controller
+participant "BillingService" as Service
+database "PostgreSQL" as DB
+
+== Generate or load invoice ==
+Cashier -> FE : Open completed visit
+FE -> Controller : POST /invoices\n{visitId}
+activate Controller
+Controller -> Service : createInvoice(visitId)
+activate Service
+
+Service -> DB : SELECT Visit + Examination\n+ Prescription/Service items
+DB --> Service : visit billing data
+
+alt Visit not completed
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Visit not completed
+else Valid visit
+  Service -> Service : Calculate invoice items\nconsultation / service / drug
+  Service -> DB : INSERT Invoice + InvoiceItems
+  DB --> Service : Invoice
+  Service --> Controller : InvoiceDTO
+  Controller --> FE : 201 Created
+  FE --> Cashier : Show invoice detail
+end
+
+deactivate Service
+deactivate Controller
+
+== Record payment ==
+Cashier -> FE : Enter amount + method
+FE -> Controller : POST /invoices/{id}/payments\n{amount, method}
+activate Controller
+Controller -> Service : recordPayment(invoiceId, dto, cashierId)
+activate Service
+
+Service -> DB : SELECT Invoice + payments
+DB --> Service : invoice with paidAmount
+
+Service -> Service : remaining = totalAmount - paidAmount
+
+alt amount <= 0
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Amount must be positive
+else amount > remaining
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Overpayment not allowed
+else Valid payment
+  Service -> DB : Transaction:\nINSERT Payment\nUPDATE Invoice.paidAmount\nUPDATE Invoice.status
+  DB --> Service : committed
+  Service --> Controller : updated InvoiceDTO
+  Controller --> FE : 200 OK
+  FE --> Cashier : Show updated payment status
+end
+
+deactivate Service
+deactivate Controller
+
+note bottom
+Invoice status rule:
+UNPAID → PARTIAL → PAID.
+Cancelled invoices cannot receive payment.
+end note
+
+@enduml
+```
+
+---
+
+## 13. `12_sequence_fefo_dispensing.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Sequence Diagram – Drug Dispensing with FEFO
+
+actor Pharmacist
+participant "Frontend\nPharmacy Page" as FE
+participant "PharmacyController" as Controller
+participant "PharmacyService" as Pharmacy
+participant "InventoryService" as Inventory
+database "PostgreSQL" as DB
+
+Pharmacist -> FE : Open prescription\nClick "Dispense"
+FE -> Controller : POST /pharmacy/dispenses\n{prescriptionId}
+activate Controller
+Controller -> Pharmacy : dispensePrescription(prescriptionId, pharmacistId)
+activate Pharmacy
+
+Pharmacy -> DB : SELECT Prescription\n+ PrescriptionItems
+DB --> Pharmacy : prescription items
+
+loop For each prescription item
+  Pharmacy -> Inventory : allocateLots(drugId, quantity)
+  activate Inventory
+  Inventory -> DB : SELECT StockLot\nWHERE drugId AND quantityOnHand > 0\nORDER BY expiryDate ASC
+  DB --> Inventory : lots sorted by expiryDate
+
+  alt Insufficient stock
+    Inventory --> Pharmacy : throw BadRequestException
+    Pharmacy --> Controller : 400 Insufficient stock
+    Controller --> FE : Error response
+    FE --> Pharmacist : Show insufficient stock
+  else Enough stock
+    Inventory -> Inventory : Allocate from earliest expiry first\nFEFO = First Expired, First Out
+    Inventory --> Pharmacy : lot allocations
+  end
+  deactivate Inventory
+end
+
+alt All items allocated
+  Pharmacy -> DB : Transaction begin
+  Pharmacy -> DB : INSERT Dispense
+  loop Each allocated lot
+    Pharmacy -> DB : INSERT DispenseItem
+    Pharmacy -> DB : UPDATE StockLot.quantityOnHand
+    Pharmacy -> DB : INSERT StockMovement(type=DISPENSE)
+  end
+  Pharmacy -> DB : Commit transaction
+  DB --> Pharmacy : committed
+  Pharmacy --> Controller : DispenseDTO
+  Controller --> FE : 201 Created
+  FE --> Pharmacist : Show dispense success
+end
+
+deactivate Pharmacy
+deactivate Controller
+
+note bottom
+FEFO protects clinic inventory:
+drug lots with the earliest expiry date are consumed first.
+end note
+
+@enduml
+```
+
+---
+
+## 14. `13_user_flow_core_clinic.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title User Flow – Core Clinic Workflow\nReceptionist → Doctor → Cashier → Manager
+
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+  DiamondBackgroundColor #FEF9C3
+  DiamondBorderColor #A16207
+  StartColor #0F766E
+  EndColor #0F766E
+}
+
+start
+
+partition "Receptionist" #CCFBF1 {
+  :Login;
+  :Search patient;
+  if (Patient exists?) then (Yes)
+    :Select patient;
+  else (No)
+    :Create patient profile;
+  endif
+  :Create visit;
+  :System assigns queue number;
+  :Visit status = WAITING;
+}
+
+partition "Doctor" #DCFCE7 {
+  :Open examination;
+  :Visit status = IN_EXAM;
+  :Enter symptoms / diagnosis;
+  :Select disease reference;
+  :Create prescription;
+  if (Need service/lab?) then (Yes)
+    :Order service / lab test;
+    :Wait for required result;
+  else (No)
+  endif
+  :Complete examination;
+  :Visit status = DONE;
+}
+
+partition "Cashier" #FFEDD5 {
+  :Generate invoice;
+  :Review invoice items;
+  :Record payment;
+  if (Paid fully?) then (Yes)
+    :Invoice status = PAID;
+  else (No)
+    :Invoice status = PARTIAL;
+  endif
+}
+
+partition "Manager" #F3E8FF {
+  :Open monthly report;
+  :Review visit count;
+  :Review revenue summary;
+}
+
+stop
+
+legend bottom
+This user flow represents the primary demo path in the report.
+endlegend
+
+@enduml
+```
+
+---
+
+## 15. `14_local_deployment.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Deployment Diagram – Local Development Environment
+
+left to right direction
+
+actor "Developer / Operator" as Dev #DBEAFE
+
+node "Local Machine" as Local #F8FAFC {
+  node "Web Browser" as Browser #FFFFFF {
+  }
+
+  node "Frontend Dev Server\nReact + Vite\nhttp://localhost:5173" as FE #DBEAFE {
+  }
+
+  node "Backend API Server\nNestJS\nhttp://localhost:3000" as BE #CCFBF1 {
+    artifact "Swagger UI\n/api/docs" as Swagger #F1F5F9
+    artifact "Prisma Client" as PrismaClient #FEF9C3
+  }
+
+  database "PostgreSQL Database\nlocalhost:5432" as DB #F3E8FF
+
+  artifact "Prisma Migrate\nnpx prisma migrate dev" as Migrate #FEF9C3
+  artifact "Seed Script\nnpx prisma db seed" as Seed #FEF9C3
+  artifact "Prisma Studio\nnpx prisma studio" as Studio #F1F5F9
+}
+
+Dev --> Browser : access app
+Dev --> FE : npm run dev
+Dev --> BE : npm run start:dev
+Dev --> Migrate : setup schema
+Dev --> Seed : create demo data
+Dev --> Studio : inspect data
+
+Browser --> FE : HTTP
+FE --> BE : REST API / JSON\nBearer Token
+BE --> Swagger : serves API docs
+BE --> PrismaClient : database access
+PrismaClient --> DB : SQL
+Migrate --> DB : apply migrations
+Seed --> DB : insert demo records
+Studio --> DB : view/edit data
+
+note bottom
+Deployment scope: local/development only.
+Not included in current version: Docker, CI/CD, production deployment.
+end note
+
+@enduml
+```
+
+---
+
+## 16. `15_testing_strategy.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title Testing Strategy Overview\nPhase 1 E2E + Phase 2 Manual/Regression Plan
+
+left to right direction
+
+rectangle "Requirements\nREQ / UC / BR" as Req #DBEAFE
+rectangle "Design\nDB / API / UI / Sequence" as Design #CCFBF1
+rectangle "Implementation\nBackend + Frontend" as Impl #DCFCE7
+rectangle "Component / Unit Test\nService-level where available" as Unit #FEF9C3
+rectangle "API / E2E Test\nPhase 1 core flows" as API #FFEDD5
+rectangle "UI Manual Test\nScreenshots + checklist" as UI #FCE7F3
+rectangle "Regression Test\nPhase 1 after Phase 2 changes" as Reg #F3E8FF
+rectangle "Acceptance Evidence\nPass/fail table + logs" as Accept #F1F5F9
+
+Req --> Design : specification drives design
+Design --> Impl : design implemented as modules
+Impl --> Unit : validate components
+Unit --> API : validate endpoints + business rules
+API --> UI : validate user workflows
+UI --> Reg : re-test affected flows
+Reg --> Accept : report evidence
+
+Req ..> Accept : acceptance criteria
+Design ..> API : API contract / DB rules
+Impl ..> Reg : changed code triggers regression
+
+note bottom of API
+Current report wording:
+E2E tests cover Phase 1 core flows.
+Phase 2 needs manual evidence or future automated tests.
+end note
+
+legend bottom
+Use this diagram in Chapter 5 to avoid claiming "full automated testing".
+endlegend
+
+@enduml
+```
+
+---
+
+## 17. `16_state_machine_core_status.puml`
+
+```plantuml
+@startuml
+!include common-style.puml
+
+title State Machine – Core Operational Statuses\nVisit, Examination, Invoice, Queue
+
+skinparam state {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+  StartColor #0F766E
+  EndColor #0F766E
+}
+
+state "Visit Status" as VisitStatus {
+  [*] --> WAITING : create visit
+  WAITING --> IN_EXAM : doctor opens examination
+  IN_EXAM --> DONE : complete examination
+  WAITING --> CANCELLED : cancel visit
+  IN_EXAM --> CANCELLED : administrative cancel
+  DONE --> [*]
+  CANCELLED --> [*]
+}
+
+state "Examination Status" as ExamStatus {
+  [*] --> IN_PROGRESS : open examination
+  IN_PROGRESS --> DONE : complete
+  IN_PROGRESS --> CANCELLED : cancel
+  DONE --> [*]
+  CANCELLED --> [*]
+}
+
+state "Invoice Status" as InvoiceStatus {
+  [*] --> UNPAID : create invoice
+  UNPAID --> PARTIAL : first partial payment
+  PARTIAL --> PARTIAL : additional partial payment
+  UNPAID --> PAID : full payment
+  PARTIAL --> PAID : remaining paid
+  UNPAID --> CANCELLED : void invoice
+  PARTIAL --> CANCELLED : void invoice
+  PAID --> [*]
+  CANCELLED --> [*]
+}
+
+state "Queue Status\nPhase 2" as QueueStatus {
+  [*] --> WAITING : check-in / create ticket
+  WAITING --> CALLED : call patient
+  CALLED --> IN_SERVICE : start service
+  IN_SERVICE --> DONE : finish
+  WAITING --> CANCELLED : cancel ticket
+  CALLED --> CANCELLED : cancel ticket
+  DONE --> [*]
+  CANCELLED --> [*]
+}
+
+note bottom
+Use this diagram to explain status transitions and to support test case design.
+end note
+
+@enduml
+```
+
+---
+
+## Gợi ý đưa vào LaTeX
+
+Sau khi render xong, đặt file vào:
+
+```text
+figures/ch01-requirements/usecase-phase1.pdf
+figures/ch01-requirements/usecase-phase2.pdf
+figures/ch02-system-design/system-context.pdf
+figures/ch02-system-design/container-diagram.pdf
+figures/ch02-system-design/backend-component.pdf
+figures/ch03-software-design/erd-phase1.pdf
+figures/ch03-software-design/erd-phase2-delta.pdf
+figures/ch03-software-design/visit-sequence.pdf
+figures/ch03-software-design/examination-sequence.pdf
+figures/ch03-software-design/payment-sequence.pdf
+figures/ch04-implementation/fefo-sequence.pdf
+figures/ch05-testing/testing-strategy.pdf
+figures/ch06-deployment/local-deployment.pdf
+```
+
+Với sơ đồ lớn như **ERD**, **Use Case**, **Backend Component**, nên chèn bằng:
+
+```latex
+\LandscapeFigure{ch03-software-design/erd-phase1.pdf}
+{ERD Phase 1 của hệ thống}
+{fig:erd-phase1}
+```
+
+Còn sequence diagram vừa phải thì dùng:
+
+```latex
+\ReportFigure{ch03-software-design/visit-sequence.pdf}
+{Sơ đồ tuần tự luồng tạo lượt khám}
+{fig:visit-sequence}
+```

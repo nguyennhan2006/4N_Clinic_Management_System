@@ -1,0 +1,48 @@
+@startuml
+!include common-style.puml
+
+title Development & Setup Tools\nLocal Environment
+
+top to bottom direction
+
+actor "Developer" as Dev #DBEAFE
+
+database "PostgreSQL\nlocalhost:5432" as DB #F3E8FF
+
+rectangle "npm run start:dev\nNestJS hot-reload server\n:3000" as BackendDev #CCFBF1
+rectangle "npm run dev\nVite frontend dev server\n:5173" as FrontendDev #DBEAFE
+rectangle "npx prisma migrate dev\nApply schema migrations\n(3 migration files)" as Migrate #FEF9C3
+rectangle "npx prisma db seed\nCreate 8 demo accounts\n+ sample clinical data" as Seed #FEF9C3
+rectangle "npx prisma studio\nGUI to browse / edit data\n:5555" as Studio #F1F5F9
+rectangle "npm run test:e2e\nRun 104 E2E tests\n(Phase 1 coverage)" as Tests #DCFCE7
+rectangle "npm run lint / build\nESLint + TypeScript check" as Lint #F1F5F9
+
+Dev --> BackendDev : start backend
+Dev --> FrontendDev : start frontend
+Dev --> Migrate : setup database schema
+Dev --> Seed : populate demo data
+Dev --> Studio : inspect data
+Dev --> Tests : run E2E tests
+Dev --> Lint : quality check
+
+Migrate --> DB : apply migrations
+Seed --> DB : insert demo records
+Studio --> DB : read / write GUI
+
+note right of Seed
+Demo accounts seeded:
+admin / doctor / receptionist
+cashier / manager / nurse
+labtech / pharmacist
+Password pattern: Role@123456
+end note
+
+note bottom of Tests
+Not available in current setup:
+- Docker / docker-compose
+- CI/CD pipeline
+- HTTPS certificate
+- Production environment
+end note
+
+@enduml

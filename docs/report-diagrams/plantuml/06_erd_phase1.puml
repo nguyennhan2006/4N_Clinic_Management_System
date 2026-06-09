@@ -1,0 +1,157 @@
+@startuml
+!include common-style.puml
+
+title Entity Relationship Diagram - Phase 1\n4N Clinic Management System
+
+left to right direction
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+entity "User\nTai khoan he thong" as User #DBEAFE {
+  * id : UUID <<PK>>
+  --
+  * email : VARCHAR <<UNIQUE>>
+  * passwordHash : VARCHAR
+  * fullName : VARCHAR
+  * role : UserRole
+  * isActive : BOOLEAN
+}
+
+entity "Patient\nBenh nhan" as Patient #CCFBF1 {
+  * id : UUID <<PK>>
+  --
+  * patientCode : VARCHAR <<UNIQUE>>
+  * fullName : VARCHAR
+  dateOfBirth : DATE
+  gender : Gender
+  phone : VARCHAR
+  address : TEXT
+  notes : TEXT?
+}
+
+entity "Visit\nLuot kham" as Visit #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  * patientId : UUID <<FK>>
+  * visitDate : DATE
+  * queueNumber : INT
+  * status : VisitStatus
+  examinedById : UUID? <<FK>>
+}
+
+entity "Examination\nPhien kham" as Examination #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  * visitId : UUID <<UNIQUE, FK>>
+  * doctorId : UUID <<FK>>
+  diseaseId : UUID? <<FK>>
+  diagnosis : TEXT
+  consultationFee : DECIMAL(12,2)
+  examinedAt : TIMESTAMP
+  status : ExaminationStatus
+}
+
+entity "Disease\nDanh muc benh" as Disease #F1F5F9 {
+  * id : UUID <<PK>>
+  --
+  * code : VARCHAR
+  * name : VARCHAR
+  category : VARCHAR
+  description : TEXT?
+  isActive : BOOLEAN
+}
+
+entity "Drug\nDanh muc thuoc" as Drug #F1F5F9 {
+  * id : UUID <<PK>>
+  --
+  * code : VARCHAR <<UNIQUE>>
+  * name : VARCHAR
+  unit : VARCHAR
+  pricePerUnit : DECIMAL(12,2)
+  stockQuantity : INT
+  isActive : BOOLEAN
+}
+
+entity "Prescription\nDon thuoc" as Prescription #E0F2FE {
+  * id : UUID <<PK>>
+  --
+  * examinationId : UUID <<UNIQUE, FK>>
+  notes : TEXT?
+  issuedAt : TIMESTAMP
+}
+
+entity "PrescriptionItem\nChi tiet don thuoc" as PrescriptionItem #E0F2FE {
+  * id : UUID <<PK>>
+  --
+  * prescriptionId : UUID <<FK>>
+  * drugId : UUID <<FK>>
+  * quantity : INT
+  * unitPrice : DECIMAL(12,2)
+  dosageInstruction : TEXT
+}
+
+entity "Invoice\nHoa don" as Invoice #FFEDD5 {
+  * id : UUID <<PK>>
+  --
+  * visitId : UUID <<UNIQUE, FK>>
+  * invoiceNumber : VARCHAR
+  * totalAmount : DECIMAL(12,2)
+  * paidAmount : DECIMAL(12,2)
+  * status : InvoiceStatus
+  issuedAt : TIMESTAMP
+}
+
+entity "Payment\nThanh toan" as Payment #FFEDD5 {
+  * id : UUID <<PK>>
+  --
+  * invoiceId : UUID <<FK>>
+  * amount : DECIMAL(12,2)
+  * method : PaymentMethod
+  * paidAt : TIMESTAMP
+  receivedById : UUID <<FK>>
+  note : TEXT?
+}
+
+entity "RegulationVersion\nCau hinh quy dinh" as RegulationVersion #F3E8FF {
+  * id : UUID <<PK>>
+  --
+  * key : VARCHAR
+  * value : JSONB
+  description : TEXT?
+  isActive : BOOLEAN
+  activatedAt : TIMESTAMP
+  activatedById : UUID <<FK>>
+}
+
+Patient ||--o{ Visit : has
+Visit ||--|| Examination : opens
+Visit ||--|| Invoice : billed by
+Invoice ||--o{ Payment : receives
+
+User ||--o{ Visit : examinedBy
+User ||--o{ Examination : doctor
+User ||--o{ Payment : receivedBy
+User ||--o{ RegulationVersion : activatedBy
+
+Disease ||--o{ Examination : referenced by
+Examination ||--|| Prescription : has
+Prescription ||--o{ PrescriptionItem : contains
+Drug ||--o{ PrescriptionItem : selected in
+
+note bottom of Visit
+Business rule:
+unique(patientId, visitDate)
+prevents duplicate same-day visit.
+end note
+
+note bottom of Invoice
+Invoice status:
+UNPAID / PARTIAL / PAID / CANCELLED
+end note
+
+legend bottom
+Phase 1 ERD shows the core clinical workflow: Patient -> Visit -> Examination -> Prescription / Invoice -> Payment.
+endlegend
+
+@enduml

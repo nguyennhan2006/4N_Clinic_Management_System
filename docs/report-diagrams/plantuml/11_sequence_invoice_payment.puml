@@ -1,0 +1,80 @@
+@startuml
+!include common-style.puml
+
+title Sequence Diagram - Invoice and Payment
+
+actor Cashier
+participant "Frontend\nBilling Page" as FE
+participant "BillingController" as Controller
+participant "BillingService" as Service
+database "PostgreSQL" as DB
+
+== Generate invoice ==
+Cashier -> FE : Open completed visit
+FE -> Controller : POST /api/v1/invoices\n{visitId}
+activate Controller
+Controller -> Service : createInvoice(visitId, cashierId)
+activate Service
+
+Service -> DB : SELECT Visit + Examination\n+ Prescription + PrescriptionItems
+DB --> Service : visit billing data
+
+alt Visit not in DONE status
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Visit not completed
+else Invoice already exists
+  Service --> Controller : throw ConflictException
+  Controller --> FE : 409 Invoice already issued
+else Valid visit
+  Service -> Service : Calculate totalAmount\n= consultationFee + sum(drugItems)
+  Service -> DB : Transaction:\nINSERT Invoice { status: UNPAID, totalAmount, paidAmount: 0 }
+  DB --> Service : Invoice
+  Service --> Controller : InvoiceDTO
+  Controller --> FE : 201 Created
+  FE --> Cashier : Show invoice detail
+end
+
+deactivate Service
+deactivate Controller
+
+== Record payment ==
+Cashier -> FE : Enter amount + payment method
+FE -> Controller : POST /api/v1/invoices/{id}/payments\n{amount, method}
+activate Controller
+Controller -> Service : recordPayment(invoiceId, dto, cashierId)
+activate Service
+
+Service -> DB : SELECT Invoice + existing payments
+DB --> Service : invoice with paidAmount
+
+Service -> Service : remaining = totalAmount - paidAmount
+
+alt amount <= 0
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Amount must be positive
+else amount > remaining
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Overpayment not allowed (BR-16)
+else Invoice CANCELLED or PAID
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Invoice is not payable
+else Valid payment
+  Service -> Service : newPaidAmount = paidAmount + amount\nnewStatus = (newPaid >= total) ? PAID : PARTIAL
+  Service -> DB : Transaction:\nINSERT Payment { amount, method, receivedById }\nUPDATE Invoice { paidAmount, status }
+  DB --> Service : committed
+  Service --> Controller : updated InvoiceDTO
+  Controller --> FE : 201 Created
+  FE --> Cashier : Show updated payment status\n(PARTIAL or PAID)
+end
+
+deactivate Service
+deactivate Controller
+
+note over Service
+Invoice status rule:
+UNPAID -> PARTIAL -> PAID
+Cancelled invoices cannot receive payment.
+Overpayment is rejected at service layer.
+end note
+
+@enduml

@@ -1,0 +1,92 @@
+@startuml
+!include common-style.puml
+
+title Use Case Diagram - Phase 2\nExtended clinic operations
+
+left to right direction
+
+actor Receptionist
+actor Nurse
+actor Doctor
+actor "Lab Technician" as LabTech
+actor Pharmacist
+actor Cashier
+actor Manager
+actor Admin
+
+rectangle "4N Clinic Management System - Phase 2" as System {
+  package "Appointment & Queue" {
+    usecase "UC19\nDat lich hen" as UC19
+    usecase "UC20\nQuan ly lich hen" as UC20
+    usecase "UC21\nCheck-in thanh luot kham" as UC21
+    usecase "UC22\nQuan ly hang doi" as UC22
+  }
+
+  package "Vitals" {
+    usecase "UC23\nGhi nhan sinh hieu" as UC23
+    usecase "UC24\nTinh BMI tu dong" as UC24
+  }
+
+  package "Services & Lab" {
+    usecase "UC25\nChi dinh dich vu" as UC25
+    usecase "UC26\nTao yeu cau xet nghiem" as UC26
+    usecase "UC27\nThu mau xet nghiem" as UC27
+    usecase "UC28\nNhap ket qua xet nghiem" as UC28
+    usecase "UC29\nXac nhan ket qua" as UC29
+  }
+
+  package "Inventory & Pharmacy" {
+    usecase "UC30\nNhap lo thuoc" as UC30
+    usecase "UC31\nTheo doi ton kho / han dung" as UC31
+    usecase "UC32\nCap phat thuoc theo don" as UC32
+    usecase "UC33\nTru ton kho FEFO" as UC33
+  }
+
+  package "Extended Billing & Reports" {
+    usecase "UC34\nHoa don nhieu khoan muc" as UC34
+    usecase "UC35\nBao cao mo rong" as UC35
+  }
+}
+
+Receptionist --> UC19
+Receptionist --> UC20
+Receptionist --> UC21
+Receptionist --> UC22
+
+Nurse --> UC22
+Nurse --> UC23
+Nurse --> UC24
+
+Doctor --> UC25
+Doctor --> UC26
+Doctor --> UC29
+
+LabTech --> UC27
+LabTech --> UC28
+LabTech --> UC29
+
+Pharmacist --> UC30
+Pharmacist --> UC31
+Pharmacist --> UC32
+Pharmacist --> UC33
+
+Cashier --> UC34
+Manager --> UC35
+Admin --> UC30
+Admin --> UC35
+
+UC21 .> UC19 : check-in from appointment
+UC23 .> UC24 : <<include>>
+UC26 .> UC25 : lab service order
+UC27 .> UC26 : <<include>>
+UC28 .> UC27 : after sample collected
+UC29 .> UC28 : verify result
+UC32 .> UC33 : <<include>>
+UC34 .> UC25 : service items
+UC34 .> UC32 : drug items
+
+legend bottom
+Phase 2 extends operational workflow: appointments, queue, vitals, lab, inventory, pharmacy and multi-item billing.
+endlegend
+
+@enduml
