@@ -1,0 +1,249 @@
+\chapter{Hiện thực}
+
+\section{Mục tiêu của chương}
+
+Chương này trình bày cách hệ thống được hiện thực dựa trên các quyết định thiết kế ở Chương 2 và Chương 3. Nội dung tập trung vào phương pháp hiện thực, công nghệ, tổ chức mã nguồn, backend, frontend, database, API, business rules, quản lý mã nguồn và kết quả hiện thực theo từng phase.
+
+\section{Phương pháp hiện thực}
+
+Nhóm hiện thực hệ thống theo từng module nghiệp vụ. Với mỗi module, nhóm triển khai theo thứ tự: thiết kế dữ liệu, backend API, frontend UI, tích hợp FE--BE, kiểm thử chức năng và ghi nhận bằng chứng. Cách làm này phù hợp với quy trình phát triển theo use case vì mỗi chức năng có thể truy vết từ yêu cầu đến API, database, giao diện và test.
+
+\section{Cấu trúc mã nguồn tổng quan}
+
+\begin{lstlisting}[language=bash,caption={Cấu trúc codebase rút gọn}]
+4N_Clinic_Management_System/
+|-- backend/
+|   |-- prisma/              # schema.prisma, migrations, seed.ts
+|   |-- src/
+|   |   |-- common/          # guards, decorators, filters
+|   |   |-- prisma/          # PrismaService
+|   |   `-- modules/         # 21 feature folders
+|   `-- test/                # e2e tests
+|-- frontend/
+|   `-- src/
+|       |-- app/             # router, providers
+|       |-- components/      # common + ui components
+|       |-- config/          # navigation, permissions
+|       |-- features/        # feature-based pages
+|       `-- lib/             # api-client, helpers
+`-- docs/                    # design docs and evidence
+\end{lstlisting}
+
+\section{Hiện thực backend}
+
+Backend sử dụng NestJS 11 và TypeScript. Codebase hiện có 21 feature folders, 20 controllers có API route và 21 service files. Các module được chia theo domain nghiệp vụ thay vì chia theo kiểu kỹ thuật thuần túy. Ví dụ, module \code{visits} chịu trách nhiệm tiếp nhận lượt khám, module \code{examinations} chịu trách nhiệm phiếu khám và kê đơn, module \code{billing} chịu trách nhiệm hóa đơn và thanh toán.
+
+\begin{longtable}{|p{3.2cm}|p{2cm}|p{2.5cm}|p{6cm}|}
+\caption{Module backend theo phase}\\
+\hline
+\textbf{Module} & \textbf{Phase} & \textbf{Endpoint} & \textbf{Vai trò} \\
+\hline
+auth & P1 & 4 & Login, refresh, logout, me \\
+\hline
+users & P1 & 6 & Quản lý tài khoản \\
+\hline
+rbac & P1 & 3 & Vai trò và quyền \\
+\hline
+patients & P1 & 4 & Hồ sơ bệnh nhân, lịch sử khám \\
+\hline
+visits & P1 & 3 & Tiếp nhận lượt khám, mở examination \\
+\hline
+examinations & P1 & 6 & Phiếu khám, chẩn đoán, kê đơn, hoàn tất \\
+\hline
+prescriptions & P1 & 0 & Service-only module dùng bởi examinations \\
+\hline
+billing & P1 & 5 & Hóa đơn, chi tiết hóa đơn, thanh toán \\
+\hline
+diseases, drugs, regulations & P1 & 9 & Danh mục và quy định \\
+\hline
+reports & P1+P2 & 2 & Báo cáo tháng và revenue breakdown \\
+\hline
+appointments, queue, vitals & P2 & 12 & Lịch hẹn, hàng đợi, sinh hiệu \\
+\hline
+services, lab & P2 & 14 & Dịch vụ và xét nghiệm \\
+\hline
+inventory, pharmacy, organization, audit & P2 & 25 & Kho thuốc, cấp phát, tổ chức và audit \\
+\hline
+\end{longtable}
+
+\section{Hiện thực frontend}
+
+Frontend sử dụng React 19, Vite 7, TypeScript, Tailwind CSS 4, TanStack Query, Zustand, React Hook Form và Zod. Codebase hiện có 36 named routes và 33 page files. Các route được bảo vệ bằng \code{ProtectedRoute} và \code{RequireRole}. Sidebar được cấu hình theo role trong navigation config.
+
+\begin{lstlisting}[language=bash,caption={Cấu trúc frontend rút gọn}]
+frontend/src/
+|-- app/
+|   |-- router.tsx
+|   `-- providers.tsx
+|-- config/
+|   |-- navigation.ts
+|   `-- permissions.ts
+|-- features/
+|   |-- auth/
+|   |-- patients/
+|   |-- visits/
+|   |-- examinations/
+|   |-- invoices/
+|   |-- reports/
+|   |-- appointments/
+|   |-- lab/
+|   |-- inventory/
+|   |-- pharmacy/
+|   `-- audit/
+`-- lib/
+    |-- api-client.ts
+    `-- theme.ts
+\end{lstlisting}
+
+\section{Hiện thực cơ sở dữ liệu}
+
+Database được định nghĩa bằng Prisma schema và triển khai trên PostgreSQL. Prisma migration quản lý thay đổi schema theo từng giai đoạn: baseline, identity-access và phase2a-foundation. Seed data tạo dữ liệu demo cho tài khoản, danh mục, bệnh nhân, lượt khám, hóa đơn, dịch vụ, lô thuốc và các dữ liệu cần thiết cho demo.
+
+\section{Hiện thực API}
+
+API được thiết kế theo REST với prefix \code{/api/v1}. Hệ thống sử dụng Swagger UI tại \code{http://localhost:3000/api/docs} để kiểm tra và tài liệu hóa endpoint. Tất cả route nghiệp vụ đều yêu cầu JWT, ngoại trừ endpoint login.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả hiện thực API}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Hạng mục} & \textbf{Kết quả} \\
+\hline
+API prefix & \code{/api/v1} \\
+\hline
+Swagger UI & \code{http://localhost:3000/api/docs} \\
+\hline
+Tổng endpoints & 92 endpoints \\
+\hline
+Phase 1 endpoints & 41 endpoints \\
+\hline
+Phase 2 endpoints & 51 endpoints \\
+\hline
+Auth & JWT Access Token + Refresh Token \\
+\hline
+API protection & JwtAuthGuard, RolesGuard, @Roles decorator \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Hiện thực business rules tiêu biểu}
+
+Một điểm quan trọng của hệ thống là các quy tắc nghiệp vụ được enforce tại service layer. Một số nghiệp vụ có sử dụng \code{prisma.$transaction()} để đảm bảo tính nguyên tử, ví dụ: tạo lượt khám và số thứ tự, mở phiên khám, thanh toán hóa đơn, kích hoạt quy định và cấp phát thuốc.
+
+\begin{table}[H]
+\centering
+\caption{Transaction usage trong backend}
+\begin{tabularx}{\textwidth}{|p{4cm}|p{3cm}|X|}
+\hline
+\textbf{Operation} & \textbf{Module} & \textbf{Mục đích} \\
+\hline
+Visit creation + queue number & visits & Tạo lượt khám và số thứ tự an toàn, tránh race condition \\
+\hline
+Open examination & visits & Cập nhật visit status và tạo examination atomically \\
+\hline
+Payment + invoice status & billing & Cập nhật paidAmount và InvoiceStatus cùng lúc \\
+\hline
+Regulation activation & regulations & Deactivate phiên bản cũ và activate phiên bản mới \\
+\hline
+Dispense + stock deduction & pharmacy & Tạo phiếu cấp phát, stock movement và giảm tồn kho \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Ví dụ hiện thực business rule bằng transaction}
+
+Đoạn mã dưới đây minh họa cách service layer xử lý BR-05 và BR-07 trong luồng tạo lượt khám. Code được rút gọn để tập trung vào ý tưởng chính: kiểm tra trùng lượt khám trong ngày, lấy số thứ tự cuối cùng và tạo visit trong cùng một transaction.
+
+\begin{lstlisting}[language=JavaScript,caption={BR-05/BR-07: Tạo lượt khám và sinh số thứ tự trong Prisma transaction}]
+async createVisit(dto, currentUser) {
+  return this.prisma.$transaction(async (tx) => {
+    const patient = await tx.patient.findUnique({
+      where: { id: dto.patientId },
+    });
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    const duplicated = await tx.visit.findFirst({
+      where: {
+        patientId: dto.patientId,
+        visitDate: dto.visitDate,
+      },
+    });
+    if (duplicated) {
+      throw new ConflictException('Patient already has a visit today');
+    }
+
+    const lastVisit = await tx.visit.findFirst({
+      where: { visitDate: dto.visitDate },
+      orderBy: { queueNumber: 'desc' },
+    });
+    const queueNumber = (lastVisit?.queueNumber ?? 0) + 1;
+
+    return tx.visit.create({
+      data: {
+        patientId: dto.patientId,
+        visitDate: dto.visitDate,
+        queueNumber,
+        createdById: currentUser.id,
+        status: 'WAITING',
+      },
+    });
+  });
+}
+\end{lstlisting}
+
+Mẫu hiện thực này thể hiện nguyên tắc quan trọng của hệ thống: frontend có thể hỗ trợ validation ban đầu, nhưng các business rules bắt buộc vẫn phải được kiểm tra tại backend service và database transaction.
+
+\section{Quản lý mã nguồn và quy trình nhóm}
+
+Git history cho thấy nhóm sử dụng các branch theo convention \code{feature/UCxx-yy}, \code{docs/}, \code{db/}, \code{chore/}. Commit timeline phản ánh quá trình từ khởi tạo repo, setup backend/frontend, triển khai Phase 1, chốt baseline v1, mở rộng Phase 2 và bổ sung seed data.
+
+\begin{longtable}{|p{3.2cm}|p{3cm}|p{7.5cm}|}
+\caption{Timeline phát triển từ git history}\\
+\hline
+\textbf{Giai đoạn} & \textbf{Thời gian} & \textbf{Nội dung} \\
+\hline
+Khởi tạo & 2026-03-12 đến 2026-03-14 & Initial commit, cấu trúc ban đầu \\
+\hline
+Setup project & 2026-04-19 & Cấu trúc backend, docs \\
+\hline
+Phase 1 backend core & 2026-04-27 & Prisma schema, Phase 1 modules, seed \\
+\hline
+Phase 1 UC07--UC11 & 2026-05-17 & Visit và examination flow \\
+\hline
+Phase 1 UC01--UC03 + frontend & 2026-05-19 & Auth, users, RBAC và merge \\
+\hline
+Phase 1 baseline & 2026-05-19 & README v1, baseline đầu tiên \\
+\hline
+Phase 2 full implementation & 2026-06-05 & Backend và frontend Phase 2 \\
+\hline
+Bug fixes + seed & 2026-06-05 đến 2026-06-06 & Fix examination, comprehensive seed data \\
+\hline
+\end{longtable}
+
+\textbf{Lưu ý về git history:} Git log phản ánh hoạt động commit, không phản ánh toàn bộ công sức đóng góp. Nhóm có thực hiện pair programming, review thiết kế trực tiếp, kiểm thử thủ công và chuẩn bị tài liệu ngoài commit. Nhóm xác nhận 4 thành viên đóng góp tương đương; bằng chứng đầy đủ gồm Git history, biên bản phân công, checklist kiểm thử và screenshot demo.
+
+\section{Demo các chức năng trọng tâm}
+
+\begin{longtable}{|p{3.2cm}|p{5.5cm}|p{5.5cm}|}
+\caption{Demo hiện thực chức năng}\\
+\hline
+\textbf{Demo} & \textbf{Nội dung trình bày} & \textbf{Minh chứng cần chèn} \\
+\hline
+Demo Auth/RBAC & Đăng nhập, lấy thông tin user, phân quyền API & Swagger response, screenshot sidebar \\
+\hline
+Demo Patients & Tạo bệnh nhân mới, tìm kiếm bệnh nhân & Screenshot UI, API response \\
+\hline
+Demo Visits & Tạo lượt khám, cấp số thứ tự, chặn trùng ngày & Screenshot, đoạn service rule \\
+\hline
+Demo Examinations & Ghi phiếu khám, chẩn đoán, kê đơn & Screenshot phiếu khám \\
+\hline
+Demo Billing & Lập hóa đơn, thanh toán nhiều lần & Screenshot hóa đơn, payment dialog \\
+\hline
+Demo Phase 2 & Lịch hẹn, xét nghiệm, kho thuốc, FEFO & Lab/pharmacy/inventory screenshots \\
+\hline
+\end{longtable}
+
+\ReportFigure{figures/screenshots/pharmacy-worklist.png}{Giao diện Pharmacy Worklist -- minh chứng hiện thực Phase 2}{fig:implementation-demo}

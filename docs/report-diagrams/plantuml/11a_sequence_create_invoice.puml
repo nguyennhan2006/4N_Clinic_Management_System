@@ -1,0 +1,51 @@
+@startuml
+!include common-style.puml
+
+title Sequence: Create Invoice\nCashier generates invoice from completed visit
+
+actor Cashier
+participant "Invoice Page\n(Frontend)" as FE
+participant "BillingController" as BC
+participant "BillingService" as BS
+database "PostgreSQL" as DB
+
+Cashier -> FE : Select completed visit\nClick "Create Invoice"
+FE -> BC : POST /api/v1/invoices\n{ visitId }
+activate BC
+
+BC -> BS : createInvoice(visitId, cashierId)
+activate BS
+
+BS -> DB : SELECT Visit WHERE id = visitId
+DB --> BS : Visit
+
+alt Visit not DONE
+  BS --> BC : BadRequestException\n"Visit must be DONE to create invoice"
+  BC --> FE : 400 Bad Request
+else Invoice already exists for visit
+  BS --> BC : ConflictException\n"Invoice already issued for this visit"
+  BC --> FE : 409 Conflict
+else Valid completed visit
+  BS -> DB : SELECT Examination + Prescription\n+ PrescriptionItems for visitId
+  DB --> BS : billing data
+
+  BS -> BS : Calculate totalAmount:\n  consultationFee\n  + sum(item.quantity * item.unitPrice)
+
+  BS -> DB : INSERT Invoice {\n  visitId, invoiceNumber,\n  totalAmount, paidAmount: 0,\n  status: UNPAID\n}
+  DB --> BS : Invoice created
+
+  BS --> BC : InvoiceDTO
+  BC --> FE : 201 Created
+  FE --> Cashier : Display invoice detail\nwith line items
+end
+
+deactivate BS
+deactivate BC
+
+note over BS
+Invoice number is auto-generated.
+visitId is UNIQUE on Invoice —
+only one invoice per visit is allowed.
+end note
+
+@enduml

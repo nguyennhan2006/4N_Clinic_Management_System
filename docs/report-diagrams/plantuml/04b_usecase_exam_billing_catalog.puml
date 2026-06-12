@@ -1,0 +1,70 @@
+@startuml
+!include common-style.puml
+
+title Use Case Diagram — Phase 1 (Part 2)\nExamination, Billing, Catalog, Report
+
+top to bottom direction
+
+actor Admin #DBEAFE
+actor Doctor #DCFCE7
+actor Cashier #FFEDD5
+actor Manager #F3E8FF
+
+rectangle "4N Clinic — Examination, Billing & Catalog" {
+
+  package "Examination & Prescription" {
+    usecase "UC09\nRecord examination" as UC09
+    usecase "UC10\nDiagnose disease" as UC10
+    usecase "UC11\nPrescribe drugs" as UC11
+    usecase "UC12\nView medical history" as UC12
+    usecase "UC13\nComplete examination" as UC13
+  }
+
+  package "Billing" {
+    usecase "UC14\nCreate invoice" as UC14
+    usecase "UC15\nRecord payment" as UC15
+    usecase "UC16\nSearch invoices" as UC16
+  }
+
+  package "Catalog & Configuration" {
+    usecase "UC17\nManage regulations" as UC17
+    usecase "UC18\nManage disease catalog" as UC18
+    usecase "UC19\nManage drug catalog" as UC19
+  }
+
+  package "Report" {
+    usecase "UC20\nView monthly report" as UC20
+  }
+}
+
+Doctor --> UC09
+Doctor --> UC10
+Doctor --> UC11
+Doctor --> UC12
+Doctor --> UC13
+
+Cashier --> UC14
+Cashier --> UC15
+Cashier --> UC16
+
+Admin --> UC17
+Admin --> UC18
+Admin --> UC19
+
+Manager --> UC20
+Manager --> UC16
+
+UC10 .> UC09 : <<include>>
+UC11 .> UC09 : <<extend>>
+UC13 .> UC09 : requires saved exam
+UC14 .> UC13 : requires completed visit
+UC15 .> UC14 : <<include>>
+
+note bottom of UC14
+UC14 requires the examination
+to be in DONE status.
+Invoice total = consultation fee
++ drug items from prescription.
+end note
+
+@enduml

@@ -1,0 +1,93 @@
+@startuml
+!include common-style.puml
+
+title Software Development Process\n4N Clinic Management System
+
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+  DiamondBackgroundColor #FDE68A
+  DiamondBorderColor #92400E
+  StartColor #0F766E
+  EndColor #0F766E
+}
+
+start
+
+:1. Requirements Survey;
+note right
+Stakeholders:
+- Clinic owner / Manager
+- Receptionist (Le tan)
+- Doctor (Bac si)
+- Cashier (Thu ngan)
+- Admin
+- Nurse / Lab Tech / Pharmacist
+end note
+
+:2. Requirements Specification;
+note right
+Outputs:
+- Functional requirements
+- Non-functional requirements
+- Business rules (BR-01 to BR-29)
+- Use cases (Phase 1: 18 UC / Phase 2: 17 UC)
+- Acceptance criteria
+end note
+
+:3. System Design;
+note right
+Outputs:
+- System context diagram
+- Container diagram (C4 Level 2)
+- Backend component map
+- Auth / RBAC architecture
+end note
+
+:4. Software Design;
+note right
+Outputs:
+- Database schema (37 models, 12 enums)
+- API design (92 endpoints / api/v1)
+- Sequence diagrams
+- UI/UX design (clinic palette)
+- State machine definitions
+end note
+
+:5. Implementation;
+note right
+Stack:
+- Backend: NestJS + Prisma + PostgreSQL
+- Frontend: React + Vite + Tailwind
+- Auth: JWT stateless
+- Version control: Git
+- Module-based development
+end note
+
+:6. Testing;
+note right
+Coverage:
+- E2E tests Phase 1: 104 tests (3 suites)
+- Manual UI tests: checklist per screen
+- Phase 2: manual + regression
+end note
+
+:7. Deployment & Operation;
+note right
+Current scope:
+- Local / development environment
+- Database migrations (3 files)
+- Seed data (8 demo accounts)
+- Swagger at /api/docs
+- Prisma Studio for data inspection
+end note
+
+stop
+
+legend bottom
+Process follows: Specification -> Design -> Implementation -> Validation -> Evolution.
+endlegend
+
+@enduml

@@ -1,0 +1,238 @@
+\chapter{Thiết kế hệ thống}
+
+\section{Mục tiêu thiết kế hệ thống}
+
+Thiết kế hệ thống nhằm xác định bức tranh tổng thể của phần mềm: các thành phần chính, cách giao tiếp giữa các thành phần, cách tổ chức backend/frontend, cách xác thực và phân quyền, cũng như công nghệ được sử dụng. Với phạm vi đồ án môn học và quy mô nhóm 4 thành viên, hệ thống được thiết kế theo hướng dễ triển khai, dễ kiểm thử và dễ mở rộng.
+
+Các mục tiêu thiết kế chính gồm:
+
+\begin{itemize}
+    \item Tách rõ giao diện người dùng, xử lý nghiệp vụ và lưu trữ dữ liệu.
+    \item Bảo vệ dữ liệu thông qua xác thực JWT và phân quyền RBAC.
+    \item Tổ chức backend theo module nghiệp vụ để thuận tiện bảo trì.
+    \item Tổ chức frontend theo feature để dễ mở rộng màn hình và luồng người dùng.
+    \item Phù hợp với môi trường local/development của đồ án.
+\end{itemize}
+
+\section{Kiến trúc tổng thể}
+
+Hệ thống sử dụng kiến trúc client--server. Người dùng thao tác qua trình duyệt, frontend React gửi request REST/JSON đến backend NestJS. Backend thực hiện xác thực, phân quyền, xử lý business rules và truy vấn PostgreSQL thông qua Prisma ORM.
+
+\ReportFigure{figures/ch02-system-design/system-context.pdf}{Sơ đồ ngữ cảnh hệ thống}{fig:system-context}
+
+\ReportFigure{figures/ch02-system-design/container-diagram.pdf}{Sơ đồ container của hệ thống}{fig:container-diagram}
+
+\section{Tech stack}
+
+\begin{longtable}{|p{3cm}|p{4cm}|p{3cm}|p{5cm}|}
+\caption{Tech stack sử dụng trong hệ thống}\\
+\hline
+\textbf{Lớp} & \textbf{Công nghệ} & \textbf{Phiên bản} & \textbf{Vai trò} \\
+\hline
+Runtime & Node.js & 20+ LTS & Chạy backend và frontend tooling \\
+\hline
+Backend framework & NestJS & 11.0.1 & Web framework, dependency injection, module system \\
+\hline
+Backend language & TypeScript & 5.7.3 & Type-safe backend \\
+\hline
+ORM & Prisma & 6.16.2 & Database access, migration, schema mapping \\
+\hline
+Database & PostgreSQL & 15+ & Relational database \\
+\hline
+Authentication & JWT, Passport & Theo package backend & Token generation và validation \\
+\hline
+Frontend framework & React & 19.2.0 & UI library \\
+\hline
+Build tool & Vite & 7.2.2 & Dev server và build frontend \\
+\hline
+Frontend language & TypeScript & 5.9.3 & Type-safe frontend \\
+\hline
+Styling & Tailwind CSS & 4.3.0 & Utility CSS và design system \\
+\hline
+Server state & TanStack Query & 5.100.10 & Data fetching và caching \\
+\hline
+Client state & Zustand & 5.0.13 & Auth store và global state \\
+\hline
+Forms/Validation & React Hook Form, Zod & 7.76.0, 4.4.3 & Form management và schema validation \\
+\hline
+Testing & Jest, Supertest & 30.x & Unit và E2E tests \\
+\hline
+\end{longtable}
+
+\section{Kiến trúc backend: Modular Monolith}
+
+Backend là một NestJS monolith được chia thành 21 feature modules theo domain nghiệp vụ. Trong đó 20 module có controller/API route, còn \code{prescriptions} là service-only module được gọi từ module \code{examinations}.
+
+\begin{table}[H]
+\centering
+\caption{Các nhóm module backend}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Nhóm} & \textbf{Module} \\
+\hline
+Identity \& Access & auth, users, rbac \\
+\hline
+Clinical Core & patients, visits, examinations, prescriptions, diseases, drugs \\
+\hline
+Billing \& Reports & billing, regulations, reports \\
+\hline
+Phase 2 Extension & appointments, queue, vitals, services, lab, inventory, pharmacy, organization, audit \\
+\hline
+Shared/Common & prisma, guards, decorators, filters, constants \\
+\hline
+\end{tabularx}
+\end{table}
+
+\LandscapeFigure{figures/ch02-system-design/backend-component.pdf}{Sơ đồ component backend theo module nghiệp vụ}{fig:backend-component}
+
+\section{Kiến trúc layered architecture}
+
+Các module backend tuân theo mô hình ba tầng:
+
+\begin{itemize}
+    \item \textbf{Controller layer}: tiếp nhận HTTP request, validate DTO, gọi service và trả response.
+    \item \textbf{Service layer}: chứa business logic, kiểm tra trạng thái, thực hiện transaction và gọi Prisma.
+    \item \textbf{Data access layer}: PrismaService đóng vai trò truy cập PostgreSQL.
+\end{itemize}
+
+Mô hình này giúp controller mỏng, tránh đưa nghiệp vụ vào frontend và đảm bảo business rules được áp dụng nhất quán ở backend.
+
+\ReportFigure{figures/ch02-system-design/layered-architecture.pdf}{Mô hình layered architecture của backend}{fig:layered-architecture}
+
+\section{Kiến trúc frontend}
+
+Frontend được tổ chức theo feature-based structure. Mỗi feature gồm page, component, API client và type tương ứng. Router quản lý 36 named routes, trong đó các route trong khu vực ứng dụng được bảo vệ bởi \code{ProtectedRoute} và \code{RequireRole}.
+
+\begin{table}[H]
+\centering
+\caption{Một số feature frontend chính}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Feature} & \textbf{Vai trò} \\
+\hline
+auth & LoginPage, ProtectedRoute, RequireRole, auth store \\
+\hline
+patients & Danh sách, tạo mới, chi tiết, lịch sử khám \\
+\hline
+visits & Danh sách lượt khám, tạo lượt khám \\
+\hline
+examinations & Phiếu khám, chẩn đoán, kê đơn, sinh hiệu, dịch vụ \\
+\hline
+invoices & Danh sách hóa đơn, chi tiết hóa đơn, thanh toán \\
+\hline
+reports & Báo cáo tháng và doanh thu theo loại \\
+\hline
+Phase 2 features & appointments, queue, lab, inventory, pharmacy, organization, audit \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Xác thực và phân quyền}
+
+Hệ thống sử dụng JWT stateless authentication. Sau khi đăng nhập, người dùng nhận access token và refresh token. Frontend gắn access token vào header \code{Authorization: Bearer <token>} cho các request tiếp theo. Backend dùng \code{JwtAuthGuard} để xác thực token và \code{RolesGuard} để kiểm tra quyền theo vai trò.
+
+\begin{table}[H]
+\centering
+\caption{Vai trò người dùng trong hệ thống}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Role} & \textbf{Mô tả} \\
+\hline
+ADMIN & Toàn quyền quản trị hệ thống \\
+\hline
+RECEPTIONIST & Tiếp nhận, quản lý bệnh nhân, lượt khám và lịch hẹn \\
+\hline
+DOCTOR & Khám bệnh, kê đơn, xem lịch sử, chỉ định dịch vụ \\
+\hline
+CASHIER & Hóa đơn và thanh toán \\
+\hline
+MANAGER & Báo cáo, danh mục, theo dõi hoạt động \\
+\hline
+NURSE & Sinh hiệu, hỗ trợ hàng đợi và xét nghiệm \\
+\hline
+LAB\_TECHNICIAN & Nhận mẫu và nhập/xác nhận kết quả xét nghiệm \\
+\hline
+PHARMACIST & Quản lý tồn kho và cấp phát thuốc \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{longtable}{|p{0.5cm}|p{3.2cm}|p{5.5cm}|p{5cm}|}
+\caption{Các bước trong luồng đăng nhập và gọi API bằng JWT}\label{tab:auth-sequence}\\
+\hline
+\textbf{\#} & \textbf{Actor/Component} & \textbf{Hành động} & \textbf{Kết quả / Điều kiện} \\
+\hline
+1 & User $\rightarrow$ LoginPage & Nhập username và password, submit form & POST /auth/login được gửi đến backend \\
+\hline
+2 & AuthService $\rightarrow$ DB & Tìm user theo username/email & 401 Unauthorized nếu user không tồn tại \\
+\hline
+3 & AuthService & So sánh password với hash đã lưu & 401 Unauthorized nếu sai mật khẩu \\
+\hline
+4 & AuthService $\rightarrow$ JWT & Ký access token (stateless) và refresh token & Hai token hợp lệ theo cấu hình TTL \\
+\hline
+5 & AuthService $\rightarrow$ DB & Lưu refresh token hash vào database & Phục vụ revoke khi logout \\
+\hline
+6 & AuthController $\rightarrow$ Frontend & 201 \{accessToken, refreshToken, user\} & Frontend lưu token, redirect về dashboard \\
+\hline
+7 & Frontend $\rightarrow$ API & Gắn \code{Authorization: Bearer <token>} vào mọi request tiếp theo & JwtAuthGuard xác thực, trả dữ liệu theo role \\
+\hline
+\end{longtable}
+
+\section{Xử lý lỗi và bảo vệ API}
+
+Ngoài xác thực JWT và phân quyền RBAC, backend còn cần xử lý lỗi theo một kiến trúc thống nhất để frontend nhận được HTTP status code và thông báo rõ ràng. Các lỗi nghiệp vụ như trùng lượt khám trong ngày, thanh toán vượt số tiền còn lại hoặc cấp phát thuốc không đủ tồn kho được trả về dưới dạng 400/409 thay vì lỗi hệ thống chung. Các lỗi truy cập được phân biệt thành 401 Unauthorized khi chưa xác thực và 403 Forbidden khi đã xác thực nhưng không đủ quyền.
+
+\begin{table}[H]
+\centering
+\caption{Kiến trúc xử lý lỗi và bảo vệ API}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} \\
+\hline
+JwtAuthGuard & Kiểm tra access token trong header \code{Authorization}. Request thiếu hoặc token không hợp lệ trả 401. \\
+\hline
+RolesGuard và \code{@Roles} & Kiểm tra role được phép truy cập endpoint. Người dùng không đủ quyền bị chặn ở backend. \\
+\hline
+DTO validation & Kiểm tra dữ liệu đầu vào trước khi vào service layer, ví dụ required field, kiểu dữ liệu, định dạng email, số tiền dương. \\
+\hline
+Exception filters & Chuẩn hóa lỗi NestJS/Prisma thành HTTP response dễ hiểu, giúp frontend hiển thị thông báo nhất quán. \\
+\hline
+CORS và secret config & Cấu hình nguồn gọi API trong môi trường local; JWT secret và database URL đặt trong biến môi trường, không hard-code trong mã nguồn. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Lý do không chọn microservices}
+
+Hệ thống không được thiết kế theo microservices vì phạm vi đồ án, số lượng thành viên và yêu cầu triển khai chưa cần đến độ phức tạp của microservices. Modular monolith giúp nhóm vẫn chia được domain nghiệp vụ rõ ràng, nhưng giữ được triển khai đơn giản trong một backend process. Đây là lựa chọn phù hợp cho dự án môn học và giai đoạn phát triển ban đầu.
+
+\section{Góc nhìn triển khai local}
+
+Trong phạm vi đồ án, hệ thống được vận hành ở môi trường local/development: frontend Vite chạy trên cổng 5173, backend NestJS chạy trên cổng 3000 và PostgreSQL chạy trên máy cục bộ. Góc nhìn triển khai này giúp xác định rõ các tiến trình cần chạy khi demo, đồng thời tránh nhầm lẫn với production deployment.
+
+\ReportFigure{figures/ch06-deployment/local-deployment.pdf}{Sơ đồ triển khai local/development của hệ thống}{fig:local-deployment-design}
+
+\section{Demo các chức năng trọng tâm}
+
+\begin{longtable}{|p{3.4cm}|p{5.5cm}|p{5.2cm}|}
+\caption{Demo thiết kế hệ thống}\\
+\hline
+\textbf{Demo} & \textbf{Nội dung trình bày} & \textbf{Minh chứng cần chèn} \\
+\hline
+Demo client--server & Frontend React gọi REST API backend, backend truy vấn PostgreSQL & System context diagram, Swagger screenshot \\
+\hline
+Demo JWT auth flow & Login, nhận token, gọi API có Bearer token & Sequence diagram, Swagger authorize \\
+\hline
+Demo RBAC & Admin thấy menu quản trị, bác sĩ chỉ thấy chức năng khám & Screenshot sidebar Admin/Doctor \\
+\hline
+Demo backend module & Backend chia theo domain nghiệp vụ & Component diagram backend \\
+\hline
+\end{longtable}
+
+\TwoDemoFigures
+{figures/screenshots/sidebar-admin.png}
+{Sidebar của Admin}
+{figures/screenshots/sidebar-doctor.png}
+{Sidebar của Bác sĩ}
+{Minh chứng phân quyền trên giao diện theo vai trò}
+{fig:rbac-sidebar-demo}

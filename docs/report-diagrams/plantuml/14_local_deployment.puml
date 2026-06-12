@@ -1,0 +1,59 @@
+@startuml
+!include common-style.puml
+
+title Deployment Diagram - Local Development Environment
+
+left to right direction
+
+actor "Developer / Operator" as Dev #DBEAFE
+
+node "Local Machine\nWindows / macOS / Linux" as Local #F8FAFC {
+  node "Web Browser\nChrome / Edge" as Browser #FFFFFF {
+  }
+
+  node "Frontend Dev Server\nReact + Vite\nhttp://localhost:5173" as FE #DBEAFE {
+    artifact "React SPA\nTypeScript + Tailwind" as ReactApp
+    artifact "TanStack Query\nZustand store" as StateLayer
+  }
+
+  node "Backend API Server\nNestJS\nhttp://localhost:3000" as BE #CCFBF1 {
+    artifact "Swagger UI\nhttp://localhost:3000/api/docs" as Swagger #F1F5F9
+    artifact "JWT Guard + Roles Guard\nRBAC middleware" as Guards #FEF9C3
+    artifact "Prisma Client\nORM layer" as PrismaClient #FEF9C3
+  }
+
+  database "PostgreSQL Database\nlocalhost:5432\nclinic_management_db" as DB #F3E8FF
+
+  artifact "Prisma Migrate\nnpx prisma migrate dev" as Migrate #FEF9C3
+  artifact "Seed Script\nnpx prisma db seed" as Seed #FEF9C3
+  artifact "Prisma Studio\nnpx prisma studio :5555" as Studio #F1F5F9
+}
+
+Dev --> Browser : access app via browser
+Dev --> FE : npm run dev (port 5173)
+Dev --> BE : npm run start:dev (port 3000)
+Dev --> Migrate : setup/update schema
+Dev --> Seed : create 8 demo accounts + data
+Dev --> Studio : inspect and edit data
+
+Browser --> FE : HTTP
+FE --> BE : HTTPS / JSON REST\nBearer Token\n/api/v1/*
+BE --> Swagger : serves API docs at /api/docs
+BE --> Guards : authenticate + authorize
+BE --> PrismaClient : database access
+PrismaClient --> DB : SQL queries
+Migrate --> DB : apply migrations
+Seed --> DB : insert demo records
+Studio --> DB : view / edit data
+
+note bottom of Local
+Deployment scope: local / development only.
+NOT included in current version:
+- Docker / docker-compose
+- CI/CD pipeline (.github/workflows/)
+- Production server
+- HTTPS certificate
+- Load balancer
+end note
+
+@enduml

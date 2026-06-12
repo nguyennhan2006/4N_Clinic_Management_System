@@ -1,0 +1,193 @@
+@startuml
+!include common-style.puml
+
+title Entity Relationship Diagram - Phase 2 Extension\nDelta from Phase 1
+
+left to right direction
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+entity "Patient\n<Phase 1>" as Patient #CCFBF1 {
+  * id : UUID <<PK>>
+  --
+  fullName : VARCHAR
+}
+
+entity "Visit\n<Phase 1>" as Visit #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  patientId : UUID <<FK>>
+  status : VisitStatus
+}
+
+entity "Examination\n<Phase 1>" as Examination #DCFCE7 {
+  * id : UUID <<PK>>
+  --
+  visitId : UUID <<FK>>
+}
+
+entity "Prescription\n<Phase 1>" as Prescription #E0F2FE {
+  * id : UUID <<PK>>
+  --
+  examinationId : UUID <<FK>>
+}
+
+entity "Drug\n<Phase 1>" as Drug #F1F5F9 {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR
+}
+
+entity "User\n<Phase 1>" as User #DBEAFE {
+  * id : UUID <<PK>>
+  --
+  role : UserRole
+}
+
+package "Appointment & Queue" #F8FAFC {
+  entity "Appointment" as Appointment #DBEAFE {
+    * id : UUID <<PK>>
+    --
+    * patientId : UUID <<FK>>
+    doctorId : UUID? <<FK>>
+    scheduledAt : TIMESTAMP
+    status : AppointmentStatus
+    note : TEXT?
+  }
+
+  entity "QueueTicket" as QueueTicket #DBEAFE {
+    * id : UUID <<PK>>
+    --
+    * visitId : UUID <<FK>>
+    queueNumber : INT
+    status : QueueStatus
+    calledAt : TIMESTAMP?
+    startedAt : TIMESTAMP?
+    completedAt : TIMESTAMP?
+  }
+}
+
+package "Vitals" #F8FAFC {
+  entity "VitalSign" as VitalSign #FEF9C3 {
+    * id : UUID <<PK>>
+    --
+    * visitId : UUID <<FK>>
+    height : DECIMAL?
+    weight : DECIMAL?
+    pulse : INT?
+    temperature : DECIMAL?
+    systolicBP : INT?
+    diastolicBP : INT?
+    bmi : DECIMAL?
+  }
+}
+
+package "Services & Lab" #F8FAFC {
+  entity "ServiceCatalog" as ServiceCatalog #FCE7F3 {
+    * id : UUID <<PK>>
+    --
+    code : VARCHAR
+    name : VARCHAR
+    type : ServiceType
+    price : DECIMAL(12,2)
+    isActive : BOOLEAN
+  }
+
+  entity "ServiceOrder" as ServiceOrder #FCE7F3 {
+    * id : UUID <<PK>>
+    --
+    visitId : UUID <<FK>>
+    examinationId : UUID? <<FK>>
+    serviceId : UUID <<FK>>
+    status : ServiceOrderStatus
+    isRequired : BOOLEAN
+    orderedAt : TIMESTAMP
+  }
+
+  entity "LabOrder" as LabOrder #FCE7F3 {
+    * id : UUID <<PK>>
+    --
+    serviceOrderId : UUID <<FK>>
+    status : LabOrderStatus
+    sampleCollectedAt : TIMESTAMP?
+    resultValue : TEXT?
+    resultNote : TEXT?
+    verifiedAt : TIMESTAMP?
+  }
+}
+
+package "Inventory & Pharmacy" #F8FAFC {
+  entity "StockLot" as StockLot #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    drugId : UUID <<FK>>
+    batchNumber : VARCHAR
+    expiryDate : DATE
+    quantityOnHand : INT
+    receivedAt : TIMESTAMP
+    unitCost : DECIMAL?
+  }
+
+  entity "StockMovement" as StockMovement #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    stockLotId : UUID <<FK>>
+    type : StockMovementType
+    quantity : INT
+    createdAt : TIMESTAMP
+    note : TEXT?
+  }
+
+  entity "Dispense" as Dispense #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    prescriptionId : UUID <<FK>>
+    dispensedById : UUID <<FK>>
+    dispensedAt : TIMESTAMP
+    status : DispenseStatus
+  }
+
+  entity "DispenseItem" as DispenseItem #FFEDD5 {
+    * id : UUID <<PK>>
+    --
+    dispenseId : UUID <<FK>>
+    stockLotId : UUID <<FK>>
+    drugId : UUID <<FK>>
+    quantity : INT
+  }
+}
+
+Patient ||--o{ Appointment : books
+User ||--o{ Appointment : doctor
+Visit ||--|| QueueTicket : has
+Visit ||--|| VitalSign : records
+
+Visit ||--o{ ServiceOrder : has
+Examination ||--o{ ServiceOrder : orders
+ServiceCatalog ||--o{ ServiceOrder : selected
+ServiceOrder ||--o| LabOrder : may create
+
+Drug ||--o{ StockLot : stocked as
+StockLot ||--o{ StockMovement : movements
+Prescription ||--o| Dispense : dispensed by
+User ||--o{ Dispense : pharmacist
+Dispense ||--o{ DispenseItem : contains
+StockLot ||--o{ DispenseItem : allocated from
+Drug ||--o{ DispenseItem : drug
+
+note bottom of StockLot
+FEFO rule:
+dispense from earliest expiryDate first.
+end note
+
+note bottom of LabOrder
+Lab flow:
+ORDERED -> SAMPLE_COLLECTED -> RESULTED -> VERIFIED
+end note
+
+legend bottom
+This diagram shows only Phase 2 delta entities and their anchor links to Phase 1 core entities.
+endlegend
+
+@enduml

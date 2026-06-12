@@ -1,0 +1,920 @@
+{
+  "info": {
+    "name": "4N Clinic Management System",
+    "description": "API collection cho toàn bộ UC-07 → UC-20. Base URL: http://localhost:3000/api/v1\n\nCách dùng:\n1. Import file này vào Postman\n2. Chạy '01. Login' để lấy token → token tự động lưu vào variable\n3. Chạy các request theo thứ tự trong folder\n\nAccounts seed sẵn:\n- admin@clinic.local / Admin@123456\n- doctor@clinic.local / Doctor@123456\n- receptionist@clinic.local / Reception@123456\n- cashier@clinic.local / Cashier@123456\n- manager@clinic.local / Manager@123456",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "patientId", "value": "", "type": "string" },
+    { "key": "visitId", "value": "", "type": "string" },
+    { "key": "examId", "value": "", "type": "string" },
+    { "key": "invoiceId", "value": "", "type": "string" },
+    { "key": "diseaseId", "value": "", "type": "string" },
+    { "key": "drugId", "value": "", "type": "string" },
+    { "key": "regulationId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Auth",
+      "item": [
+        {
+          "name": "Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('token', json.accessToken);",
+                  "  console.log('Token saved:', json.accessToken.slice(0, 30) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@clinic.local\",\n  \"password\": \"Admin@123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login (Doctor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('token', json.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doctor@clinic.local\",\n  \"password\": \"Doctor@123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login (Receptionist)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('token', json.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"receptionist@clinic.local\",\n  \"password\": \"Reception@123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login (Cashier)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('token', json.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"cashier@clinic.local\",\n  \"password\": \"Cashier@123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login (Manager)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('token', json.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@clinic.local\",\n  \"password\": \"Manager@123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "GET /auth/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Login sai password → 401",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@clinic.local\",\n  \"password\": \"WrongPassword\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Patients (UC-06)",
+      "item": [
+        {
+          "name": "POST /patients — Tạo bệnh nhân mới",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('patientId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Văn Postman\",\n  \"dob\": \"1990-05-15\",\n  \"gender\": \"MALE\",\n  \"phone\": \"0901234567\",\n  \"address\": \"123 Đường ABC, TP.HCM\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/patients", "host": ["{{baseUrl}}"], "path": ["patients"] }
+          }
+        },
+        {
+          "name": "GET /patients — Tìm kiếm bệnh nhân",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/patients?keyword=Nguyễn",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients"],
+              "query": [{ "key": "keyword", "value": "Nguyễn" }]
+            }
+          }
+        },
+        {
+          "name": "GET /patients/:id — Chi tiết bệnh nhân",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/patients/{{patientId}}", "host": ["{{baseUrl}}"], "path": ["patients", "{{patientId}}"] }
+          }
+        },
+        {
+          "name": "GET /patients/:id/medical-history — Lịch sử khám (UC-11)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/patients/{{patientId}}/medical-history", "host": ["{{baseUrl}}"], "path": ["patients", "{{patientId}}", "medical-history"] }
+          }
+        },
+        {
+          "name": "GET /patients — Không có token → 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/patients", "host": ["{{baseUrl}}"], "path": ["patients"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Visits (UC-07, UC-08, UC-09)",
+      "item": [
+        {
+          "name": "POST /visits — Tạo lượt khám (UC-07)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('visitId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"visitDate\": \"2026-05-18\",\n  \"reason\": \"Đau đầu, sổ mũi\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/visits", "host": ["{{baseUrl}}"], "path": ["visits"] }
+          }
+        },
+        {
+          "name": "GET /visits — Danh sách theo ngày (UC-08)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/visits?date=2026-05-18",
+              "host": ["{{baseUrl}}"],
+              "path": ["visits"],
+              "query": [{ "key": "date", "value": "2026-05-18" }]
+            }
+          }
+        },
+        {
+          "name": "GET /visits — Filter status=WAITING",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/visits?date=2026-05-18&status=WAITING",
+              "host": ["{{baseUrl}}"],
+              "path": ["visits"],
+              "query": [
+                { "key": "date", "value": "2026-05-18" },
+                { "key": "status", "value": "WAITING" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /visits/:id/open-examination — Mở khám (UC-09)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('examId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/visits/{{visitId}}/open-examination", "host": ["{{baseUrl}}"], "path": ["visits", "{{visitId}}", "open-examination"] }
+          }
+        },
+        {
+          "name": "POST /visits/:id/open-examination — Visit không tồn tại → 404",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/visits/00000000-0000-0000-0000-000000000000/open-examination", "host": ["{{baseUrl}}"], "path": ["visits", "00000000-0000-0000-0000-000000000000", "open-examination"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Examinations (UC-10, UC-12, UC-13)",
+      "item": [
+        {
+          "name": "GET /examinations/:id — Chi tiết phiếu khám",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/examinations/{{examId}}", "host": ["{{baseUrl}}"], "path": ["examinations", "{{examId}}"] }
+          }
+        },
+        {
+          "name": "PATCH /examinations/:id — Cập nhật phiếu khám (UC-10)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symptoms\": \"Đau đầu từng cơn, sổ mũi, ho khan 3 ngày\",\n  \"clinicalNotes\": \"Huyết áp 120/80 mmHg, nhiệt độ 37.8°C, SpO2 98%\",\n  \"conclusion\": \"Cảm cúm thông thường, kê đơn nghỉ ngơi và thuốc\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/examinations/{{examId}}", "host": ["{{baseUrl}}"], "path": ["examinations", "{{examId}}"] }
+          }
+        },
+        {
+          "name": "PATCH /examinations/:id — Thêm diagnosis",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diagnoses\": [\n    {\n      \"diseaseId\": \"{{diseaseId}}\",\n      \"isPrimary\": true\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/examinations/{{examId}}", "host": ["{{baseUrl}}"], "path": ["examinations", "{{examId}}"] }
+          }
+        },
+        {
+          "name": "POST /examinations/:id/prescription — Tạo đơn thuốc (lần đầu)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Uống sau bữa ăn, đủ liệu trình 5 ngày\",\n  \"items\": [\n    {\n      \"drugId\": \"{{drugId}}\",\n      \"quantity\": 10,\n      \"dosage\": \"1 viên/lần × 2 lần/ngày\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/examinations/{{examId}}/prescription", "host": ["{{baseUrl}}"], "path": ["examinations", "{{examId}}", "prescription"] }
+          }
+        },
+        {
+          "name": "PUT /examinations/:id/prescription — Thay thế đơn thuốc (UC-12)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Đơn thuốc đã cập nhật — uống trước bữa ăn\",\n  \"items\": [\n    {\n      \"drugId\": \"{{drugId}}\",\n      \"quantity\": 14,\n      \"dosage\": \"2 viên/lần × 1 lần/ngày (sáng)\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/examinations/{{examId}}/prescription", "host": ["{{baseUrl}}"], "path": ["examinations", "{{examId}}", "prescription"] }
+          }
+        },
+        {
+          "name": "POST /examinations/:id/complete — Hoàn tất khám (UC-13)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/examinations/{{examId}}/complete", "host": ["{{baseUrl}}"], "path": ["examinations", "{{examId}}", "complete"] }
+          }
+        },
+        {
+          "name": "PATCH /examinations/:id — Sửa sau COMPLETED → 400",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symptoms\": \"Cố sửa sau khi đã hoàn tất — phải nhận 400\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/examinations/{{examId}}", "host": ["{{baseUrl}}"], "path": ["examinations", "{{examId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Billing (UC-14, UC-15, UC-16)",
+      "item": [
+        {
+          "name": "POST /visits/:id/invoice — Tạo hóa đơn (UC-14)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('invoiceId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/visits/{{visitId}}/invoice", "host": ["{{baseUrl}}"], "path": ["visits", "{{visitId}}", "invoice"] }
+          }
+        },
+        {
+          "name": "GET /invoices — Danh sách hóa đơn (UC-16)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/invoices", "host": ["{{baseUrl}}"], "path": ["invoices"] }
+          }
+        },
+        {
+          "name": "GET /invoices — Filter status=ISSUED",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/invoices?status=ISSUED",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices"],
+              "query": [{ "key": "status", "value": "ISSUED" }]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices — Filter keyword (tên/mã/SĐT bệnh nhân)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/invoices?keyword=Nguyễn",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices"],
+              "query": [{ "key": "keyword", "value": "Nguyễn" }]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices — Filter date=2026-05-18",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/invoices?date=2026-05-18",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices"],
+              "query": [{ "key": "date", "value": "2026-05-18" }]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices/:id — Chi tiết hóa đơn (UC-16)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/invoices/{{invoiceId}}", "host": ["{{baseUrl}}"], "path": ["invoices", "{{invoiceId}}"] }
+          }
+        },
+        {
+          "name": "POST /invoices/:id/payments — Thanh toán một phần (UC-15)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 75000,\n  \"method\": \"CASH\",\n  \"note\": \"Khách trả tiền mặt\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/invoices/{{invoiceId}}/payments", "host": ["{{baseUrl}}"], "path": ["invoices", "{{invoiceId}}", "payments"] }
+          }
+        },
+        {
+          "name": "POST /invoices/:id/payments — Thanh toán chuyển khoản",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100000,\n  \"method\": \"TRANSFER\",\n  \"note\": \"CK Vietcombank ref #PM202605\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/invoices/{{invoiceId}}/payments", "host": ["{{baseUrl}}"], "path": ["invoices", "{{invoiceId}}", "payments"] }
+          }
+        },
+        {
+          "name": "POST /invoices/:id/payments — Amount vượt remaining → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 9999999,\n  \"method\": \"CASH\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/invoices/{{invoiceId}}/payments", "host": ["{{baseUrl}}"], "path": ["invoices", "{{invoiceId}}", "payments"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Regulations (UC-17)",
+      "item": [
+        {
+          "name": "GET /regulations/current — Quy định hiện hành",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/regulations/current", "host": ["{{baseUrl}}"], "path": ["regulations", "current"] }
+          }
+        },
+        {
+          "name": "POST /regulations — Tạo bản quy định mới (draft)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('regulationId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Cập nhật phí khám tháng 6/2026\",\n  \"items\": [\n    {\n      \"key\": \"MAX_PATIENTS_PER_DAY\",\n      \"value\": \"40\"\n    },\n    {\n      \"key\": \"CONSULTATION_FEE\",\n      \"value\": \"200000\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/regulations", "host": ["{{baseUrl}}"], "path": ["regulations"] }
+          }
+        },
+        {
+          "name": "PATCH /regulations/:id/activate — Kích hoạt bản quy định",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/regulations/{{regulationId}}/activate", "host": ["{{baseUrl}}"], "path": ["regulations", "{{regulationId}}", "activate"] }
+          }
+        },
+        {
+          "name": "POST /regulations — Key không hợp lệ → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"key\": \"INVALID_KEY\",\n      \"value\": \"999\"\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/regulations", "host": ["{{baseUrl}}"], "path": ["regulations"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08. Diseases (UC-18)",
+      "item": [
+        {
+          "name": "GET /diseases — Tất cả bệnh",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/diseases", "host": ["{{baseUrl}}"], "path": ["diseases"] }
+          }
+        },
+        {
+          "name": "GET /diseases?activeOnly=true — Chỉ bệnh đang hoạt động",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/diseases?activeOnly=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["diseases"],
+              "query": [{ "key": "activeOnly", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "POST /diseases — Thêm bệnh mới",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('diseaseId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"J06.9\",\n  \"name\": \"Viêm đường hô hấp trên cấp tính không đặc hiệu\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/diseases", "host": ["{{baseUrl}}"], "path": ["diseases"] }
+          }
+        },
+        {
+          "name": "PATCH /diseases/:id — Vô hiệu hóa bệnh",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/diseases/{{diseaseId}}", "host": ["{{baseUrl}}"], "path": ["diseases", "{{diseaseId}}"] }
+          }
+        },
+        {
+          "name": "PATCH /diseases/:id — Đổi tên bệnh",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cảm cúm thông thường (đã đổi tên)\",\n  \"isActive\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/diseases/{{diseaseId}}", "host": ["{{baseUrl}}"], "path": ["diseases", "{{diseaseId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09. Drugs (UC-19)",
+      "item": [
+        {
+          "name": "GET /drugs — Tất cả thuốc",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/drugs", "host": ["{{baseUrl}}"], "path": ["drugs"] }
+          }
+        },
+        {
+          "name": "GET /drugs?activeOnly=true — Chỉ thuốc đang bán",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/drugs?activeOnly=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["drugs"],
+              "query": [{ "key": "activeOnly", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "POST /drugs — Thêm thuốc mới",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('drugId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Paracetamol 500mg\",\n  \"unit\": \"viên\",\n  \"price\": 1500\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/drugs", "host": ["{{baseUrl}}"], "path": ["drugs"] }
+          }
+        },
+        {
+          "name": "PATCH /drugs/:id — Cập nhật giá thuốc",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 2000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/drugs/{{drugId}}", "host": ["{{baseUrl}}"], "path": ["drugs", "{{drugId}}"] }
+          }
+        },
+        {
+          "name": "PATCH /drugs/:id — Vô hiệu hóa thuốc",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/drugs/{{drugId}}", "host": ["{{baseUrl}}"], "path": ["drugs", "{{drugId}}"] }
+          }
+        },
+        {
+          "name": "POST /drugs — Giá âm → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Thuốc giá âm\",\n  \"unit\": \"viên\",\n  \"price\": -100\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/drugs", "host": ["{{baseUrl}}"], "path": ["drugs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Reports (UC-20)",
+      "item": [
+        {
+          "name": "GET /reports/monthly?month=2026-05",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/monthly?month=2026-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "monthly"],
+              "query": [{ "key": "month", "value": "2026-05" }]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/monthly — Tháng hiện tại",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/monthly?month=2026-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "monthly"],
+              "query": [{ "key": "month", "value": "2026-05" }]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/monthly — Format sai → 400",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/monthly?month=05-2026",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "monthly"],
+              "query": [{ "key": "month", "value": "05-2026" }]
+            }
+          }
+        },
+        {
+          "name": "GET /reports/monthly — Thiếu month → 400",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/reports/monthly", "host": ["{{baseUrl}}"], "path": ["reports", "monthly"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. RBAC Error Cases",
+      "item": [
+        {
+          "name": "DOCTOR tạo visit → 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientId\": \"{{patientId}}\",\n  \"visitDate\": \"2026-05-18\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/visits", "host": ["{{baseUrl}}"], "path": ["visits"] }
+          }
+        },
+        {
+          "name": "RECEPTIONIST mở khám → 403",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/visits/{{visitId}}/open-examination", "host": ["{{baseUrl}}"], "path": ["visits", "{{visitId}}", "open-examination"] }
+          }
+        },
+        {
+          "name": "DOCTOR xem invoices → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/invoices", "host": ["{{baseUrl}}"], "path": ["invoices"] }
+          }
+        },
+        {
+          "name": "MANAGER tạo regulation → 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [{ \"key\": \"CONSULTATION_FEE\", \"value\": \"100000\" }]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/regulations", "host": ["{{baseUrl}}"], "path": ["regulations"] }
+          }
+        },
+        {
+          "name": "CASHIER xem reports → 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/monthly?month=2026-05",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "monthly"],
+              "query": [{ "key": "month", "value": "2026-05" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+@startuml
+!include common-style.puml
+
+title Backend Component Diagram\nNestJS Modular Monolith
+
+left to right direction
+
+rectangle "Frontend SPA\nReact" as FE #DBEAFE
+
+package "API Layer" as API #F8FAFC {
+  component "REST Controllers\n@Controller\n@Get / @Post / @Patch" as Controllers #E0F2FE
+  component "DTO Validation\nclass-validator\nclass-transformer" as DTO #FEF9C3
+  component "Swagger Decorators\nOpenAPI docs" as Swagger #F1F5F9
+}
+
+package "Cross-cutting Modules" as Cross #F8FAFC {
+  component "Auth Module\nLogin / refresh / logout" as Auth #DBEAFE
+  component "JWT Guard" as JwtGuard #F1F5F9
+  component "Roles Guard\nRBAC" as RolesGuard #F1F5F9
+  component "Common Filters\nException handling" as Filters #F1F5F9
+}
+
+package "Phase 1 Core Modules" as P1 #E0F2FE {
+  component "Users" as Users
+  component "RBAC" as RBAC
+  component "Patients" as Patients
+  component "Visits" as Visits
+  component "Examinations" as Exams
+  component "Prescriptions\nservice-only" as Prescriptions
+  component "Diseases" as Diseases
+  component "Drugs" as Drugs
+  component "Billing" as Billing
+  component "Regulations" as Regulations
+  component "Reports" as Reports
+}
+
+package "Phase 2 Extension Modules" as P2 #FFF7ED {
+  component "Appointments" as Appointments
+  component "Queue" as Queue
+  component "Vitals" as Vitals
+  component "Services" as Services
+  component "Lab" as Lab
+  component "Inventory" as Inventory
+  component "Pharmacy" as Pharmacy
+  component "Organization" as Organization
+  component "Audit" as Audit
+}
+
+package "Data Access Layer" as DAL #F8FAFC {
+  component "PrismaService" as Prisma #FEF9C3
+}
+
+database "PostgreSQL" as DB #F3E8FF
+
+FE --> Controllers : REST API calls
+Controllers --> DTO : validate input
+Controllers --> Auth
+Controllers --> Patients
+Controllers --> Visits
+Controllers --> Exams
+Controllers --> Billing
+Controllers --> Appointments
+Controllers --> Queue
+Controllers --> Lab
+Controllers --> Inventory
+Controllers --> Pharmacy
+
+JwtGuard ..> Controllers : authenticate
+RolesGuard ..> Controllers : authorize
+Filters ..> Controllers : format errors
+
+Auth --> Users
+Users --> RBAC
+Visits --> Patients
+Visits --> Regulations
+Exams --> Visits
+Exams --> Diseases
+Exams --> Prescriptions
+Prescriptions --> Drugs
+Billing --> Visits
+Billing --> Exams
+Billing --> Prescriptions
+Reports --> Billing
+Reports --> Visits
+
+Appointments --> Patients
+Appointments --> Users
+Queue --> Visits
+Vitals --> Visits
+Services --> Visits
+Services --> Exams
+Lab --> Services
+Inventory --> Drugs
+Pharmacy --> Prescriptions
+Pharmacy --> Inventory
+Audit ..> Controllers : record actions
+
+Auth --> Prisma
+Users --> Prisma
+Patients --> Prisma
+Visits --> Prisma
+Exams --> Prisma
+Prescriptions --> Prisma
+Billing --> Prisma
+Reports --> Prisma
+Appointments --> Prisma
+Queue --> Prisma
+Vitals --> Prisma
+Services --> Prisma
+Lab --> Prisma
+Inventory --> Prisma
+Pharmacy --> Prisma
+Organization --> Prisma
+Audit --> Prisma
+
+Prisma --> DB
+
+legend bottom
+Controller -> Service -> PrismaService. Phase 1 provides clinic core; Phase 2 extends operational workflow.
+endlegend
+
+@enduml

@@ -1,0 +1,63 @@
+%% SEQ-P1-02 — Open Examination (UC09) — AS-BUILT
+%% Source: backend/src/modules/visits/visits.service.ts::openExamination
+%% Roles: DOCTOR, ADMIN | Endpoint: POST /visits/:id/open-examination
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as VisitsController
+    participant SV as VisitsService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    DR->>FE: Open examination for a waiting visit
+    FE->>GD: POST /visits/:id/open-examination + Bearer token
+    GD->>GD: verify JWT + role in {DOCTOR, ADMIN}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: openExamination(visitId, doctorUserId)
+        note over SV: pre-check (outside transaction)
+        SV->>DB: user.findUnique(doctorUserId)
+        alt doctor missing or status != ACTIVE
+            DB-->>SV: inactive/null
+            SV-->>CT: throw BadRequestException
+            CT-->>FE: 400 "Doctor account is inactive or not found"
+        else doctor active
+            rect rgb(235,235,255)
+                note over TX: BEGIN $transaction
+                SV->>TX: run
+                TX->>DB: visit.findUnique(id, include examination)
+                alt visit not found
+                    TX-->>SV: throw NotFoundException
+                    SV-->>CT: propagate
+                    CT-->>FE: 404 "Visit not found"
+                else visit exists
+                    alt examination already exists
+                        TX-->>SV: throw ConflictException
+                        SV-->>CT: propagate
+                        CT-->>FE: 409 "Examination already exists for this visit"
+                    else no examination
+                        alt visit.status != WAITING
+                            TX-->>SV: throw BadRequestException
+                            SV-->>CT: propagate
+                            CT-->>FE: 400 "Cannot open examination: status not WAITING"
+                        else status WAITING
+                            TX->>DB: examination.create(visitId, doctorUserId, status=OPEN)
+                            TX->>DB: visit.update(status=IN_EXAMINATION)
+                            note over TX: Visit WAITING -> IN_EXAMINATION; Exam none -> OPEN
+                        end
+                    end
+                end
+                note over TX: COMMIT
+            end
+            SV->>AU: log(OPEN_EXAMINATION, Examination, id, {visitId})
+            note right of AU: append-only, after COMMIT
+            SV-->>CT: examination
+            CT-->>FE: 201 {examination}
+            FE-->>DR: Examination opened
+        end
+    end

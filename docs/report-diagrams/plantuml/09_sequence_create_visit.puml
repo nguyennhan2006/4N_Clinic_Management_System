@@ -1,0 +1,69 @@
+@startuml
+!include common-style.puml
+
+title Sequence Diagram - Create Visit\nReceptionist creates a same-day clinic visit
+
+actor Receptionist
+participant "Frontend\nVisit Page" as FE
+participant "VisitsController" as Controller
+participant "VisitsService" as Service
+participant "RegulationsService" as Reg
+database "PostgreSQL" as DB
+
+Receptionist -> FE : Select patient\nClick "Tao luot kham"
+FE -> Controller : POST /api/v1/visits\n{patientId, visitDate}
+activate Controller
+Controller -> Service : create(dto, currentUserId)
+activate Service
+
+Service -> DB : SELECT Patient by id
+DB --> Service : patient / null
+
+alt Patient not found
+  Service --> Controller : throw NotFoundException
+  Controller --> FE : 404 Not Found
+else Patient exists
+  Service -> DB : SELECT Visit\nWHERE patientId AND visitDate
+  DB --> Service : existing visit / null
+
+  alt Duplicate same-day visit
+    Service --> Controller : throw ConflictException
+    Controller --> FE : 409 Conflict\nDuplicate visit (BR-05)
+  else No duplicate
+    Service -> Reg : getActive(MAX_PATIENTS_PER_DAY)
+    activate Reg
+    Reg -> DB : SELECT active regulation key
+    DB --> Reg : quota value / default 40
+    Reg --> Service : maxPatientsPerDay
+    deactivate Reg
+
+    Service -> DB : COUNT visits WHERE visitDate
+    DB --> Service : count
+
+    alt Quota exceeded
+      Service --> Controller : throw ConflictException
+      Controller --> FE : 409 Conflict\nDaily quota exceeded (BR-06)
+    else Valid request
+      Service -> DB : SELECT MAX(queueNumber)\nWHERE visitDate
+      DB --> Service : lastQueueNumber
+      Service -> Service : nextQueueNumber = last + 1
+      Service -> DB : Transaction:\nINSERT Visit { status: WAITING, queueNumber }
+      DB --> Service : created Visit
+      Service --> Controller : VisitDTO
+      Controller --> FE : 201 Created\n{ id, queueNumber, status: WAITING }
+      FE --> Receptionist : Show success\nDisplay queue number
+    end
+  end
+end
+
+deactivate Service
+deactivate Controller
+
+note over Service
+Key business rules enforced at service layer:
+BR-05: A patient cannot have two visits on the same date.
+BR-06: Daily patient quota is checked before creating a visit.
+BR-07: Queue number is generated automatically (MAX + 1).
+end note
+
+@enduml

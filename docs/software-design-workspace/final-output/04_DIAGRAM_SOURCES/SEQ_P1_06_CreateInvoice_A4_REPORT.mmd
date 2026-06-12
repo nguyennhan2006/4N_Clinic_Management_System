@@ -1,0 +1,54 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P1-06 A4 REPORT — Create Invoice (UC14). Full: SEQ_P1_06_CreateInvoice.mmd
+%% Note: no explicit $transaction; single nested invoice.create.
+sequenceDiagram
+    autonumber
+    actor CA as Cashier
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as BillingCtrl
+    participant SV as BillingSvc
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    CA->>FE: Issue invoice for completed visit
+    FE->>GD: POST /visits/:id/invoice + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: createInvoiceFromVisit(visitId, actorId)
+        SV->>DB: find visit + exam + prescription
+        alt visit not found
+            SV-->>CT: throw 404
+            CT-->>FE: 404 visit not found
+        else status not COMPLETED
+            SV-->>CT: throw 400
+            CT-->>FE: 400 not completed
+        else invoice exists
+            SV->>DB: load existing invoice
+            SV-->>CT: existing invoice (idempotent)
+            CT-->>FE: 200 invoice
+        else no examination
+            SV-->>CT: throw 400
+            CT-->>FE: 400 no examination
+        else ready
+            SV->>DB: get consultation fee
+            note over SV: items = fee + drugs (price snapshot)
+            SV->>DB: create Invoice ISSUED + items
+            note over DB: atomic nested write
+            SV->>AU: log CREATE_INVOICE
+            SV-->>CT: invoice
+            CT-->>FE: 201 invoice
+            FE-->>CA: Invoice issued
+        end
+    end

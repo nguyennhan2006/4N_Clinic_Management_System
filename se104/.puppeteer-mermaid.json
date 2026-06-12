@@ -1,0 +1,8 @@
+{
+  "executablePath": "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+  "args": [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage"
+  ]
+}

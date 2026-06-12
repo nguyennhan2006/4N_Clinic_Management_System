@@ -1,0 +1,66 @@
+%% SEQ-P1-07 — Record Payment (UC15) — AS-BUILT
+%% Source: backend/src/modules/billing/billing.service.ts::createPayment
+%% Roles: CASHIER, ADMIN | Endpoint: POST /invoices/:id/payments
+%% BR-06: amount <= remaining (over-payment -> 400). State drives PARTIALLY_PAID / PAID.
+sequenceDiagram
+    autonumber
+    actor CA as Cashier
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as BillingController
+    participant SV as BillingService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    CA->>FE: Enter payment amount + method
+    FE->>GD: POST /invoices/:id/payments {amount, method, note?} + token
+    GD->>GD: verify JWT + role in {CASHIER, ADMIN}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: createPayment(invoiceId, dto, actorId)
+        alt amount <= 0
+            SV-->>CT: throw BadRequestException
+            CT-->>FE: 400 "Payment amount must be greater than 0"
+        else amount > 0
+            rect rgb(235,235,255)
+                note over TX: BEGIN $transaction
+                SV->>TX: run
+                TX->>DB: invoice.findUnique(id)
+                alt invoice not found
+                    TX-->>SV: throw NotFoundException
+                    SV-->>CT: propagate
+                    CT-->>FE: 404 "Invoice not found"
+                else found
+                    alt status VOID
+                        TX-->>SV: throw BadRequestException
+                        SV-->>CT: propagate
+                        CT-->>FE: 400 "Cannot pay voided invoice"
+                    else status PAID
+                        TX-->>SV: throw BadRequestException
+                        SV-->>CT: propagate
+                        CT-->>FE: 400 "Invoice is already paid"
+                    else payable
+                        alt amount > remaining (BR-06)
+                            TX-->>SV: throw BadRequestException
+                            SV-->>CT: propagate
+                            CT-->>FE: 400 "Payment exceeds remaining amount"
+                        else amount <= remaining
+                            TX->>DB: payment.create(invoiceId, amount, method)
+                            note over TX: newStatus = (newPaid >= total) ? PAID : PARTIALLY_PAID
+                            TX->>DB: invoice.update(paidAmount, status)
+                            note over TX: Invoice ISSUED -> PARTIALLY_PAID -> PAID
+                        end
+                    end
+                end
+                note over TX: COMMIT
+            end
+            SV->>AU: log(CREATE_PAYMENT, Invoice, id, {amount, method, newStatus})
+            note right of AU: append-only, after COMMIT
+            SV-->>CT: invoice (+ payments)
+            CT-->>FE: 201 {invoice}
+            FE-->>CA: Payment recorded
+        end
+    end

@@ -1,0 +1,59 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P2-02 A4 REPORT — Dispense FEFO (PLANNED). Full: SEQ_P2_02_DispenseFEFO.mmd
+sequenceDiagram
+    autonumber
+    actor PH as Pharmacist
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as PharmCtrl
+    participant SV as PharmSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    note over CT,SV: PLANNED Phase 2A - not implemented
+    PH->>FE: Select completed prescription
+    FE->>GD: POST /pharmacy/dispense {dto} + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: dispense(dto, actorId)
+        SV->>DB: find prescription + exam
+        alt invalid / not completed
+            SV-->>CT: throw 409 / 404
+            CT-->>FE: 409 / 404
+        else valid
+            rect rgb(235,235,255)
+                note over TX: BEGIN transaction (BR-P2-10)
+                SV->>TX: dispense atomically
+                loop each item
+                    TX->>DB: pick lot FEFO (nearest expiry)
+                    alt insufficient stock
+                        TX-->>SV: throw 409
+                        SV-->>CT: propagate
+                        CT-->>FE: 409 insufficient stock
+                    else enough
+                        TX->>DB: create DispenseItem (price snapshot)
+                        TX->>DB: stock movement OUT + decrement
+                    end
+                end
+                TX->>DB: create Dispense DISPENSED
+                note over TX: COMMIT
+            end
+            note over SV: BR-P2-11 stock decreased ONLY on dispense
+            SV->>AU: log DISPENSE + STOCK_MOVEMENT
+            SV-->>CT: dispense
+            CT-->>FE: 201 dispense
+            FE-->>PH: Dispense confirmed
+        end
+    end

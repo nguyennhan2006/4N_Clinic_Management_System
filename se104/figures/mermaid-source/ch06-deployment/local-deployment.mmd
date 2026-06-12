@@ -1,0 +1,47 @@
+flowchart LR
+    Dev["Developer / Operator"]
+
+    subgraph Local["Local Machine"]
+        Browser["Web Browser"]
+        FE["Frontend Dev Server<br/>React + Vite<br/>http://localhost:5173"]
+        BE["Backend API Server<br/>NestJS<br/>http://localhost:3000"]
+        Swagger["Swagger UI<br/>http://localhost:3000/api/docs"]
+        PrismaClient["Prisma Client"]
+        DB[("PostgreSQL Database<br/>localhost:5432")]
+        Migrate["Prisma Migrate<br/>npx prisma migrate dev"]
+        Seed["Seed Script<br/>npx prisma db seed"]
+        Studio["Prisma Studio<br/>npx prisma studio"]
+    end
+
+    Dev -->|"access app"| Browser
+    Dev -->|"npm run dev"| FE
+    Dev -->|"npm run start:dev"| BE
+    Dev -->|"setup schema"| Migrate
+    Dev -->|"create demo data"| Seed
+    Dev -->|"inspect data"| Studio
+
+    Browser -->|"HTTP"| FE
+    FE -->|"REST API / JSON<br/>Bearer Token"| BE
+    BE --> Swagger
+    BE --> PrismaClient
+    PrismaClient -->|"SQL"| DB
+    Migrate --> DB
+    Seed --> DB
+    Studio --> DB
+
+    Note["Deployment scope: local/development only<br/>Not included: Docker, CI/CD, production deployment"]
+    Local -.-> Note
+
+    classDef dev fill:#DBEAFE,stroke:#1D4ED8,color:#111827;
+    classDef frontend fill:#DBEAFE,stroke:#1D4ED8,color:#111827;
+    classDef backend fill:#CCFBF1,stroke:#0F766E,color:#111827;
+    classDef db fill:#F3E8FF,stroke:#7E22CE,color:#111827;
+    classDef tool fill:#FEF9C3,stroke:#A16207,color:#111827;
+    classDef note fill:#F1F5F9,stroke:#475569,color:#111827;
+
+    class Dev dev;
+    class FE,Browser frontend;
+    class BE,Swagger backend;
+    class DB db;
+    class PrismaClient,Migrate,Seed,Studio tool;
+    class Note note;

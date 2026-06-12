@@ -1,0 +1,39 @@
+@startuml
+!include common-style.puml
+
+title Runtime Architecture — Local Development
+
+top to bottom direction
+
+actor "Clinic Staff" as User #E0F2FE
+
+node "User Device" #F8FAFC {
+  rectangle "Web Browser\nChrome / Edge" as Browser #FFFFFF
+}
+
+node "Local Machine" #F8FAFC {
+  node "Frontend Dev Server\nhttp://localhost:5173" as FE #DBEAFE {
+    artifact "React SPA\n+ Vite + Tailwind" as ReactApp
+  }
+
+  node "Backend API Server\nhttp://localhost:3000" as BE #CCFBF1 {
+    artifact "NestJS App\n21 modules / 92 endpoints" as NestApp
+    artifact "Swagger UI\nat /api/docs" as Swagger #F1F5F9
+  }
+
+  database "PostgreSQL\nlocalhost:5432\nclinic_management_db" as DB #F3E8FF
+}
+
+User --> Browser
+Browser --> FE : HTTP
+FE --> BE : REST API\n/api/v1/*\nAuthorization: Bearer token
+BE --> DB : Prisma ORM / SQL
+BE ..> Swagger : serves docs
+
+note right of BE
+JWT Guard protects all routes
+except POST /api/v1/auth/login.
+Roles Guard enforces per-endpoint RBAC.
+end note
+
+@enduml

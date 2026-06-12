@@ -1,0 +1,62 @@
+@startuml
+!include common-style.puml
+
+title Sequence Diagram - Login and JWT Authentication
+
+actor User
+participant "Frontend\nLogin Page" as FE
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "UsersService" as Users
+database "PostgreSQL" as DB
+participant "JWT Token\nGenerator" as JWT
+
+User -> FE : Enter username + password
+FE -> Controller : POST /api/v1/auth/login\n{username, password}
+activate Controller
+
+Controller -> Service : login(dto)
+activate Service
+
+Service -> Users : findByUsername(username)
+activate Users
+Users -> DB : SELECT user by username
+DB --> Users : user record / null
+Users --> Service : user
+deactivate Users
+
+alt Invalid username or inactive user
+  Service --> Controller : throw UnauthorizedException
+  Controller --> FE : 401 Unauthorized
+  FE --> User : Show "Username hoac mat khau khong dung"
+else Password verification
+  Service -> Service : compare password hash (bcrypt)
+  alt Wrong password
+    Service --> Controller : throw UnauthorizedException
+    Controller --> FE : 401 Unauthorized
+    FE --> User : Show login error
+  else Valid credentials
+    Service -> JWT : sign access token (JWT_ACCESS_SECRET)
+    JWT --> Service : accessToken
+    Service -> JWT : sign refresh token (JWT_REFRESH_SECRET)
+    JWT --> Service : refreshToken
+    Service -> DB : Store refresh token hash in DB
+    DB --> Service : saved
+    Service --> Controller : { accessToken, refreshToken, user }
+    Controller --> FE : 201 OK\n{ accessToken, refreshToken, user: { id, username, fullName, roles[] } }
+    FE -> FE : Store token in localStorage\nbootstrap session
+    FE --> User : Redirect to /app/dashboard
+  end
+end
+
+deactivate Service
+deactivate Controller
+
+note right of JWT
+Stateless API authentication:
+Access token attached to every request.
+Refresh token for renewal / revoke.
+Login response does NOT include passwordHash.
+end note
+
+@enduml

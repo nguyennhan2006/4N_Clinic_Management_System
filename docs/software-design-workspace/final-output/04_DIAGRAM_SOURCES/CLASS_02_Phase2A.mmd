@@ -1,0 +1,258 @@
+classDiagram
+
+class Department {
+    -id: String
+    -code: String
+    -name: String
+    -isActive: Boolean
+    +activate() void
+    +deactivate() void
+}
+
+class Room {
+    -id: String
+    -code: String
+    -name: String
+    -roomType: String
+    -isActive: Boolean
+}
+
+class DoctorProfile {
+    -id: String
+    -title: String
+    -specialty: String
+    -isActive: Boolean
+    +updateProfile() void
+}
+
+class StaffSchedule {
+    -id: String
+    -workDate: Date
+    -startTime: String
+    -endTime: String
+    -slotDurationMinutes: Int
+    -maxAppointments: Int
+    +isAvailable() Boolean
+}
+
+class Appointment {
+    -id: String
+    -scheduledAt: DateTime
+    -durationMinutes: Int
+    -status: AppointmentStatus
+    -reason: String
+    +checkIn() Visit
+    +cancel() void
+    +markNoShow() void
+}
+
+class QueueTicket {
+    -id: String
+    -queueNumber: Int
+    -queueDate: Date
+    -priority: Int
+    -status: QueueStatus
+    +call() void
+    +startService() void
+    +complete() void
+    +skip() void
+}
+
+class VitalSign {
+    -id: String
+    -pulse: Int
+    -systolicBp: Int
+    -diastolicBp: Int
+    -temperature: Decimal
+    -spo2: Int
+    -heightCm: Decimal
+    -weightKg: Decimal
+    -bmi: Decimal
+    +computeBMI() Decimal
+    +record() void
+}
+
+class ServiceCatalog {
+    -id: String
+    -code: String
+    -name: String
+    -type: ServiceType
+    -price: Decimal
+    -isActive: Boolean
+    +activate() void
+    +deactivate() void
+}
+
+class LabTestCatalog {
+    -id: String
+    -code: String
+    -sampleType: String
+    -turnaroundHours: Int
+    -referenceRange: String
+}
+
+class ServiceOrder {
+    -id: String
+    -status: ServiceOrderStatus
+    -isRequired: Boolean
+    -priceSnapshot: Decimal
+    -billingStatus: String
+    +order() void
+    +complete() void
+    +cancel() void
+}
+
+class LabOrder {
+    -id: String
+    -status: LabOrderStatus
+    +collectSample() void
+    +enterResult() void
+    +review() void
+    +cancel() void
+}
+
+class LabSample {
+    -id: String
+    -sampleType: String
+    -status: String
+    -collectedAt: DateTime
+    +collect() void
+}
+
+class LabResult {
+    -id: String
+    -resultText: String
+    -resultValue: Decimal
+    -unit: String
+    -status: String
+    -enteredAt: DateTime
+    -verifiedAt: DateTime
+    +enter() void
+    +review() void
+}
+
+class StockLot {
+    -id: String
+    -lotNumber: String
+    -expiryDate: Date
+    -quantityOnHand: Int
+    -unitCost: Decimal
+    +decrementStock(qty) void
+    +incrementStock(qty) void
+    +isExpired() Boolean
+}
+
+class StockMovement {
+    -id: String
+    -movementType: StockMovementType
+    -quantity: Int
+    -referenceType: String
+    +record() void
+}
+
+class Dispense {
+    -id: String
+    -status: DispenseStatus
+    -dispensedAt: DateTime
+    +dispense() void
+    +reverse() void
+}
+
+class DispenseItem {
+    -id: String
+    -quantity: Int
+    -unitPriceSnapshot: Decimal
+    +fulfill() void
+}
+
+class OrganizationService {
+    +findDepartments() List
+    +createDepartment(dto) Department
+    +createRoom(dto) Room
+    +createDoctorProfile(dto) DoctorProfile
+    +createSchedule(dto) StaffSchedule
+    -validateDoctorRole(userId) void
+}
+
+class DispenseService {
+    +dispense(prescriptionId, actorId) Dispense
+    +reverse(dispenseId, actorId) Dispense
+    -selectLotFEFO(drugId, qty) StockLot
+    -deductStock(lot, qty) void
+}
+
+Department "1" --> "0..*" Room : contains
+Department "1" --> "0..*" DoctorProfile : has
+Department "1" --> "0..*" StaffSchedule : schedules
+
+DoctorProfile "1" --> "1" User : belongs_to
+DoctorProfile "1" --> "0..*" StaffSchedule : works
+DoctorProfile "1" --> "0..*" Appointment : receives
+
+StaffSchedule "0..1" --> "0..*" Appointment : slot_for
+
+Patient "1" --> "0..*" Appointment : books
+Appointment "0..1" --> "1" Visit : check_in_creates
+
+Visit "1" --> "0..1" QueueTicket : has
+Visit "1" --> "0..1" VitalSign : has
+Visit "1" --> "0..*" ServiceOrder : has
+
+User "1" --> "0..1" DoctorProfile : profile
+User "1" --> "0..*" VitalSign : measured_by
+User "1" --> "0..*" ServiceOrder : ordered_by
+User "1" --> "0..*" LabSample : collected_by
+User "1" --> "0..*" LabResult : entered_by
+
+Examination "1" --> "0..*" ServiceOrder : ordered_in
+
+ServiceCatalog "1" --> "0..*" ServiceOrder : catalog_ref
+ServiceCatalog "1" --> "0..1" LabTestCatalog : lab_detail
+
+ServiceOrder "1" --> "0..1" LabOrder : creates
+
+LabTestCatalog "1" --> "0..*" LabOrder : for
+LabOrder "1" --> "0..*" LabSample : has
+LabOrder "1" --> "0..*" LabResult : has
+
+Drug "1" --> "0..*" StockLot : stored_in
+StockLot "1" --> "0..*" StockMovement : tracked_by
+
+Prescription "1" --> "0..1" Dispense : dispensed_as
+Dispense "1" *-- "1..*" DispenseItem : contains
+DispenseItem "0..*" --> "1" StockLot : from_lot
+
+OrganizationService ..> Department : manages
+OrganizationService ..> Room : manages
+OrganizationService ..> DoctorProfile : manages
+OrganizationService ..> StaffSchedule : manages
+DispenseService ..> Dispense : creates
+DispenseService ..> StockLot : selects_FEFO
+DispenseService ..> StockMovement : records
+
+class User {
+    -id: String
+}
+class Visit {
+    -id: String
+    -status: VisitStatus
+}
+class Examination {
+    -id: String
+    -status: ExaminationStatus
+}
+class Prescription {
+    -id: String
+}
+class Drug {
+    -id: String
+    -name: String
+    -price: Decimal
+}
+class Patient {
+    -id: String
+    -fullName: String
+}
+class PrescriptionItem {
+    -id: String
+}

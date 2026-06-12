@@ -1,0 +1,38 @@
+@startuml
+!include common-style.puml
+
+title State Machine — Examination Status
+
+skinparam state {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+  StartColor #0F766E
+  EndColor #B91C1C
+  ArrowColor #455A64
+}
+
+[*] --> IN_PROGRESS : Doctor opens examination\n(visits/{id}/open-examination)
+
+IN_PROGRESS --> DONE : Doctor completes\n(examinations/{id}/complete)
+IN_PROGRESS --> CANCELLED : Administrative cancel
+
+DONE --> [*]
+CANCELLED --> [*]
+
+note right of IN_PROGRESS
+While IN_PROGRESS, doctor can:
+- PATCH diagnosis / diseaseId / fee
+- PATCH prescriptionItems
+- Order services (Phase 2)
+end note
+
+note right of DONE
+Once DONE:
+- No further edits allowed (400 on PATCH)
+- Prescription is locked
+- Visit status -> DONE (synchronized)
+end note
+
+@enduml

@@ -1,0 +1,66 @@
+%% SEQ-P1-04 — Upsert Prescription (UC12, replace-all) — AS-BUILT
+%% Source: backend/src/modules/examinations/examinations.service.ts::upsertPrescription
+%% Roles: DOCTOR, ADMIN | Endpoint: PUT /examinations/:id/prescription
+%% (POST /examinations/:id/prescription -> createPrescription has near-identical flow)
+%% No audit event for this UC. BR-08 replace-all.
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as ExaminationsController
+    participant SV as ExaminationsService
+    participant TX as Prisma $transaction
+    participant DB as PostgreSQL
+
+    DR->>FE: Add drug lines to prescription
+    FE->>GD: PUT /examinations/:id/prescription {items[], note?} + token
+    GD->>GD: verify JWT + role in {DOCTOR, ADMIN}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        note over CT: ValidationPipe checks DTO
+        alt invalid DTO
+            CT-->>FE: 400 BadRequestException
+        else valid DTO
+            CT->>SV: upsertPrescription(id, dto)
+            SV->>DB: examination.findUnique(id, include prescription.items)
+            alt not found
+                DB-->>SV: null
+                SV-->>CT: throw NotFoundException
+                CT-->>FE: 404 "Examination not found"
+            else found
+                alt status COMPLETED
+                    SV-->>CT: throw BadRequestException
+                    CT-->>FE: 400 "Cannot update prescription for completed examination"
+                else editable
+                    alt items empty
+                        SV-->>CT: throw BadRequestException
+                        CT-->>FE: 400 "Prescription must have at least one item"
+                    else has items
+                        rect rgb(235,235,255)
+                            note over TX: BEGIN $transaction — BR-08 replace-all
+                            SV->>TX: run
+                            TX->>DB: drug.findMany(id in [...], isActive=true)
+                            alt some drug invalid/inactive
+                                TX-->>SV: throw BadRequestException
+                                SV-->>CT: propagate
+                                CT-->>FE: 400 "Some drugs are invalid or inactive"
+                            else all active
+                                note over TX: unitPrice = drug.price (snapshot); lineTotal = unitPrice * qty
+                                opt prescription already exists
+                                    TX->>DB: prescription.delete(examinationId) (cascade items)
+                                end
+                                TX->>DB: prescription.create(items with unitPrice/lineTotal snapshot)
+                            end
+                            note over TX: COMMIT
+                        end
+                        SV-->>CT: prescription (+ items)
+                        CT-->>FE: 200 {prescription}
+                        FE-->>DR: Prescription saved
+                    end
+                end
+            end
+        end
+    end

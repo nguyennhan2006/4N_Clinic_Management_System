@@ -1,0 +1,46 @@
+@startuml
+!include common-style.puml
+
+title State Machine — Invoice Status
+
+skinparam state {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+  StartColor #0F766E
+  EndColor #B91C1C
+  ArrowColor #455A64
+}
+
+[*] --> UNPAID : Cashier creates invoice\n(POST /api/v1/invoices)\npaidAmount = 0
+
+UNPAID --> PARTIAL : Partial payment recorded\n(paidAmount < totalAmount)
+UNPAID --> PAID : Full payment in one step\n(paidAmount == totalAmount)
+UNPAID --> CANCELLED : Invoice voided
+
+PARTIAL --> PARTIAL : Additional partial payment
+PARTIAL --> PAID : Remaining balance paid
+PARTIAL --> CANCELLED : Invoice voided
+
+PAID --> [*]
+CANCELLED --> [*]
+
+note right of UNPAID
+Invoice is created only if:
+- Visit status = DONE
+- No existing invoice for visit
+end note
+
+note right of PARTIAL
+Each payment creates a Payment record.
+paidAmount is cumulative sum.
+Overpayment rejected (BR-16).
+end note
+
+note right of CANCELLED
+CANCELLED invoices cannot receive
+further payments.
+end note
+
+@enduml

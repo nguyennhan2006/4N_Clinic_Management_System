@@ -1,0 +1,38 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P1-OV A4 REPORT — Overview Doctor->Cashier. OVERVIEW ONLY (error branches omitted).
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    actor CA as Cashier
+    participant FE as React SPA
+    participant API as NestJS API
+    participant DB as PostgreSQL
+
+    DR->>FE: Open examination
+    FE->>API: POST /visits/:id/open-examination
+    API->>DB: Exam OPEN + Visit IN_EXAMINATION
+    DR->>FE: Save diagnosis
+    FE->>API: PATCH /examinations/:id
+    API->>DB: update exam + diagnoses
+    opt prescription
+        DR->>FE: Add drugs
+        FE->>API: PUT /examinations/:id/prescription
+        API->>DB: prescription (price snapshot)
+    end
+    DR->>FE: Complete
+    FE->>API: POST /examinations/:id/complete
+    API->>DB: Exam + Visit COMPLETED
+    CA->>FE: Issue invoice
+    FE->>API: POST /visits/:id/invoice
+    API->>DB: Invoice ISSUED + items
+    CA->>FE: Record payment
+    FE->>API: POST /invoices/:id/payments
+    API->>DB: Payment + status update

@@ -1,0 +1,44 @@
+flowchart TB
+    Client["Client Layer<br/>Web Browser / React SPA"]
+
+    subgraph Frontend["Frontend Layer"]
+        Routes["Protected Routes<br/>Role-based navigation"]
+        Pages["Feature Pages<br/>Patients / Visits / Exams / Billing / Phase 2"]
+        ApiClient["API Client<br/>JWT bearer token<br/>JSON request/response"]
+    end
+
+    subgraph Backend["Backend Application Layer - NestJS"]
+        Controllers["Controller Layer<br/>REST endpoints<br/>Swagger decorators"]
+        Guards["Security Layer<br/>JwtAuthGuard<br/>RolesGuard"]
+        DTO["Validation Layer<br/>DTO + class-validator"]
+        Services["Service Layer<br/>Business rules<br/>Transactions"]
+        PrismaService["Data Access Layer<br/>PrismaService"]
+    end
+
+    subgraph Data["Persistence Layer"]
+        DB[("PostgreSQL Database<br/>37 models / 12 enums")]
+        Migration["Prisma Migration + Seed<br/>Schema evolution<br/>Demo data"]
+    end
+
+    Client --> Routes
+    Routes --> Pages
+    Pages --> ApiClient
+    ApiClient -->|"HTTPS REST API<br/>Bearer Token"| Controllers
+    Guards -.-> Controllers
+    Controllers --> DTO
+    Controllers --> Services
+    Services --> PrismaService
+    PrismaService --> DB
+    Migration --> DB
+
+    classDef client fill:#F8FAFC,stroke:#334155,color:#111827;
+    classDef frontend fill:#DBEAFE,stroke:#1D4ED8,color:#111827;
+    classDef backend fill:#CCFBF1,stroke:#0F766E,color:#111827;
+    classDef security fill:#FEF9C3,stroke:#A16207,color:#111827;
+    classDef data fill:#F3E8FF,stroke:#7E22CE,color:#111827;
+
+    class Client client;
+    class Routes,Pages,ApiClient frontend;
+    class Controllers,DTO,Services,PrismaService backend;
+    class Guards security;
+    class DB,Migration data;

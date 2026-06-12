@@ -1,0 +1,37 @@
+@startuml
+!include common-style.puml
+
+title Container Diagram\n4N Clinic Management System
+
+top to bottom direction
+
+actor "Clinic Staff\n(Admin / Receptionist / Doctor\nCashier / Manager / Nurse / Lab / Pharmacist)" as Staff #E0F2FE
+
+rectangle "Web Browser\nChrome / Edge" as Browser #F8FAFC
+
+rectangle "4N Clinic Management System" as Boundary #FAFAFA {
+
+  rectangle "Frontend SPA\n--\nReact 18 + Vite + TypeScript\nTailwind CSS + shadcn/ui\nTanStack Query + Zustand\nRole-based UI / Protected routes" as FE #DBEAFE
+
+  rectangle "Backend REST API\n--\nNestJS + TypeScript\nJWT Guard + Roles Guard\n92 endpoints / api/v1\nSwagger at /api/docs" as BE #CCFBF1
+
+  database "PostgreSQL 15\n--\nlocalhost:5432\n37 models / 12 enums\n3 migrations" as DB #F3E8FF
+
+  rectangle "Prisma ORM\n--\nSchema-first\nMigrations\nTyped client" as Prisma #FEF9C3
+
+}
+
+Staff --> Browser : uses
+Browser --> FE : loads SPA via HTTP :5173
+FE --> BE : HTTPS JSON REST\nAuthorization: Bearer <token>
+BE --> Prisma : PrismaService calls
+Prisma --> DB : SQL queries
+
+note right of BE
+All routes require JWT.
+Role-based access enforced
+per controller method via
+@Roles() decorator.
+end note
+
+@enduml

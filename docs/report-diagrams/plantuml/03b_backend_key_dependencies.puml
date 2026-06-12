@@ -1,0 +1,70 @@
+@startuml
+!include common-style.puml
+
+title Backend Key Module Dependencies\nCore clinical flow only
+
+top to bottom direction
+
+rectangle "Frontend SPA" as FE #DBEAFE
+
+package "Cross-Cutting" #F1F5F9 {
+  component "JwtAuthGuard" as JWT
+  component "RolesGuard" as Roles
+  component "PrismaExceptionFilter" as Filter
+}
+
+package "Core Flow" #CCFBF1 {
+  component "AuthModule" as Auth
+  component "UsersModule" as Users
+  component "PatientsModule" as Patients
+  component "VisitsModule" as Visits
+  component "ExaminationsModule" as Exams
+  component "PrescriptionsModule" as Rx
+  component "BillingModule" as Billing
+  component "RegulationsModule" as Reg
+}
+
+package "Catalog" #DCFCE7 {
+  component "DiseasesModule" as Diseases
+  component "DrugsModule" as Drugs
+  component "ReportsModule" as Reports
+}
+
+database "PostgreSQL\n(via PrismaService)" as DB #F3E8FF
+
+FE --> Auth : POST /api/v1/auth/login
+FE --> Patients : GET / POST /api/v1/patients
+FE --> Visits : GET / POST /api/v1/visits
+FE --> Exams : PATCH / POST /api/v1/examinations
+FE --> Billing : POST /api/v1/invoices
+
+JWT ..> Visits : authenticate
+JWT ..> Exams : authenticate
+Roles ..> Visits : authorize
+Roles ..> Exams : authorize
+
+Auth --> Users
+Visits --> Patients
+Visits --> Reg
+Exams --> Visits
+Exams --> Diseases
+Exams --> Rx
+Rx --> Drugs
+Billing --> Visits
+Billing --> Exams
+Reports --> Billing
+
+Auth --> DB
+Patients --> DB
+Visits --> DB
+Exams --> DB
+Rx --> DB
+Billing --> DB
+
+note right of Rx
+Prescriptions module has
+no controller — called
+internally by Examinations.
+end note
+
+@enduml

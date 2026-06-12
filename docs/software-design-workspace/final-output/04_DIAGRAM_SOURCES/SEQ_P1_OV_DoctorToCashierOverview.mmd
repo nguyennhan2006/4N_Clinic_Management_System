@@ -1,0 +1,39 @@
+%% SEQ-P1-OV — Overview: Doctor-to-Cashier flow (UC09 -> UC15) — AS-BUILT
+%% OVERVIEW ONLY. Does not replace the detailed per-UC diagrams
+%% (SEQ_P1_02..SEQ_P1_07). Error branches are omitted on purpose here.
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    actor CA as Cashier
+    participant FE as React SPA
+    participant API as NestJS API (Controllers + Services)
+    participant DB as PostgreSQL
+
+    DR->>FE: Open visit examination
+    FE->>API: POST /visits/:id/open-examination
+    API->>DB: examination.create(OPEN) + visit IN_EXAMINATION
+    API-->>FE: examination (OPEN)
+
+    DR->>FE: Save symptoms / diagnosis
+    FE->>API: PATCH /examinations/:id
+    API->>DB: examination.update + diagnoses (snapshot)
+
+    opt prescription needed
+        DR->>FE: Add drug lines
+        FE->>API: PUT /examinations/:id/prescription
+        API->>DB: prescription replace-all (price snapshot)
+    end
+
+    DR->>FE: Complete examination
+    FE->>API: POST /examinations/:id/complete
+    API->>DB: examination COMPLETED + visit COMPLETED
+
+    CA->>FE: Issue invoice
+    FE->>API: POST /visits/:id/invoice
+    API->>DB: invoice ISSUED + items (consultation fee + drugs, snapshot)
+    API-->>FE: invoice (ISSUED)
+
+    CA->>FE: Record payment
+    FE->>API: POST /invoices/:id/payments
+    API->>DB: payment + invoice PARTIALLY_PAID / PAID
+    API-->>FE: invoice (updated status)

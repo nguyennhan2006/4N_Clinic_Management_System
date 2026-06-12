@@ -1,0 +1,69 @@
+flowchart TB
+    subgraph Actors["Actors"]
+        direction LR
+        Admin(["👤 Admin"])
+        Rec(["👤 Receptionist"])
+        Doc(["👤 Doctor"])
+        Cash(["👤 Cashier"])
+        Mgr(["👤 Manager"])
+    end
+
+    subgraph System["4N Clinic Management System — Phase 1"]
+        direction LR
+
+        subgraph Auth["Authentication & Access"]
+            direction TB
+            UC01["UC01 Đăng nhập"]
+            UC02["UC02 Quản lý tài khoản"]
+            UC03["UC03 Phân quyền"]
+        end
+
+        subgraph PV["Patient & Visit"]
+            direction TB
+            UC04["UC04 Tra cứu hồ sơ BN"]
+            UC05["UC05 Tạo hồ sơ BN"]
+            UC06["UC06 Tạo lượt khám"]
+            UC07["UC07 Xem ds lượt khám"]
+        end
+
+        subgraph Exam["Examination & Prescription"]
+            direction TB
+            UC08["UC08 Mở phiên khám"]
+            UC09["UC09 Ghi phiếu khám"]
+            UC10["UC10 Chẩn đoán bệnh"]
+            UC11["UC11 Kê đơn thuốc"]
+            UC12["UC12 Lịch sử khám"]
+        end
+
+        subgraph Bill["Billing"]
+            direction TB
+            UC13["UC13 Lập hóa đơn"]
+            UC14["UC14 Ghi nhận thanh toán"]
+        end
+
+        subgraph Cat["Catalog & Report"]
+            direction TB
+            UC15["UC15 Danh mục bệnh"]
+            UC16["UC16 Danh mục thuốc"]
+            UC17["UC17 Quản lý quy định"]
+            UC18["UC18 Báo cáo tháng"]
+        end
+    end
+
+    Admin  --> Auth
+    Admin  --> Cat
+    Rec    --> Auth
+    Rec    --> PV
+    Doc    --> Auth
+    Doc    --> PV
+    Doc    --> Exam
+    Cash   --> Auth
+    Cash   --> Bill
+    Mgr    --> Auth
+    Mgr    --> Cat
+
+    classDef actor fill:#F8FAFC,stroke:#334155,color:#111827;
+    classDef uc    fill:#E0F2FE,stroke:#0369A1,color:#111827;
+
+    class Admin,Rec,Doc,Cash,Mgr actor;
+    class Auth,PV,Exam,Bill,Cat uc;

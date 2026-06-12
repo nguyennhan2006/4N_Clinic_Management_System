@@ -1,0 +1,66 @@
+@startuml
+!include common-style.puml
+
+title Sequence Diagram - Drug Dispensing with FEFO
+
+actor Pharmacist
+participant "Frontend\nPharmacy Page" as FE
+participant "PharmacyController" as Controller
+participant "PharmacyService" as Pharmacy
+participant "InventoryService" as Inventory
+database "PostgreSQL" as DB
+
+Pharmacist -> FE : Open prescription\nClick "Cap phat thuoc"
+FE -> Controller : POST /api/v1/pharmacy/dispenses\n{prescriptionId}
+activate Controller
+Controller -> Pharmacy : dispensePrescription(prescriptionId, pharmacistId)
+activate Pharmacy
+
+Pharmacy -> DB : SELECT Prescription + PrescriptionItems
+DB --> Pharmacy : prescription items list
+
+loop For each prescription item
+  Pharmacy -> Inventory : allocateLots(drugId, requiredQuantity)
+  activate Inventory
+  Inventory -> DB : SELECT StockLot\nWHERE drugId AND quantityOnHand > 0\nAND expiryDate >= today\nORDER BY expiryDate ASC
+  DB --> Inventory : lots sorted by expiryDate (FEFO order)
+
+  alt Total available stock < required
+    Inventory --> Pharmacy : throw BadRequestException\nInsufficient stock for drugId
+    Pharmacy --> Controller : 400 Insufficient stock
+    Controller --> FE : Error response
+    FE --> Pharmacist : Show which drug is insufficient
+  else Enough stock
+    Inventory -> Inventory : Greedily allocate:\npick lots from earliest expiry\nuntil quantity satisfied
+    Inventory --> Pharmacy : list of { stockLotId, allocatedQty }
+  end
+  deactivate Inventory
+end
+
+alt All items allocated successfully
+  Pharmacy -> DB : Transaction begin
+  Pharmacy -> DB : INSERT Dispense { prescriptionId, dispensedById, status: DISPENSED }
+  loop Each allocated lot
+    Pharmacy -> DB : INSERT DispenseItem { dispenseId, stockLotId, drugId, quantity }
+    Pharmacy -> DB : UPDATE StockLot.quantityOnHand -= allocatedQty
+    Pharmacy -> DB : INSERT StockMovement { type: DISPENSE, quantity, stockLotId }
+  end
+  Pharmacy -> DB : Commit transaction
+  DB --> Pharmacy : committed
+  Pharmacy --> Controller : DispenseDTO
+  Controller --> FE : 201 Created
+  FE --> Pharmacist : Show dispense success\nList of lots used
+end
+
+deactivate Pharmacy
+deactivate Controller
+
+note over Pharmacy
+FEFO = First Expired, First Out
+Protects clinic by always consuming
+the soonest-to-expire lot first.
+Implemented in pharmacy.service.ts using
+prisma.$transaction() for atomicity.
+end note
+
+@enduml

@@ -1,0 +1,517 @@
+%% ============================================================
+%% ERD — Full Schema (37 models — Phase 1 + Phase 2A)
+%% 4N Clinic Management System — Working Tree Reference
+%%
+%% CẢNH BÁO: Sơ đồ này phản ánh working tree hiện tại bao gồm
+%% Phase 2A schema conflicts chưa sửa (CF-001..009).
+%% Xem ERD_02_Phase2A_Delta.mmd để biết các conflicts cần sửa.
+%%
+%% Cách dùng với draw.io:
+%%   Extras → Edit Diagram → Mermaid → paste → OK
+%%   Sau khi import: dùng Layout → Organic để tự động sắp xếp
+%%   Rồi group thủ công theo màu bên dưới
+%%
+%% Màu gợi ý (group sau khi import):
+%%   🔵 Xanh dương  : User, Role, Permission, UserRole, RolePermission, RefreshToken, AuditLog
+%%   🟢 Xanh lá     : Patient, Visit, Examination, Disease, Diagnosis, Drug, Prescription, PrescriptionItem
+%%   🟡 Vàng        : Invoice, InvoiceItem, Payment
+%%   ⬜ Trắng/xám   : RegulationVersion, RegulationItem
+%%   🟦 Xanh đậm    : Department, Room, DoctorProfile, StaffSchedule
+%%   🟠 Cam         : Appointment, QueueTicket
+%%   🩵 Xanh nhạt   : VitalSign, ServiceCatalog, LabTestCatalog, ServiceOrder
+%%   🔴 Đỏ          : LabOrder, LabSample, LabResult
+%%   🟣 Tím         : StockLot, StockMovement, Dispense, DispenseItem
+%% ============================================================
+
+erDiagram
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 1: IDENTITY & ACCESS
+%% ═══════════════════════════════════════════════════════════
+
+    User {
+        string   id          PK
+        string   username    UK    "nullable"
+        string   passwordHash      "bcrypt, never expose in response"
+        string   fullName
+        string   email             "nullable"
+        string   phone             "nullable"
+        string   status            "ACTIVE|INACTIVE|LOCKED"
+        datetime createdAt
+        datetime updatedAt
+    }
+    Role {
+        string   id      PK
+        string   code    UK   "nullable"
+        string   name
+        datetime createdAt
+        datetime updatedAt
+    }
+    Permission {
+        string   id   PK
+        string   code UK
+        string   name
+        datetime createdAt
+        datetime updatedAt
+    }
+    UserRole {
+        string   userId   PK,FK
+        string   roleId   PK,FK
+        datetime createdAt
+    }
+    RolePermission {
+        string   roleId       PK,FK
+        string   permissionId PK,FK
+    }
+    RefreshToken {
+        string   id        PK
+        string   userId    FK
+        string   tokenHash    "SHA-256"
+        datetime revokedAt    "nullable"
+        datetime expiresAt
+        datetime createdAt
+    }
+    AuditLog {
+        string   id         PK
+        string   actorId    FK   "nullable"
+        string   action
+        string   entityType
+        string   entityId        "nullable"
+        json     before          "nullable"
+        json     after           "nullable"
+        datetime createdAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 2: PATIENT & CLINICAL
+%% ═══════════════════════════════════════════════════════════
+
+    Patient {
+        string   id          PK
+        string   patientCode UK
+        string   fullName
+        datetime dob              "nullable"
+        string   gender           "nullable"
+        string   phone            "nullable"
+        string   citizenId   UK   "nullable"
+        string   address          "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+    Visit {
+        string   id              PK
+        string   patientId       FK
+        string   createdByUserId FK
+        string   departmentId    FK   "nullable (Phase2A)"
+        string   appointmentId   FK,UK "nullable (Phase2A)"
+        date     visitDate
+        int      queueNumber
+        string   reason               "nullable"
+        string   status               "REGISTERED|WAITING|IN_EXAMINATION|COMPLETED|CANCELLED"
+        datetime createdAt
+        datetime updatedAt
+    }
+    Examination {
+        string   id            PK
+        string   visitId       FK,UK
+        string   doctorUserId  FK
+        string   symptoms           "nullable"
+        string   clinicalNotes      "nullable"
+        string   conclusion         "nullable"
+        string   status             "OPEN|COMPLETED|CANCELLED"
+        datetime completedAt        "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+    Disease {
+        string   id      PK
+        string   code    UK
+        string   name
+        boolean  isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    Diagnosis {
+        string   id            PK
+        string   examinationId FK
+        string   diseaseId     FK   "nullable"
+        string   name
+        boolean  isPrimary
+        datetime createdAt
+    }
+    Drug {
+        string   id      PK
+        string   name    UK
+        string   unit
+        decimal  price
+        boolean  isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    Prescription {
+        string   id            PK
+        string   examinationId FK,UK
+        string   note               "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+    PrescriptionItem {
+        string   id             PK
+        string   prescriptionId FK
+        string   drugId         FK
+        int      quantity
+        string   dosage
+        decimal  unitPrice          "price snapshot"
+        decimal  lineTotal
+        datetime createdAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 3: FINANCIAL
+%% ═══════════════════════════════════════════════════════════
+
+    Invoice {
+        string   id          PK
+        string   visitId     FK,UK
+        decimal  totalAmount
+        decimal  paidAmount
+        string   status      "DRAFT|ISSUED|PARTIALLY_PAID|PAID|VOID"
+        datetime createdAt
+        datetime updatedAt
+    }
+    InvoiceItem {
+        string   id            PK
+        string   invoiceId     FK
+        string   description       "snapshot"
+        int      quantity
+        decimal  unitPrice         "snapshot"
+        decimal  lineTotal
+        string   itemType          "nullable"
+        string   referenceType     "nullable"
+        string   referenceId       "nullable"
+        datetime createdAt
+    }
+    Payment {
+        string   id        PK
+        string   invoiceId FK
+        decimal  amount
+        string   method    "CASH|TRANSFER|CARD"
+        string   note      "nullable"
+        datetime paidAt
+        datetime createdAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 4: OPERATIONS / CONFIG
+%% ═══════════════════════════════════════════════════════════
+
+    RegulationVersion {
+        string   id          PK
+        boolean  isActive
+        datetime activatedAt "nullable"
+        string   note        "nullable"
+        datetime createdAt
+    }
+    RegulationItem {
+        string   id        PK
+        string   versionId FK
+        string   key
+        string   value
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 5: ORGANIZATION (Phase 2A)
+%% ═══════════════════════════════════════════════════════════
+
+    Department {
+        string   id          PK
+        string   code        UK
+        string   name
+        boolean  isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    Room {
+        string   id           PK
+        string   departmentId FK
+        string   code
+        string   name
+        string   roomType
+        boolean  isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    DoctorProfile {
+        string   id           PK
+        string   userId       FK,UK
+        string   departmentId FK
+        string   title        "nullable"
+        string   specialty    "nullable"
+        boolean  isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    StaffSchedule {
+        string   id                  PK
+        string   userId              FK
+        string   departmentId        FK
+        string   roomId              FK   "nullable"
+        date     workDate
+        string   startTime               "⚠️CF-005 String instead of DateTime"
+        string   endTime                 "⚠️CF-005 String instead of DateTime"
+        int      slotDurationMinutes
+        int      maxAppointments
+        string   status
+        datetime createdAt
+        datetime updatedAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 6: APPOINTMENT & QUEUE (Phase 2A)
+%% ═══════════════════════════════════════════════════════════
+
+    Appointment {
+        string   id              PK
+        string   patientId       FK
+        string   doctorProfileId FK
+        string   departmentId    FK
+        string   roomId          FK   "nullable"
+        string   scheduleId      FK   "nullable"
+        string   createdById     FK
+        datetime scheduledAt         "⚠️CF-006 should be scheduledStartAt"
+        int      durationMinutes     "⚠️CF-006 should store scheduledEndAt"
+        string   status          "SCHEDULED|CHECKED_IN|CANCELLED|NO_SHOW"
+        string   reason          "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+    QueueTicket {
+        string   id           PK
+        string   visitId      FK,UK
+        string   departmentId FK
+        date     queueDate
+        int      queueNumber
+        int      priority     "0=walk-in 1=appointment"
+        string   status       "WAITING|CALLED|IN_SERVICE|DONE|SKIPPED|CANCELLED"
+        datetime calledAt     "nullable"
+        datetime completedAt  "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 7: NURSING & SERVICES (Phase 2A)
+%% ═══════════════════════════════════════════════════════════
+
+    VitalSign {
+        string   id           PK
+        string   visitId      FK,UK
+        string   measuredById FK
+        int      pulse        "nullable"
+        int      systolicBp   "nullable"
+        int      diastolicBp  "nullable"
+        decimal  temperature  "nullable"
+        int      spo2         "nullable"
+        decimal  heightCm     "nullable"
+        decimal  weightKg     "nullable"
+        decimal  bmi          "nullable server-computed"
+        datetime measuredAt
+        datetime createdAt
+        datetime updatedAt
+    }
+    ServiceCatalog {
+        string   id       PK
+        string   code     UK
+        string   name
+        string   type     "CONSULTATION|LAB_TEST|PROCEDURE|IMAGING|MATERIAL"
+        decimal  price
+        boolean  isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    LabTestCatalog {
+        string   id              PK
+        string   serviceId       FK,UK
+        string   code            UK
+        string   sampleType
+        int      turnaroundHours
+        string   referenceRange  "nullable"
+    }
+    ServiceOrder {
+        string   id            PK
+        string   visitId       FK
+        string   examinationId FK   "nullable"
+        string   serviceId     FK
+        string   orderedById   FK
+        string   status        "ORDERED|IN_PROGRESS|COMPLETED|CANCELLED"
+        boolean  isRequired    "⚠️CF-009 should be isRequiredForCompletion"
+        decimal  priceSnapshot
+        string   billingStatus
+        datetime orderedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 8: LABORATORY (Phase 2A)
+%% ═══════════════════════════════════════════════════════════
+
+    LabOrder {
+        string   id             PK
+        string   serviceOrderId FK,UK
+        string   labTestId      FK
+        string   status         "ORDERED|SAMPLE_COLLECTED|RESULT_ENTERED|⚠️VERIFIED→REVIEWED|CANCELLED"
+        datetime createdAt
+        datetime updatedAt
+    }
+    LabSample {
+        string   id            PK
+        string   labOrderId    FK
+        string   collectedById FK
+        string   sampleType
+        string   status
+        datetime collectedAt
+        string   note          "nullable"
+        datetime createdAt
+    }
+    LabResult {
+        string   id             PK
+        string   labOrderId     FK
+        string   enteredById    FK
+        string   verifiedById   FK   "nullable ⚠️CF-002→reviewedById"
+        string   resultText          "nullable"
+        decimal  resultValue         "nullable"
+        string   unit               "nullable"
+        string   referenceRange     "nullable"
+        string   status             "⚠️ should be enum"
+        datetime enteredAt
+        datetime verifiedAt         "nullable ⚠️CF-002→reviewedAt"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  DOMAIN 9: PHARMACY & INVENTORY (Phase 2A)
+%% ═══════════════════════════════════════════════════════════
+
+    StockLot {
+        string   id             PK
+        string   drugId         FK
+        string   lotNumber
+        date     expiryDate     "FEFO ordering key"
+        int      quantityOnHand
+        decimal  unitCost       "nullable"
+        datetime receivedAt
+        datetime createdAt
+        datetime updatedAt
+    }
+    StockMovement {
+        string   id            PK
+        string   drugId        FK
+        string   lotId         FK
+        string   createdById   FK
+        string   movementType  "IN|OUT|ADJUSTMENT|⚠️CF-004 missing REVERSAL"
+        int      quantity
+        string   referenceType "nullable"
+        string   referenceId   "nullable"
+        string   note          "nullable"
+        datetime createdAt
+    }
+    Dispense {
+        string   id             PK
+        string   prescriptionId FK,UK
+        string   visitId        FK
+        string   dispensedById  FK
+        string   status         "⚠️CF-003 PENDING|DISPENSED|CANCELLED → DISPENSED|REVERSED"
+        datetime dispensedAt    "nullable"
+        string   note           "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+    DispenseItem {
+        string   id                 PK
+        string   dispenseId         FK
+        string   prescriptionItemId FK,UK
+        string   drugId             FK
+        string   lotId              FK
+        int      quantity
+        decimal  unitPriceSnapshot
+        datetime createdAt
+    }
+
+%% ═══════════════════════════════════════════════════════════
+%%  ALL RELATIONSHIPS
+%% ═══════════════════════════════════════════════════════════
+
+    %% --- Identity & Access ---
+    User            ||--o{  UserRole            : "assigned"
+    Role            ||--o{  UserRole            : "assigned to"
+    Role            ||--o{  RolePermission      : "grants"
+    Permission      ||--o{  RolePermission      : "granted by"
+    User            ||--o{  RefreshToken        : "owns"
+    User            |o--o{  AuditLog            : "actor (nullable)"
+
+    %% --- Core Clinical ---
+    Patient         ||--o{  Visit               : "has"
+    User            ||--o{  Visit               : "created by"
+    Visit           ||--o|  Examination         : "has"
+    Visit           ||--o|  Invoice             : "billed as"
+    User            ||--o{  Examination         : "performed by doctor"
+    Examination     ||--o{  Diagnosis           : "contains"
+    Examination     ||--o|  Prescription        : "has"
+    Disease         |o--o{  Diagnosis           : "classified as"
+    Prescription    ||--o{  PrescriptionItem    : "contains"
+    Drug            ||--o{  PrescriptionItem    : "in prescription"
+    Invoice         ||--o{  InvoiceItem         : "contains"
+    Invoice         ||--o{  Payment             : "paid via"
+    RegulationVersion ||--o{ RegulationItem     : "contains"
+
+    %% --- Organization (Phase 2A) ---
+    Department      ||--o{  Room                : "contains"
+    Department      ||--o{  DoctorProfile       : "has"
+    Department      ||--o{  StaffSchedule       : "scheduled in"
+    Room            ||--o{  StaffSchedule       : "used for"
+    User            ||--o|  DoctorProfile       : "1:1 profile"
+    DoctorProfile   ||--o{  StaffSchedule       : "works"
+
+    %% --- Appointment & Queue (Phase 2A) ---
+    Patient         ||--o{  Appointment         : "books"
+    DoctorProfile   ||--o{  Appointment         : "receives"
+    Department      ||--o{  Appointment         : "for"
+    Room            |o--o{  Appointment         : "in (nullable)"
+    StaffSchedule   |o--o{  Appointment         : "on slot (nullable)"
+    User            ||--o{  Appointment         : "created by"
+    Appointment     ||--o|  Visit               : "check-in creates"
+    Visit           ||--o|  QueueTicket         : "has"
+    Department      ||--o{  QueueTicket         : "in"
+
+    %% --- Nursing & Services (Phase 2A) ---
+    Visit           ||--o|  VitalSign           : "has"
+    User            ||--o{  VitalSign           : "measured by"
+    Visit           ||--o{  ServiceOrder        : "has"
+    Examination     |o--o{  ServiceOrder        : "ordered in"
+    ServiceCatalog  ||--o{  ServiceOrder        : "catalog ref"
+    ServiceCatalog  ||--o|  LabTestCatalog      : "lab detail"
+    User            ||--o{  ServiceOrder        : "ordered by"
+
+    %% --- Laboratory (Phase 2A) ---
+    ServiceOrder    ||--o|  LabOrder            : "creates"
+    LabTestCatalog  ||--o{  LabOrder            : "for"
+    LabOrder        ||--o{  LabSample           : "has"
+    LabOrder        ||--o{  LabResult           : "has"
+    User            ||--o{  LabSample           : "collected by"
+    User            ||--o{  LabResult           : "entered by"
+    User            |o--o{  LabResult           : "reviewed by (nullable)"
+
+    %% --- Pharmacy (Phase 2A) ---
+    Drug            ||--o{  StockLot            : "stored"
+    StockLot        ||--o{  StockMovement       : "tracked"
+    Drug            ||--o{  StockMovement       : "moved"
+    User            ||--o{  StockMovement       : "by"
+    Prescription    ||--o|  Dispense            : "dispensed"
+    Visit           ||--o{  Dispense            : "for"
+    User            ||--o{  Dispense            : "by pharmacist"
+    Dispense        ||--o{  DispenseItem        : "contains"
+    PrescriptionItem ||--o| DispenseItem        : "fulfilled"
+    Drug            ||--o{  DispenseItem        : "of"
+    StockLot        ||--o{  DispenseItem        : "from (FEFO)"

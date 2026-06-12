@@ -1,0 +1,62 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P1-07 A4 REPORT — Record Payment (UC15). Full: SEQ_P1_07_RecordPayment.mmd
+sequenceDiagram
+    autonumber
+    actor CA as Cashier
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as BillingCtrl
+    participant SV as BillingSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    CA->>FE: Enter amount + method
+    FE->>GD: POST /invoices/:id/payments {dto} + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: createPayment(invoiceId, dto, actorId)
+        alt amount <= 0
+            SV-->>CT: throw 400
+            CT-->>FE: 400 amount must be > 0
+        else amount > 0
+            rect rgb(235,235,255)
+                note over TX: BEGIN transaction
+                SV->>TX: record payment
+                TX->>DB: find invoice
+                alt not found
+                    TX-->>SV: throw 404
+                    SV-->>CT: propagate
+                    CT-->>FE: 404 invoice not found
+                else VOID or PAID
+                    TX-->>SV: throw 400
+                    SV-->>CT: propagate
+                    CT-->>FE: 400 not payable
+                else amount > remaining
+                    TX-->>SV: throw 400
+                    SV-->>CT: propagate
+                    CT-->>FE: 400 exceeds remaining
+                else payable
+                    TX->>DB: create payment
+                    TX->>DB: update invoice paidAmount + status
+                    note over TX: ISSUED -> PARTIALLY_PAID -> PAID
+                end
+                note over TX: COMMIT
+            end
+            SV->>AU: log CREATE_PAYMENT
+            SV-->>CT: invoice
+            CT-->>FE: 201 invoice
+            FE-->>CA: Payment recorded
+        end
+    end

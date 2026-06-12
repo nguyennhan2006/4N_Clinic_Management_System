@@ -1,0 +1,58 @@
+sequenceDiagram
+    autonumber
+    actor Cashier
+    participant FE as Frontend Billing Page
+    participant BC as BillingController
+    participant BS as BillingService
+    participant DB as PostgreSQL
+
+    rect rgb(224, 242, 254)
+    Note over Cashier,DB: Generate or load invoice
+    Cashier->>FE: Open completed visit
+    FE->>BC: POST /invoices {visitId}
+    BC->>BS: createInvoice(visitId)
+
+    BS->>DB: SELECT Visit + Examination + Prescription/Service items
+    DB-->>BS: visit billing data
+
+    alt Visit not completed
+        BS-->>BC: BadRequestException
+        BC-->>FE: 400 Visit not completed
+    else Valid visit
+        BS->>BS: Calculate invoice items
+        BS->>DB: INSERT Invoice + InvoiceItems
+        DB-->>BS: Invoice
+        BS-->>BC: InvoiceDTO
+        BC-->>FE: 201 Created
+        FE-->>Cashier: Show invoice detail
+    end
+    end
+
+    rect rgb(255, 247, 237)
+    Note over Cashier,DB: Record payment
+    Cashier->>FE: Enter amount + method
+    FE->>BC: POST /invoices/{id}/payments
+    BC->>BS: recordPayment(invoiceId, dto, cashierId)
+
+    BS->>DB: SELECT Invoice + payments
+    DB-->>BS: invoice with paidAmount
+    BS->>BS: remaining = totalAmount - paidAmount
+
+    alt amount <= 0
+        BS-->>BC: BadRequestException
+        BC-->>FE: 400 Amount must be positive
+    else amount > remaining
+        BS-->>BC: BadRequestException
+        BC-->>FE: 400 Overpayment not allowed
+    else Valid payment
+        BS->>DB: Transaction: INSERT Payment
+        BS->>DB: UPDATE Invoice paidAmount
+        BS->>DB: UPDATE Invoice status
+        DB-->>BS: committed
+        BS-->>BC: updated InvoiceDTO
+        BC-->>FE: 200 OK
+        FE-->>Cashier: Show updated payment status
+    end
+    end
+
+    Note over BS,DB: Invoice status: UNPAID → PARTIAL → PAID

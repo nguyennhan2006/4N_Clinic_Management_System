@@ -1,0 +1,92 @@
+' =========================================================
+' Common PlantUML style for SE104 4N Clinic diagrams
+' Target: A4 report, clean academic style, readable labels
+' =========================================================
+
+!pragma layout smetana
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam dpi 180
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 14
+skinparam roundCorner 14
+skinparam ArrowColor #455A64
+skinparam ArrowThickness 1.4
+skinparam linetype ortho
+
+skinparam title {
+  FontSize 22
+  FontStyle bold
+  FontColor #1F2937
+}
+
+skinparam rectangle {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam package {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+  FontColor #111827
+  FontSize 15
+  FontStyle bold
+}
+
+skinparam component {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam database {
+  BackgroundColor #F3E8FF
+  BorderColor #7E22CE
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam actor {
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+}
+
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 13
+}
+
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #334155
+  FontColor #111827
+  FontSize 12
+  HeaderBackgroundColor #DBEAFE
+  StereotypeFontSize 11
+}
+
+skinparam sequence {
+  ArrowColor #455A64
+  LifeLineBorderColor #64748B
+  LifeLineBackgroundColor #F8FAFC
+  ParticipantBorderColor #334155
+  ParticipantBackgroundColor #E0F2FE
+  ParticipantFontColor #111827
+  ParticipantFontSize 13
+  BoxBackgroundColor #F8FAFC
+  BoxBorderColor #CBD5E1
+}
+
+skinparam note {
+  BackgroundColor #FFF7ED
+  BorderColor #F97316
+  FontColor #111827
+  FontSize 12
+}

@@ -1,0 +1,56 @@
+@startuml
+!include common-style.puml
+
+title Sequence: Record Payment\nCashier records a payment on an invoice
+
+actor Cashier
+participant "Invoice Page\n(Frontend)" as FE
+participant "BillingController" as BC
+participant "BillingService" as BS
+database "PostgreSQL" as DB
+
+Cashier -> FE : Enter amount + payment method\n(CASH / CARD / TRANSFER)
+FE -> BC : POST /api/v1/invoices/{id}/payments\n{ amount, method }
+activate BC
+
+BC -> BS : recordPayment(invoiceId, dto, cashierId)
+activate BS
+
+BS -> DB : SELECT Invoice WHERE id
+DB --> BS : Invoice { totalAmount, paidAmount, status }
+
+alt Invoice status = PAID
+  BS --> BC : BadRequestException\n"Invoice is already fully paid"
+  BC --> FE : 400 Bad Request
+else Invoice status = CANCELLED
+  BS --> BC : BadRequestException\n"Cannot pay a cancelled invoice"
+  BC --> FE : 400 Bad Request
+else amount <= 0
+  BS --> BC : BadRequestException\n"Payment amount must be positive"
+  BC --> FE : 400 Bad Request
+else amount > remaining
+  BS --> BC : BadRequestException\n"Amount exceeds remaining balance"
+  BC --> FE : 400 Bad Request
+else Valid payment
+  BS -> BS : remaining = totalAmount - paidAmount\nnewPaidAmount = paidAmount + amount\nnewStatus = (newPaid >= total) ? PAID : PARTIAL
+
+  BS -> DB : $transaction:\n  INSERT Payment { amount, method, receivedById }\n  UPDATE Invoice { paidAmount, status }
+  DB --> BS : committed
+
+  BS --> BC : updated InvoiceDTO
+  BC --> FE : 201 Created
+  FE --> Cashier : Show updated status\n(PARTIAL or PAID)
+end
+
+deactivate BS
+deactivate BC
+
+note over BS
+Invoice status flow:
+UNPAID -> PARTIAL (partial payment)
+UNPAID -> PAID    (full payment)
+PARTIAL -> PAID   (remaining paid)
+Overpayment is rejected (BR-16).
+end note
+
+@enduml

@@ -1,0 +1,63 @@
+%%{init: {
+  "theme": "base",
+  "sequence": { "mirrorActors": false, "useMaxWidth": true, "diagramMarginX": 20, "diagramMarginY": 20, "actorMargin": 80, "messageMargin": 36, "wrap": true },
+  "themeVariables": {
+    "background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#111827", "primaryBorderColor": "#111827",
+    "lineColor": "#6b7280", "textColor": "#111827", "actorTextColor": "#111827", "actorBorder": "#111827",
+    "noteBkgColor": "#fff8c5", "noteTextColor": "#111827"
+  }
+}}%%
+%% SEQ-P1-05 A4 REPORT — Complete Examination (UC13). Full: SEQ_P1_05_CompleteExamination.mmd
+sequenceDiagram
+    autonumber
+    actor DR as Doctor
+    participant FE as React SPA
+    participant GD as Guard
+    participant CT as ExamCtrl
+    participant SV as ExamSvc
+    participant TX as Prisma Tx
+    participant DB as PostgreSQL
+    participant AU as Audit
+
+    DR->>FE: Complete examination
+    FE->>GD: POST /examinations/:id/complete + token
+    GD->>GD: verify JWT + role
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed
+        CT->>SV: complete(id, actorId)
+        rect rgb(235,235,255)
+            note over TX: BEGIN transaction (validation inside)
+            SV->>TX: complete atomically
+            TX->>DB: find exam + diagnoses
+            alt not found
+                TX-->>SV: throw 404
+                SV-->>CT: propagate
+                CT-->>FE: 404 exam not found
+            else already COMPLETED
+                TX-->>SV: return (idempotent)
+            else CANCELLED
+                TX-->>SV: throw 400
+                SV-->>CT: propagate
+                CT-->>FE: 400 cancelled
+            else missing symptoms/conclusion
+                TX-->>SV: throw 400
+                SV-->>CT: propagate
+                CT-->>FE: 400 fields required
+            else no primary diagnosis
+                TX-->>SV: throw 400
+                SV-->>CT: propagate
+                CT-->>FE: 400 primary required
+            else valid
+                TX->>DB: update Exam COMPLETED
+                TX->>DB: update Visit COMPLETED
+                note over TX: Exam + Visit -> COMPLETED
+            end
+            note over TX: COMMIT
+        end
+        SV->>AU: log COMPLETE_EXAMINATION
+        SV-->>CT: examination
+        CT-->>FE: 201 examination
+        FE-->>DR: Examination completed
+    end

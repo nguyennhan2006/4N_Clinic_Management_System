@@ -1,0 +1,57 @@
+%% SEQ-P1-06 — Create Invoice from Visit (UC14) — AS-BUILT
+%% Source: backend/src/modules/billing/billing.service.ts::createInvoiceFromVisit
+%% Roles: CASHIER, ADMIN | Endpoint: POST /visits/:visitId/invoice
+%% NOTE (as-built): no explicit $transaction; single invoice.create with nested items
+%%       (atomic nested write). Duplicate invoice -> returns existing (idempotent), not 409.
+%%       Invoice created directly with status=ISSUED.
+sequenceDiagram
+    autonumber
+    actor CA as Cashier
+    participant FE as React SPA
+    participant GD as JwtAuthGuard + RolesGuard
+    participant CT as BillingController
+    participant SV as BillingService
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    CA->>FE: Issue invoice for a completed visit
+    FE->>GD: POST /visits/:visitId/invoice + token
+    GD->>GD: verify JWT + role in {CASHIER, ADMIN}
+    alt not authorized
+        GD-->>FE: 401 / 403
+    else authorized
+        GD->>CT: proceed to handler
+        CT->>SV: createInvoiceFromVisit(visitId, actorId)
+        SV->>DB: visit.findUnique(id, include invoice, examination.prescription.items)
+        alt visit not found
+            DB-->>SV: null
+            SV-->>CT: throw NotFoundException
+            CT-->>FE: 404 "Visit not found"
+        else visit found
+            alt status != COMPLETED (BR-04)
+                SV-->>CT: throw BadRequestException
+                CT-->>FE: 400 "Only COMPLETED visit can be converted to invoice"
+            else status COMPLETED
+                alt invoice already exists (BR-05 idempotent)
+                    SV->>DB: findInvoice(existing.id)
+                    SV-->>CT: existing invoice
+                    CT-->>FE: 200 {invoice}
+                else no invoice yet
+                    alt visit has no examination
+                        SV-->>CT: throw BadRequestException
+                        CT-->>FE: 400 "Visit has no examination"
+                    else has examination
+                        SV->>DB: regulationVersion.findFirst(isActive) -> CONSULTATION_FEE (fallback 150000)
+                        note over SV: build items = consultation fee + prescription items (unitPrice snapshot)
+                        SV->>DB: invoice.create(status=ISSUED, paidAmount=0, nested items.create)
+                        note over DB: atomic nested write (items created with invoice)
+                        SV->>AU: log(CREATE_INVOICE, Invoice, id, {visitId, totalAmount})
+                        note right of AU: append-only
+                        SV-->>CT: invoice (+ items)
+                        CT-->>FE: 201 {invoice}
+                        FE-->>CA: Invoice issued
+                    end
+                end
+            end
+        end
+    end

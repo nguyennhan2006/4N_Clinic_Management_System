@@ -1,0 +1,52 @@
+%% SEQ-P1-08 — Login (UC01) — AS-BUILT
+%% Source: backend/src/modules/auth/auth.service.ts::login
+%% PUBLIC endpoint: POST /auth/login (no Guard). Keys on username (not email).
+%% LOGIN_FAILED is audited for every failure reason; generic 401 does not reveal account existence.
+sequenceDiagram
+    autonumber
+    actor U as User (any role)
+    participant FE as React SPA
+    participant CT as AuthController
+    participant SV as AuthService
+    participant DB as PostgreSQL
+    participant AU as AuditService
+
+    U->>FE: Enter username + password
+    FE->>CT: POST /auth/login {username, password}
+    note over CT: PUBLIC route - no JwtAuthGuard/RolesGuard
+    note over CT: ValidationPipe checks DTO
+    alt invalid DTO
+        CT-->>FE: 400 BadRequestException
+    else valid DTO
+        CT->>SV: login(dto)
+        SV->>DB: user.findUnique(username, include roles)
+        alt user not found
+            SV->>AU: log(LOGIN_FAILED, reason=user_not_found)
+            SV-->>CT: throw UnauthorizedException
+            CT-->>FE: 401 "Invalid credentials" (no account-existence leak)
+        else user found
+            alt status LOCKED
+                SV->>AU: log(LOGIN_FAILED, reason=account_locked)
+                SV-->>CT: throw ForbiddenException
+                CT-->>FE: 403 "Account is locked"
+            else status INACTIVE
+                SV->>AU: log(LOGIN_FAILED, reason=account_inactive)
+                SV-->>CT: throw ForbiddenException
+                CT-->>FE: 403 "Account is inactive"
+            else status ACTIVE
+                SV->>SV: bcrypt.compare(password, passwordHash)
+                alt password invalid
+                    SV->>AU: log(LOGIN_FAILED, reason=invalid_credentials)
+                    SV-->>CT: throw UnauthorizedException
+                    CT-->>FE: 401 "Invalid credentials"
+                else password valid
+                    SV->>SV: sign JWT access token; generate refresh token
+                    SV->>DB: refreshToken.create(tokenHash = SHA-256(raw), expiresAt)
+                    SV->>AU: log(LOGIN_SUCCESS, Auth, userId, {username, roles})
+                    SV-->>CT: {accessToken, refreshToken, user}
+                    CT-->>FE: 201 {accessToken, refreshToken, user}
+                    FE-->>U: Logged in, redirect to dashboard
+                end
+            end
+        end
+    end

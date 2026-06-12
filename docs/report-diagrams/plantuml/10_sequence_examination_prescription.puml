@@ -1,0 +1,104 @@
+@startuml
+!include common-style.puml
+
+title Sequence Diagram - Examination and Prescription
+
+actor Doctor
+participant "Frontend\nExamination Page" as FE
+participant "ExaminationsController" as Controller
+participant "ExaminationsService" as Service
+participant "PrescriptionsService" as RxService
+database "PostgreSQL" as DB
+
+== Open examination ==
+Doctor -> FE : Select waiting visit
+FE -> Controller : POST /api/v1/visits/{id}/open-examination
+activate Controller
+Controller -> Service : openExamination(visitId, doctorId)
+activate Service
+Service -> DB : SELECT Visit by id
+DB --> Service : Visit
+
+alt Invalid visit status (not WAITING)
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Bad Request
+else Valid visit
+  Service -> DB : Transaction:\nINSERT Examination { status: IN_PROGRESS }\nUPDATE Visit status = IN_EXAM
+  DB --> Service : Examination
+  Service --> Controller : ExaminationDTO
+  Controller --> FE : 201 Created
+  FE --> Doctor : Show examination form
+end
+deactivate Service
+deactivate Controller
+
+== Save diagnosis ==
+Doctor -> FE : Enter symptoms,\ndiagnosis, disease, fee
+FE -> Controller : PATCH /api/v1/examinations/{id}
+activate Controller
+Controller -> Service : update(id, dto)
+activate Service
+Service -> DB : SELECT Examination
+DB --> Service : Examination
+
+alt Examination already DONE
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Cannot update completed exam
+else Editable
+  Service -> DB : UPDATE Examination\ndiagnosis + diseaseId + consultationFee
+  DB --> Service : updated
+  Service --> Controller : updated ExaminationDTO
+  Controller --> FE : 200 OK
+end
+deactivate Service
+deactivate Controller
+
+== Save prescription ==
+Doctor -> FE : Add prescription items\n(drug, quantity, instruction)
+FE -> Controller : PATCH /api/v1/examinations/{id}\nwith prescriptionItems
+activate Controller
+Controller -> Service : update with prescription data
+activate Service
+Service -> RxService : upsertPrescription(examId, items)
+activate RxService
+RxService -> DB : Validate active drugs
+DB --> RxService : Drug records
+
+alt No prescription item
+  RxService --> Service : throw BadRequestException
+  Service --> Controller : 400
+  Controller --> FE : 400 Prescription must have items
+else Valid prescription
+  RxService -> DB : Transaction:\nUPSERT Prescription\nDELETE old PrescriptionItems\nINSERT new PrescriptionItems
+  DB --> RxService : saved prescription
+  RxService --> Service : PrescriptionDTO
+  Service --> Controller : updated exam + prescription
+  Controller --> FE : 200 OK
+end
+deactivate RxService
+deactivate Service
+deactivate Controller
+
+== Complete examination ==
+Doctor -> FE : Click "Hoan tat kham"
+FE -> Controller : POST /api/v1/examinations/{id}/complete
+activate Controller
+Controller -> Service : completeExamination(id)
+activate Service
+Service -> DB : Validate exam status and required data
+DB --> Service : exam data
+
+alt Exam already DONE or CANCELLED
+  Service --> Controller : throw BadRequestException
+  Controller --> FE : 400 Invalid status
+else Valid completion
+  Service -> DB : Transaction:\nUPDATE Examination status = DONE\nUPDATE Visit status = DONE
+  DB --> Service : committed
+  Service --> Controller : completed ExaminationDTO
+  Controller --> FE : 200 OK
+  FE --> Doctor : Show completed status\n(read-only mode)
+end
+deactivate Service
+deactivate Controller
+
+@enduml

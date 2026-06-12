@@ -1,0 +1,42 @@
+@startuml
+!include common-style.puml
+
+title State Machine — Queue Ticket Status (Phase 2)
+
+skinparam state {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #111827
+  FontSize 14
+  StartColor #0F766E
+  EndColor #B91C1C
+  ArrowColor #455A64
+}
+
+[*] --> WAITING : Patient check-in\nor visit created with queue ticket
+
+WAITING --> CALLED : Receptionist / Nurse calls patient\n(display / audio)
+WAITING --> CANCELLED : Patient does not arrive
+
+CALLED --> IN_SERVICE : Patient starts service
+CALLED --> CANCELLED : Patient cancels
+
+IN_SERVICE --> DONE : Service completed
+
+DONE --> [*]
+CANCELLED --> [*]
+
+note right of WAITING
+QueueTicket stores:
+- queueNumber (display order)
+- calledAt (null until called)
+- startedAt (null until in service)
+end note
+
+note right of IN_SERVICE
+Phase 2 feature.
+Tracks real-time service time
+per patient for performance reporting.
+end note
+
+@enduml
