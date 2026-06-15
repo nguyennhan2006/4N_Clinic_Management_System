@@ -36,20 +36,22 @@
 | UC19 | Quản lý danh mục thuốc | Admin |
 | UC20 | Xem báo cáo tháng cơ bản | Quản lý, Admin |
 
-## Use Cases — Phase 2 (mở rộng lâm sàng)
+## Use Cases — Phase 2A (schema sẵn sàng, đang phát triển)
 
-| Module | Tính năng |
-|---|---|
-| Lịch hẹn | Đặt lịch, kiểm tra trùng, check-in → tự tạo Visit + số thứ tự hàng chờ |
-| Hàng đợi | Dashboard trực tiếp, tự làm mới 30 giây, state machine WAITING → CALLED → IN_SERVICE → DONE |
-| Chỉ số sinh tồn | Ghi mạch, huyết áp, nhiệt độ, SpO₂, BMI tự tính |
-| Dịch vụ lâm sàng | Catalog dịch vụ (khám/xét nghiệm/thủ thuật), chỉ định dịch vụ trong phiếu khám |
-| Xét nghiệm | Luồng đầy đủ: chỉ định → lấy mẫu → nhập kết quả → xác nhận, worklist 60 giây |
-| Tồn kho thuốc | Nhập lô, theo dõi số lượng, cảnh báo sắp hết hạn / tồn kho thấp |
-| Phát thuốc | Phát thuốc theo đơn, chọn lô theo FEFO, trừ tồn kho nguyên tử |
-| Hóa đơn mở rộng | Phân loại theo loại (Khám / Dịch vụ / Thuốc), badge phân biệt màu |
-| Báo cáo mở rộng | Doanh thu phân theo loại dịch vụ trong báo cáo tháng |
-| Audit Log | Nhật ký thao tác toàn hệ thống, phân trang, xem diff old/new |
+> Schema database và dữ liệu mẫu đã có. Services/controllers đang được implement.
+
+| Module | Tính năng | Trạng thái |
+|---|---|---|
+| Lịch hẹn | Đặt lịch, kiểm tra trùng, check-in → tự tạo Visit + STT hàng chờ | Schema ✓ |
+| Hàng đợi | Dashboard thời gian thực, state machine WAITING → CALLED → IN_SERVICE → DONE | Schema ✓ |
+| Chỉ số sinh tồn | Ghi mạch, huyết áp, nhiệt độ, SpO₂, BMI tự tính | Schema ✓ |
+| Dịch vụ lâm sàng | Catalog dịch vụ (khám/xét nghiệm/thủ thuật), chỉ định trong phiếu khám | Schema ✓ |
+| Xét nghiệm | Luồng đầy đủ: chỉ định → lấy mẫu → nhập kết quả → xác nhận | Schema ✓ |
+| Tồn kho thuốc | Nhập lô, theo dõi số lượng, cảnh báo hết hạn / tồn kho thấp | Schema ✓ |
+| Phát thuốc | Phát theo đơn, chọn lô FEFO, trừ tồn kho nguyên tử | Schema ✓ |
+| Hóa đơn mở rộng | Phân loại theo loại (Khám / Dịch vụ / Thuốc) | Schema ✓ |
+| Báo cáo mở rộng | Doanh thu phân theo loại dịch vụ | Schema ✓ |
+| Audit Log | Nhật ký thao tác toàn hệ thống, diff old/new | Schema ✓ |
 
 ---
 
@@ -199,13 +201,16 @@ PORT=3000
 # Tạo các bảng trong database
 npx prisma migrate deploy
 
+# Regenerate Prisma Client (bắt buộc sau mỗi lần migrate)
+npx prisma generate
+
 # Seed dữ liệu mẫu (tài khoản, danh mục, quy định)
 npx prisma db seed
 ```
 
 > **Lưu ý:** Nếu bạn đang phát triển và muốn reset database:
 > ```bash
-> npx prisma migrate reset   # Xóa sạch + chạy lại migration + seed
+> npx prisma migrate reset   # Xóa sạch + migrate + generate + seed (tự động)
 > ```
 
 ---
@@ -257,17 +262,18 @@ Truy cập: **http://localhost:5173**
 
 ## Tài khoản demo
 
-Sau khi chạy seed, hệ thống có sẵn các tài khoản:
+Sau khi chạy seed, hệ thống có sẵn các tài khoản (đăng nhập bằng **email**):
 
-| Vai trò | Tên đăng nhập | Mật khẩu |
+| Vai trò | Email | Mật khẩu |
 |---|---|---|
-| Admin | `admin` | `Admin@123456` |
-| Bác sĩ | `doctor` | `Doctor@123456` |
-| Lễ tân | `receptionist` | `Reception@123456` |
-| Thu ngân | `cashier` | `Cashier@123456` |
-| Quản lý | `manager` | `Manager@123456` |
-
-> Để test đầy đủ Phase 2 (điều dưỡng, dược sĩ, kỹ thuật viên), tạo thêm tài khoản từ trang **Admin → Tài khoản** sau khi đăng nhập bằng `admin`.
+| Admin | `admin@clinic.local` | `Admin@123456` |
+| Bác sĩ | `doctor@clinic.local` | `Doctor@123456` |
+| Lễ tân | `receptionist@clinic.local` | `Reception@123456` |
+| Thu ngân | `cashier@clinic.local` | `Cashier@123456` |
+| Quản lý | `manager@clinic.local` | `Manager@123456` |
+| Điều dưỡng | `nurse@clinic.local` | `Nurse@123456` |
+| Kỹ thuật viên XN | `labtech@clinic.local` | `Labtech@123456` |
+| Dược sĩ | `pharmacist@clinic.local` | `Pharma@123456` |
 
 ---
 
@@ -463,4 +469,4 @@ PostgreSQL Database
 
 - **Môn học:** SE104 – Nhập môn Công nghệ Phần mềm
 - **Trường:** Đại học Công nghệ Thông tin – ĐHQG TP.HCM
-- **Phiên bản:** Phase 1 + Phase 2 (lâm sàng mở rộng)
+- **Phiên bản:** Phase 1 hoàn thành · Phase 2A schema sẵn sàng (đang implement)
