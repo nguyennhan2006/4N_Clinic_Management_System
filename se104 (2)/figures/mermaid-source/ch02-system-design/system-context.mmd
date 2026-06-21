@@ -1,0 +1,36 @@
+flowchart LR
+    Admin["👤 Admin<br/>Cấu hình hệ thống<br/>Quản lý người dùng<br/>Danh mục, quy định"]
+    Receptionist["👤 Receptionist<br/>Tiếp nhận bệnh nhân<br/>Tạo lượt khám<br/>Lịch hẹn"]
+    Doctor["👤 Doctor<br/>Khám bệnh<br/>Chẩn đoán<br/>Kê đơn"]
+    Cashier["👤 Cashier<br/>Lập hóa đơn<br/>Ghi nhận thanh toán"]
+    Manager["👤 Manager<br/>Xem báo cáo<br/>Thống kê"]
+    Nurse["👤 Nurse<br/>Sinh hiệu<br/>Hàng đợi"]
+    LabTech["👤 Lab Technician<br/>Thu mẫu<br/>Nhập kết quả"]
+    Pharmacist["👤 Pharmacist<br/>Kho thuốc<br/>Cấp phát thuốc"]
+
+    System["<b>4N Clinic Management System</b><br/>Web application quản lý phòng mạch tư nhân<br/>Phase 1 + Phase 2<br/>React + NestJS + PostgreSQL"]
+
+    JWT["JWT Auth Service<br/>Stateless authentication<br/>Access + Refresh tokens"]
+    DB[("PostgreSQL Database<br/>Persistent storage<br/>Prisma ORM")]
+
+    Admin -->|"HTTPS REST API<br/>Bearer Token"| System
+    Receptionist -->|"HTTPS REST API<br/>Bearer Token"| System
+    Doctor -->|"HTTPS REST API<br/>Bearer Token"| System
+    Cashier -->|"HTTPS REST API<br/>Bearer Token"| System
+    Manager -->|"HTTPS REST API<br/>Bearer Token"| System
+    Nurse -->|"HTTPS REST API<br/>Bearer Token"| System
+    LabTech -->|"HTTPS REST API<br/>Bearer Token"| System
+    Pharmacist -->|"HTTPS REST API<br/>Bearer Token"| System
+
+    System -.->|"authenticate / refresh / revoke"| JWT
+    System -->|"Prisma ORM / SQL"| DB
+
+    classDef actor fill:#F8FAFC,stroke:#334155,stroke-width:1px,color:#111827;
+    classDef system fill:#E0F2FE,stroke:#0369A1,stroke-width:2px,color:#111827;
+    classDef service fill:#F1F5F9,stroke:#475569,stroke-width:1.5px,color:#111827;
+    classDef database fill:#F3E8FF,stroke:#7E22CE,stroke-width:1.5px,color:#111827;
+
+    class Admin,Receptionist,Doctor,Cashier,Manager,Nurse,LabTech,Pharmacist actor;
+    class System system;
+    class JWT service;
+    class DB database;

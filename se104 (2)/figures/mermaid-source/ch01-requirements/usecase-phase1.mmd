@@ -1,0 +1,41 @@
+flowchart LR
+    subgraph Actors["Actors"]
+        direction TB
+        Admin["👤 Admin"]
+        Receptionist["👤 Receptionist"]
+        Doctor["👤 Doctor"]
+        Cashier["👤 Cashier"]
+        Manager["👤 Manager"]
+    end
+
+    subgraph System["4N Clinic Management System - Phase 1"]
+        direction TB
+        AuthAccess["Authentication & Access<br/>UC01 Đăng nhập<br/>UC02 Quản lý tài khoản<br/>UC03 Quản lý vai trò / quyền"]
+        PatientVisit["Patient & Visit<br/>UC04 Tra cứu hồ sơ bệnh nhân<br/>UC05 Tạo / cập nhật hồ sơ bệnh nhân<br/>UC06 Tạo lượt khám<br/>UC07 Xem danh sách lượt khám"]
+        ExamRx["Examination & Prescription<br/>UC08 Mở phiên khám<br/>UC09 Ghi phiếu khám<br/>UC10 Chẩn đoán bệnh<br/>UC11 Kê đơn thuốc<br/>UC12 Xem lịch sử khám"]
+        BillingGroup["Billing<br/>UC13 Lập hóa đơn<br/>UC14 Ghi nhận thanh toán"]
+        CatalogReport["Catalog, Regulation & Report<br/>UC15 Quản lý danh mục bệnh<br/>UC16 Quản lý danh mục thuốc<br/>UC17 Quản lý quy định<br/>UC18 Xem báo cáo tháng"]
+        RelationNote["Include / extend<br/>UC06 include UC04<br/>UC09 include UC08<br/>UC11 extend UC09<br/>UC14 include UC13"]
+    end
+
+    Admin --> AuthAccess
+    Admin --> CatalogReport
+    Receptionist --> AuthAccess
+    Receptionist --> PatientVisit
+    Doctor --> AuthAccess
+    Doctor --> PatientVisit
+    Doctor --> ExamRx
+    Cashier --> AuthAccess
+    Cashier --> BillingGroup
+    Manager --> AuthAccess
+    Manager --> CatalogReport
+
+    classDef actor fill:#F8FAFC,stroke:#334155,stroke-width:1px,color:#111827;
+    classDef uc fill:#E0F2FE,stroke:#0369A1,stroke-width:1.5px,color:#111827;
+    classDef note fill:#F1F5F9,stroke:#64748B,stroke-dasharray:4 3,color:#111827;
+    classDef system fill:#FFFDE7,stroke:#A16207,stroke-width:1px,color:#111827;
+
+    class Admin,Receptionist,Doctor,Cashier,Manager actor;
+    class AuthAccess,PatientVisit,ExamRx,BillingGroup,CatalogReport uc;
+    class RelationNote note;
+    class System system;

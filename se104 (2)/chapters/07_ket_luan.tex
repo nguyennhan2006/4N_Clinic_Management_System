@@ -1,0 +1,83 @@
+
+\chapter*{Kết luận}
+\addcontentsline{toc}{chapter}{Kết luận}
+
+\section*{1. Kết quả đạt được}
+
+Đồ án \textbf{\projecttitle} đã giúp nhóm vận dụng quy trình công nghệ phần mềm vào một bài toán quản lý nghiệp vụ thực tế. Nhóm đã thực hiện đầy đủ các bước từ khảo sát và xác định vấn đề, đặc tả yêu cầu, chốt phạm vi, thiết kế hệ thống, thiết kế dữ liệu, thiết kế xử lý, thiết kế giao diện, hiện thực, kiểm thử đến triển khai local để phục vụ demo.
+
+Về mặt sản phẩm, nhóm đã xây dựng được một hệ thống web nội bộ hỗ trợ quy trình quản lý phòng mạch tư nhân. Hệ thống tập trung vào các nghiệp vụ cốt lõi như đăng nhập, phân quyền, quản lý bệnh nhân, tiếp nhận lượt khám, lập phiếu khám, chẩn đoán, kê đơn, lập hóa đơn, ghi nhận thanh toán và báo cáo. Trên nền tảng đó, Phase 2 mở rộng thêm các nghiệp vụ nâng cao như lịch hẹn, hàng đợi, sinh hiệu, dịch vụ, xét nghiệm, kho thuốc, cấp phát thuốc, tổ chức phòng khám và audit log.
+
+Kết quả kỹ thuật đạt được gồm:
+
+\begin{itemize}
+    \item Hệ thống web nội bộ hỗ trợ 8 vai trò người dùng theo phạm vi thiết kế và codebase hiện tại: ADMIN, RECEPTIONIST, DOCTOR, CASHIER, MANAGER, NURSE, LAB\_TECHNICIAN, PHARMACIST.
+    \item Backend NestJS được tổ chức theo hướng modular monolith, chia module theo domain nghiệp vụ như auth, patients, visits, examinations, billing, appointments, queue, lab, inventory và pharmacy.
+    \item Database PostgreSQL được định nghĩa bằng Prisma, có schema, enum, migration và seed data phục vụ demo/kiểm thử.
+    \item API được tổ chức theo REST/JSON với prefix \code{/api/v1}, có Swagger UI tại \code{/api/docs}, được bảo vệ bằng JWT, guard và phân quyền theo vai trò.
+    \item Frontend React được tổ chức theo feature, có route bảo vệ đăng nhập, phân quyền giao diện bằng ProtectedRoute/RequireRole và sidebar theo vai trò.
+    \item Hệ thống đã có bộ kiểm thử tự động backend E2E gồm 7 file test chính, bao phủ các luồng lõi Phase 1 và một phần Phase 2 như appointments, queue, services/lab.
+    \item Theo log nhóm cung cấp tại thời điểm viết báo cáo, bộ test E2E backend đạt 220/220 test pass trên bộ test hiện có.
+    \item Nhóm đã bổ sung thêm khung kiểm thử đa tầng gồm unit test hộp trắng cho service layer, test mẫu frontend bằng Vitest, test ràng buộc database và CI scaffold bằng GitHub Actions.
+\end{itemize}
+
+Các số liệu cụ thể như số lượng model, enum, endpoint, route, test case và file test được ghi nhận theo kết quả audit codebase tại thời điểm viết báo cáo. Nếu codebase tiếp tục thay đổi, các số liệu này cần được cập nhật lại để bảo đảm báo cáo luôn khớp với hiện thực.
+
+\section*{2. Đánh giá so với mục tiêu ban đầu}
+
+So với mục tiêu ban đầu, hệ thống đã đáp ứng được các nghiệp vụ lõi của phòng mạch tư nhân. Phase 1 hoàn thành vai trò baseline nghiệp vụ, bao gồm xác thực, phân quyền, quản lý bệnh nhân, tiếp nhận lượt khám, khám bệnh, kê đơn, lập hóa đơn, thanh toán và báo cáo. Đây là phần quan trọng nhất vì tạo nền tảng dữ liệu và quy trình cho toàn bộ hệ thống.
+
+Phase 2 mở rộng hệ thống theo hướng gần với quy trình vận hành thực tế hơn. Các module như lịch hẹn, hàng đợi, sinh hiệu, dịch vụ, xét nghiệm, kho thuốc và cấp phát thuốc không thay thế lõi Phase 1, mà được bổ sung xung quanh các thực thể trung tâm như Patient, Visit, Examination, Prescription, Invoice và Payment. Điều này cho thấy quyết định chia phase là hợp lý: Phase 1 giúp nhóm có sản phẩm lõi ổn định, còn Phase 2 chứng minh khả năng mở rộng của kiến trúc.
+
+Về mặt kỹ thuật, hệ thống đã đáp ứng định hướng thiết kế ban đầu: frontend và backend được tách riêng theo mô hình client--server; backend được tổ chức theo modular monolith; business logic quan trọng được đặt ở service layer; dữ liệu được quản lý bằng PostgreSQL/Prisma; API được tài liệu hóa bằng Swagger; kiểm thử được tổ chức ở nhiều mức gồm E2E, unit test, frontend test mẫu, database constraint test và manual UI test.
+
+Về mặt quy trình, báo cáo đã truy vết được từ yêu cầu đến thiết kế, hiện thực và kiểm thử. Các yêu cầu chức năng, use case, business rules, API, module backend, màn hình frontend và test case được liên kết qua các bảng traceability ở các chương tương ứng. Điều này giúp báo cáo không chỉ mô tả sản phẩm cuối cùng, mà còn thể hiện quy trình kỹ nghệ phần mềm mà nhóm đã áp dụng.
+
+\section*{3. Hạn chế}
+
+Mặc dù đã đạt được nhiều kết quả, hệ thống vẫn còn một số hạn chế cần trình bày trung thực:
+
+\begin{itemize}
+    \item Khách hàng trong phạm vi đồ án là khách hàng giả định, chưa có phỏng vấn hoặc nghiệm thu trực tiếp tại một phòng mạch thực tế.
+    \item Hệ thống hiện chủ yếu phục vụ môi trường local/development/demo, chưa phải bản production-ready.
+    \item Phase 2 đã có automated E2E cho appointments, queue và services/lab, nhưng inventory và pharmacy, đặc biệt là nghiệp vụ cấp phát thuốc theo FEFO, vẫn cần bổ sung automated E2E test đầy đủ hơn.
+    \item Unit test hộp trắng cho service layer đã được bổ sung ở một số module trọng tâm, nhưng chưa phủ toàn bộ service của hệ thống, đặc biệt là các module Phase 2 như pharmacy, inventory, appointments và lab.
+    \item Frontend đã có khung Vitest và một số test mẫu, nhưng chưa có độ phủ frontend test đầy đủ và chưa có E2E UI bằng Playwright hoặc Cypress.
+    \item Database constraint test đã có ở mức khung kiểm thử, nhưng cần được chạy thường xuyên trong môi trường CI để bảo đảm không bị lệch khi schema thay đổi.
+    \item Hệ thống đã có CI scaffold ở mức lint/test cơ bản nếu codebase hiện tại có \code{.github/workflows/ci.yml}, nhưng chưa có CD/deployment pipeline hoàn chỉnh cho production.
+    \item Chưa có Docker/docker-compose chính thức, monitoring, backup tự động, HTTPS, quản lý secret production và quy trình vận hành production.
+    \item Bằng chứng đóng góp nhóm cần được nhìn qua nhiều nguồn như Git history, phân công nhiệm vụ, checklist kiểm thử, screenshot demo, tài liệu và quá trình review; không nên chỉ dựa vào commit count vì nhóm có thực hiện pair programming và các hoạt động ngoài commit code.
+    \item Business rule hoàn tất phiếu khám hiện cần tiếp tục kiểm tra và hoàn thiện đối với trường hợp còn pending service/lab orders nếu hệ thống vận hành thực tế với module lab/service đầy đủ.
+\end{itemize}
+
+Các hạn chế trên không làm giảm giá trị của đồ án trong phạm vi học phần, nhưng là cơ sở quan trọng để xác định hướng phát triển tiếp theo nếu hệ thống được tiếp tục hoàn thiện thành sản phẩm thực tế.
+
+\section*{4. Hướng phát triển}
+
+Trong tương lai, nhóm có thể tiếp tục phát triển hệ thống theo các hướng sau:
+
+\begin{itemize}
+    \item Hoàn thiện automated E2E tests cho inventory và pharmacy, đặc biệt là các case FEFO, tồn kho không đủ, lô thuốc hết hạn và reverse dispense.
+    \item Mở rộng unit test hộp trắng cho các service Phase 2 như PharmacyService, InventoryService, LabService, AppointmentsService và QueueService.
+    \item Mở rộng frontend tests bằng Vitest/Testing Library và bổ sung E2E UI bằng Playwright hoặc Cypress cho các luồng demo chính theo role.
+    \item Bổ sung Docker và docker-compose để chuẩn hóa môi trường chạy backend, frontend và database.
+    \item Hoàn thiện CI/CD pipeline: chạy test tự động, kiểm tra coverage, build artifact và triển khai staging/production nếu có môi trường thật.
+    \item Bổ sung monitoring, logging, backup tự động, HTTPS và quản lý secret để chuẩn bị cho môi trường production.
+    \item Xây dựng cổng bệnh nhân để bệnh nhân đặt lịch, xem lịch sử khám, xem đơn thuốc và nhận thông báo.
+    \item Tích hợp nhắc lịch qua SMS/email.
+    \item Tích hợp thanh toán online hoặc bảo hiểm y tế/bảo hiểm tư nhân nếu có yêu cầu nghiệp vụ.
+    \item Mở rộng multi-branch/multi-tenant cho nhiều chi nhánh phòng khám.
+    \item Bổ sung dashboard phân tích nâng cao và báo cáo BI như doanh thu theo bác sĩ, doanh thu theo dịch vụ, thuốc sắp hết hạn và bệnh thường gặp.
+    \item Khảo sát và kiểm thử chấp nhận với người dùng thật tại phòng mạch để điều chỉnh workflow, giao diện và yêu cầu nghiệp vụ.
+\end{itemize}
+
+\section*{5. Kết luận chung}
+
+Tổng kết lại, đồ án đã xây dựng được một hệ thống quản lý phòng mạch tư nhân có cấu trúc rõ ràng, có quy trình phát triển theo phase và có khả năng mở rộng. Phase 1 tạo được baseline nghiệp vụ lõi, giúp hệ thống vận hành các chức năng quan trọng như tiếp nhận, khám bệnh, kê đơn, hóa đơn và thanh toán. Phase 2 mở rộng hệ thống sang các nghiệp vụ gần thực tế hơn như lịch hẹn, hàng đợi, xét nghiệm, kho thuốc và cấp phát thuốc.
+
+Về kỹ thuật, hệ thống áp dụng kiến trúc client--server, backend NestJS modular monolith, frontend React, PostgreSQL/Prisma, REST API, JWT/RBAC và Swagger. Business logic quan trọng được đặt ở backend service layer, các nghiệp vụ nhiều bảng được xử lý bằng transaction và các module được tổ chức theo domain nghiệp vụ. Đây là lựa chọn phù hợp với phạm vi đồ án, quy mô nhóm và yêu cầu chạy local/demo.
+
+Về kiểm thử, hệ thống đã có bộ E2E backend đạt 220/220 test pass theo log nhóm cung cấp, bao phủ cả Phase 1 và một phần Phase 2. Nhóm cũng đã bổ sung khung kiểm thử đa tầng gồm unit test service layer, frontend test mẫu, database constraint test và CI scaffold. Tuy nhiên, hệ thống vẫn cần mở rộng độ phủ kiểm thử, đặc biệt cho inventory/pharmacy, frontend E2E và các điều kiện vận hành production.
+
+Dù chưa đạt mức production-ready, sản phẩm phù hợp với mục tiêu học phần SE104 vì thể hiện được đầy đủ các bước của quy trình kỹ nghệ phần mềm: khảo sát và đặc tả yêu cầu, thiết kế hệ thống, thiết kế phần mềm, hiện thực, kiểm thử, triển khai local và đánh giá kết quả. Những hạn chế đã nêu là cơ sở để nhóm tiếp tục hoàn thiện hệ thống nếu phát triển thành sản phẩm thực tế trong tương lai.
+

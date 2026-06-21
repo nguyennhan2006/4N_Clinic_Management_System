@@ -1,0 +1,1292 @@
+% ============================================================
+% Chương 1: Đặc tả yêu cầu phần mềm
+% Phiên bản: 2.0  --  viết lại 15/06/2026
+% Nguồn số liệu: CODEBASE_AUDIT.md (audit trực tiếp từ mã nguồn)
+% ============================================================
+\chapter{Đặc tả yêu cầu phần mềm}
+\label{chap:srs}
+
+% ============================================================
+\section{Mục tiêu của chương}
+\label{sec:srs-objective}
+% ============================================================
+
+Chương này trình bày toàn bộ quá trình xác định yêu cầu phần mềm cho hệ thống \projecttitle{}, từ khảo sát nghiệp vụ, xác định stakeholder và actor, chốt phạm vi hệ thống, đến đặc tả yêu cầu chức năng, yêu cầu phi chức năng, quy tắc nghiệp vụ và đặc tả use case chi tiết. Mục tiêu không chỉ là liệt kê chức năng, mà còn chứng minh từng chức năng xuất phát từ nhu cầu vận hành cụ thể của phòng mạch tư nhân.
+
+Chương được tổ chức thành hai nhóm phase: Phase 1 bao gồm các chức năng lõi đã được hiện thực hoàn chỉnh, và Phase 2 bao gồm các chức năng mở rộng đã có codebase đầy đủ kèm một phần kiểm thử tự động. Kết quả của chương này là nền tảng cho Chương 2 (thiết kế hệ thống), Chương 3 (thiết kế phần mềm), Chương 4 (hiện thực) và Chương 5 (kiểm thử).
+
+% ============================================================
+\section{Cơ sở khảo sát và giả định nghiệp vụ}
+\label{sec:srs-survey-basis}
+% ============================================================
+
+Do đây là đồ án môn học trong phạm vi học phần SE104, khách hàng được giả định là một phòng mạch tư nhân quy mô nhỏ đến trung bình. Không có phỏng vấn hay nghiệm thu trực tiếp với khách hàng thật. Nhóm phân tích nhu cầu của các vai trò thường gặp trong phòng mạch, chuyển nhu cầu đó thành yêu cầu phần mềm và ghi lại các quyết định kiến trúc vào tài liệu Architecture Decision Records (ADR).
+
+Phòng mạch tư nhân được khảo sát có các đặc điểm:
+
+\begin{itemize}
+    \item Quy mô nhỏ đến trung bình, phục vụ bệnh nhân ngoại trú theo lượt trong ngày.
+    \item Nhân sự nội bộ gồm: quản lý/chủ phòng khám, bác sĩ, lễ tân, thu ngân, điều dưỡng, kỹ thuật viên xét nghiệm và dược sĩ.
+    \item Hiện vận hành bằng sổ sách hoặc phần mềm cơ bản, chưa có hệ thống quản lý tích hợp.
+    \item Đặt trọng tâm vào quy trình: tiếp nhận bệnh nhân $\rightarrow$ khám bệnh $\rightarrow$ kê đơn $\rightarrow$ thanh toán.
+\end{itemize}
+
+Bảng \ref{tab:srs-assumptions} liệt kê các giả định và ràng buộc cốt lõi của dự án.
+
+\begin{table}[H]
+\centering
+\caption{Giả định và ràng buộc nghiệp vụ}
+\label{tab:srs-assumptions}
+\begin{tabularx}{\textwidth}{|p{1.4cm}|p{4.2cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Giả định} & \textbf{Ý nghĩa đối với phạm vi hệ thống} \\
+\hline
+A1 & Một phòng mạch, một địa điểm & Hệ thống không hỗ trợ multi-branch hoặc multi-tenant trong phiên bản hiện tại. \\
+\hline
+A2 & Người dùng là nhân sự nội bộ & Bệnh nhân không có tài khoản đăng nhập; mọi thao tác nghiệp vụ do nhân viên phòng mạch thực hiện. \\
+\hline
+A3 & Môi trường local/development & Hệ thống chạy được trên máy tính phát triển với PostgreSQL, NestJS và Vite; chưa có deployment production. \\
+\hline
+A4 & Phase 1 là nghiệp vụ lõi hoàn chỉnh & Phase 2 là mở rộng có codebase và một phần automated test; không phải prototype hoặc stub. \\
+\hline
+A5 & Dữ liệu seed là dữ liệu demo & Dữ liệu seed không đại diện cho dữ liệu bệnh nhân/hồ sơ thật. \\
+\hline
+A6 & Không có khảo sát khách hàng thật & Nghiệp vụ dựa trên phân tích quy trình phòng mạch điển hình theo tài liệu học thuật. \\
+\hline
+A7 & Hệ thống hỗ trợ 8 vai trò người dùng & 5 vai trò lõi Phase 1 + 3 vai trò mở rộng Phase 2; tất cả đều được enforce trong \texttt{@Roles} guard tại thời điểm viết báo cáo. \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ============================================================
+\section{Bối cảnh và vấn đề của khách hàng}
+\label{sec:srs-context}
+% ============================================================
+
+Quy trình vận hành điển hình của phòng mạch tư nhân gồm: bệnh nhân đến đăng ký, lễ tân tiếp nhận và tạo số thứ tự, bác sĩ khám và lập phiếu, thu ngân lập hóa đơn và ghi nhận thanh toán, quản lý theo dõi hoạt động. Khi chưa có phần mềm quản lý tích hợp, các bước này thường gặp những vấn đề sau:
+
+\begin{itemize}
+    \item \textbf{Hồ sơ bệnh nhân rời rạc:} Thông tin bệnh nhân lưu trong sổ sách hoặc file riêng lẻ, khó tra cứu và dễ tạo trùng hồ sơ khi bệnh nhân tái khám.
+    \item \textbf{Tiếp nhận thủ công:} Không có số thứ tự tự động, dễ gây nhầm lẫn khi nhiều bệnh nhân đến cùng lúc; lễ tân phải phân bổ thứ tự bằng kinh nghiệm.
+    \item \textbf{Phiếu khám và đơn thuốc viết tay:} Khó đọc, khó lưu trữ, khó tra cứu lịch sử khám cũ; bác sĩ phải tìm thủ công khi cần xem lại.
+    \item \textbf{Quản lý hóa đơn dễ sai sót:} Tổng hợp phí khám, tiền thuốc và phí dịch vụ thủ công; thanh toán từng phần khó theo dõi; đối soát cuối ngày tốn thời gian.
+    \item \textbf{Báo cáo tháng thiếu chính xác:} Tổng hợp doanh thu, số lượt khám và tình hình sử dụng thuốc/dịch vụ bằng tay dễ sai và không kịp thời.
+    \item \textbf{Kiểm soát tồn kho và hạn dùng thuốc khó:} Dược sĩ phải theo dõi hạn dùng bằng mắt thường, nguy cơ cấp phát lô hết hạn (vấn đề Phase 2).
+    \item \textbf{Lịch hẹn và hàng đợi phụ thuộc điện thoại:} Xác nhận lịch hẹn và quản lý thứ tự khám phụ thuộc ghi chép tay hoặc điện thoại (vấn đề Phase 2).
+\end{itemize}
+
+Hệ thống \projecttitle{} được xây dựng nhằm giải quyết các vấn đề trên thông qua một ứng dụng web nội bộ tích hợp, hỗ trợ toàn bộ vòng đời nghiệp vụ của phòng mạch.
+
+% ============================================================
+\section{Stakeholder và actor hệ thống}
+\label{sec:srs-stakeholder}
+% ============================================================
+
+Bảng \ref{tab:srs-stakeholders} liệt kê các stakeholder và actor chính, kèm nhu cầu, chức năng liên quan, quyền truy cập và phase triển khai. Thông tin role code được lấy trực tiếp từ \texttt{backend/prisma/seed.ts} và các decorator \texttt{@Roles(...)} trong controller.
+
+\begin{longtable}{|p{2.2cm}|p{2.5cm}|p{3.4cm}|p{2.6cm}|p{1.3cm}|}
+\caption{Stakeholder, actor và phân quyền hệ thống}
+\label{tab:srs-stakeholders}\\
+\hline
+\textbf{Actor / Role} & \textbf{Nhu cầu chính} & \textbf{Chức năng liên quan} & \textbf{Quyền truy cập} & \textbf{Phase} \\
+\hline
+\endhead
+\hline
+\endfoot
+ADMIN \newline (Quản trị viên) & Quản trị toàn bộ hệ thống & Tài khoản, RBAC, quy định, danh mục, audit log & Toàn quyền hệ thống & P1+P2 \\
+\hline
+RECEPTIONIST \newline (Lễ tân) & Tiếp nhận bệnh nhân nhanh, trật tự & Hồ sơ bệnh nhân, lượt khám, số thứ tự, lịch hẹn, check-in & Bệnh nhân, Visit, Appointment & P1+P2 \\
+\hline
+DOCTOR \newline (Bác sĩ) & Khám bệnh, kê đơn, tra cứu lịch sử & Phiếu khám, chẩn đoán, đơn thuốc, chỉ định dịch vụ/xét nghiệm & Examination, Lab, Service & P1+P2 \\
+\hline
+CASHIER \newline (Thu ngân) & Hóa đơn đúng, thanh toán nhiều lần & Lập hóa đơn, ghi nhận thanh toán, tra cứu & Billing, Invoice, Payment & P1 \\
+\hline
+MANAGER \newline (Quản lý) & Theo dõi hoạt động, báo cáo & Báo cáo tháng, tổng quan lượt khám, doanh thu, tra cứu hóa đơn & Reports, Audit (đọc) & P1+P2 \\
+\hline
+NURSE \newline (Điều dưỡng) & Ghi sinh hiệu, hỗ trợ quy trình & Vitals, Queue, Appointment, Lab sample & Vitals, Queue & P2 \\
+\hline
+LAB\_TECHNICIAN \newline (KTV xét nghiệm) & Xử lý mẫu, nhập kết quả & Lab order, sample collection, result entry, verification & Lab module & P2 \\
+\hline
+PHARMACIST \newline (Dược sĩ) & Cấp phát thuốc, quản lý tồn kho & Pharmacy worklist, dispense, stock lot, FEFO & Pharmacy, Inventory & P2 \\
+\hline
+PATIENT \newline (Bệnh nhân) & Khám bệnh, nhận đơn thuốc & External stakeholder; không đăng nhập hệ thống & Không có tài khoản & -- \\
+\hline
+\end{longtable}
+
+% ============================================================
+\section{Phạm vi hệ thống}
+\label{sec:srs-scope}
+% ============================================================
+
+\subsection{Trong phạm vi}
+\label{subsec:srs-in-scope}
+
+\textbf{Phase 1 -- Nghiệp vụ lõi (đã hiện thực hoàn chỉnh):}
+
+\begin{itemize}
+    \item \textbf{Auth/RBAC:} đăng nhập JWT, refresh token, đăng xuất, quản lý tài khoản, phân quyền theo 8 vai trò.
+    \item \textbf{Bệnh nhân:} tìm kiếm đa tiêu chí, tạo/cập nhật hồ sơ, xem lịch sử khám.
+    \item \textbf{Lượt khám:} tạo visit, cấp số thứ tự tự động trong transaction, xem danh sách theo ngày/trạng thái.
+    \item \textbf{Phiếu khám:} mở phiên khám, ghi triệu chứng, chẩn đoán bệnh, kê đơn thuốc, hoàn tất khám.
+    \item \textbf{Thanh toán:} lập hóa đơn, ghi nhận thanh toán theo lần, tra cứu hóa đơn.
+    \item \textbf{Danh mục:} danh mục bệnh, danh mục thuốc.
+    \item \textbf{Quy định:} phí khám, quota bệnh nhân/ngày, version-controlled.
+    \item \textbf{Báo cáo:} thống kê tháng cơ bản.
+\end{itemize}
+
+\textbf{Phase 2 -- Mở rộng (đã có codebase và một phần automated test):}
+
+\begin{itemize}
+    \item \textbf{Lịch hẹn:} tạo, xác nhận, hủy, check-in lịch hẹn thành lượt khám.
+    \item \textbf{Hàng đợi:} quản lý state machine gọi số trong ngày.
+    \item \textbf{Sinh hiệu:} ghi nhận vital signs, tính BMI tự động.
+    \item \textbf{Dịch vụ/Xét nghiệm:} catalog dịch vụ, chỉ định, quy trình lab (ORDERED $\rightarrow$ SAMPLE\_COLLECTED $\rightarrow$ RESULT\_ENTERED $\rightarrow$ VERIFIED).
+    \item \textbf{Kho thuốc:} quản lý lô thuốc, nhập kho, theo dõi tồn kho và hạn dùng.
+    \item \textbf{Cấp phát:} worklist dược sĩ, cấp phát thuốc theo đơn với hướng dẫn FEFO.
+    \item \textbf{Tổ chức:} quản lý khoa/phòng, hồ sơ bác sĩ, ca làm việc.
+    \item \textbf{Audit log:} ghi nhận các thao tác quan trọng của hệ thống.
+\end{itemize}
+
+\subsection{Ngoài phạm vi}
+\label{subsec:srs-out-of-scope}
+
+Các chức năng sau không thuộc phạm vi phiên bản hiện tại:
+
+\begin{itemize}
+    \item Cổng bệnh nhân tự tra cứu/đặt lịch online (patient portal).
+    \item Nhắc lịch tự động qua SMS hoặc email.
+    \item Tích hợp bảo hiểm y tế hoặc bảo hiểm tư nhân.
+    \item Hệ thống multi-branch hoặc multi-tenant.
+    \item Telemedicine hoặc khám trực tuyến.
+    \item Mobile app native (iOS/Android).
+    \item Website công khai hướng đến bệnh nhân.
+    \item Docker/production deployment chính thức; monitoring, HTTPS và backup tự động.
+    \item Advanced BI hoặc data warehouse.
+\end{itemize}
+
+\subsection{Giả định và ràng buộc bổ sung}
+\label{subsec:srs-constraints}
+
+Ngoài các giả định trong Bảng~\ref{tab:srs-assumptions}, nhóm đặt thêm các ràng buộc kỹ thuật sau:
+
+\begin{itemize}
+    \item Backend viết bằng NestJS + TypeScript; business rules được đặt ở service layer, không ở controller.
+    \item Database dùng PostgreSQL, định nghĩa schema qua Prisma ORM là nguồn chốt duy nhất.
+    \item API tuân thủ REST/JSON, prefix \texttt{/api/v1}, tài liệu hóa bằng Swagger UI tại \texttt{/api/docs}.
+    \item Xác thực dùng JWT access token + refresh token; mọi route nghiệp vụ bắt buộc có \texttt{JwtAuthGuard}.
+    \item Frontend viết bằng React + TypeScript + Vite; không gọi endpoint ngoài danh sách đã kiểm thật.
+    \item Dùng \verb|prisma.$transaction()| cho các nghiệp vụ đa bước: tạo visit (queueNumber), ghi thanh toán, kích hoạt quy định.
+\end{itemize}
+
+% ============================================================
+\section{Quy trình nghiệp vụ tổng quan}
+\label{sec:srs-business-flow}
+% ============================================================
+
+\subsection*{Luồng Phase 1 -- Khám bệnh lõi}
+
+\begin{enumerate}
+    \item Lễ tân tìm kiếm hoặc tạo mới hồ sơ bệnh nhân.
+    \item Lễ tân tạo lượt khám, hệ thống sinh số thứ tự tự động (không trùng trong ngày, dùng transaction).
+    \item Bác sĩ xem danh sách lượt khám, mở phiên khám cho lượt được chỉ định.
+    \item Bác sĩ ghi triệu chứng, chọn bệnh chẩn đoán từ danh mục, kê đơn thuốc điện tử.
+    \item Bác sĩ hoàn tất phiếu khám -- hệ thống chuyển visit sang trạng thái COMPLETED.
+    \item Thu ngân lập hóa đơn từ visit đã hoàn tất; hóa đơn tính phí khám và thuốc.
+    \item Thu ngân ghi nhận thanh toán; hóa đơn chuyển sang PAID khi đủ số tiền.
+    \item Quản lý xem báo cáo thống kê tháng: số lượt khám, doanh thu.
+\end{enumerate}
+
+\subsection*{Luồng Phase 2 -- Quy trình mở rộng}
+
+\begin{enumerate}
+    \item Lễ tân tạo lịch hẹn cho bệnh nhân (ngày/giờ/bác sĩ).
+    \item Bệnh nhân đến, lễ tân check-in lịch hẹn, tạo lượt khám tương ứng.
+    \item Điều dưỡng ghi sinh hiệu (chiều cao, cân nặng, huyết áp, mạch, nhiệt độ); BMI tính tự động.
+    \item Quản lý hàng đợi: gọi số, chuyển trạng thái (WAITING $\rightarrow$ CALLED $\rightarrow$ IN\_SERVICE $\rightarrow$ DONE).
+    \item Bác sĩ chỉ định dịch vụ/xét nghiệm trong quá trình khám.
+    \item KTV xét nghiệm nhận order, thu mẫu, nhập kết quả, xác minh kết quả.
+    \item Dược sĩ xem worklist, cấp phát thuốc theo đơn, hệ thống hướng dẫn chọn lô FEFO.
+    \item Audit log ghi nhận thao tác quan trọng tự động trong background.
+\end{enumerate}
+
+% ============================================================
+\section{Yêu cầu chức năng}
+\label{sec:srs-functional}
+% ============================================================
+
+Bảng~\ref{tab:srs-req} liệt kê 30 yêu cầu chức năng (REQ-01 đến REQ-30), được ánh xạ sang use case, actor, mức ưu tiên, phase và trạng thái hiện thực. Trạng thái dựa trên kết quả audit codebase ngày 15/06/2026.
+
+\begin{longtable}{|p{1.5cm}|p{4.8cm}|p{2.3cm}|p{1.5cm}|p{1.3cm}|p{2.0cm}|}
+\caption{Danh sách yêu cầu chức năng REQ-01 đến REQ-30}
+\label{tab:srs-req}\\
+\hline
+\textbf{REQ} & \textbf{Nội dung yêu cầu} & \textbf{Actor} & \textbf{Ưu tiên} & \textbf{Phase} & \textbf{Trạng thái} \\
+\hline
+\endhead
+\hline
+\endfoot
+REQ-01 & Đăng nhập bằng email/password, nhận JWT access token và refresh token & Tất cả & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-02 & Đăng xuất và thu hồi refresh token & Tất cả & Trung bình & P1 & Hiện thực \\
+\hline
+REQ-03 & Quản lý tài khoản người dùng: CRUD, khóa/mở tài khoản, gán vai trò & ADMIN & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-04 & Phân quyền theo vai trò (RBAC), kiểm soát truy cập endpoint & ADMIN & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-05 & Tìm kiếm bệnh nhân theo mã, tên, số điện thoại hoặc định danh & RECEPTIONIST, DOCTOR & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-06 & Tạo và cập nhật hồ sơ bệnh nhân, sinh mã bệnh nhân tự động & RECEPTIONIST & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-07 & Xem chi tiết hồ sơ và lịch sử khám của bệnh nhân & DOCTOR, RECEPTIONIST & Trung bình & P1 & Hiện thực \\
+\hline
+REQ-08 & Tạo lượt khám, sinh số thứ tự không trùng trong ngày trong transaction & RECEPTIONIST & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-09 & Xem danh sách lượt khám theo ngày và trạng thái & DOCTOR, RECEPTIONIST & Cao & P1 & Hiện thực \\
+\hline
+REQ-10 & Bác sĩ mở phiên khám từ lượt khám hợp lệ & DOCTOR & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-11 & Ghi triệu chứng, ghi chú lâm sàng và phí khám vào phiếu khám & DOCTOR & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-12 & Chọn và lưu chẩn đoán bệnh từ danh mục, đảm bảo tối đa 1 chẩn đoán chính & DOCTOR & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-13 & Kê đơn thuốc điện tử từ danh mục thuốc đang hoạt động & DOCTOR & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-14 & Hoàn tất phiếu khám (bắt buộc có chẩn đoán chính) & DOCTOR & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-15 & Lập hóa đơn cho lượt khám đã hoàn tất & CASHIER & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-16 & Ghi nhận thanh toán từng phần hoặc toàn bộ & CASHIER & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-17 & Tra cứu hóa đơn theo ngày, trạng thái hoặc bệnh nhân & CASHIER, MANAGER & Cao & P1 & Hiện thực \\
+\hline
+REQ-18 & Quản lý phiên bản quy định phòng khám (phí, quota), chỉ 1 phiên bản active & ADMIN, MANAGER & Cao & P1 & Hiện thực + AutoTest \\
+\hline
+REQ-19 & Quản lý danh mục bệnh (thêm, sửa, vô hiệu hóa) & ADMIN & Trung bình & P1 & Hiện thực \\
+\hline
+REQ-20 & Quản lý danh mục thuốc (thêm, sửa, vô hiệu hóa) & ADMIN & Trung bình & P1 & Hiện thực \\
+\hline
+REQ-21 & Xem báo cáo thống kê tháng: lượt khám, doanh thu & MANAGER & Trung bình & P1 & Hiện thực \\
+\hline
+REQ-22 & Tạo, xác nhận và hủy lịch hẹn khám & RECEPTIONIST & Cao & P2 & Hiện thực + AutoTest \\
+\hline
+REQ-23 & Check-in lịch hẹn, chuyển thành lượt khám thực tế & RECEPTIONIST & Cao & P2 & Hiện thực + AutoTest \\
+\hline
+REQ-24 & Quản lý hàng đợi theo state machine trong ngày & RECEPTIONIST, NURSE, DOCTOR & Trung bình & P2 & Hiện thực + AutoTest \\
+\hline
+REQ-25 & Ghi nhận sinh hiệu, tính BMI tự động & NURSE & Trung bình & P2 & Hiện thực + AutoTest \\
+\hline
+REQ-26 & Quản lý danh mục dịch vụ và chỉ định dịch vụ/xét nghiệm & ADMIN, DOCTOR & Trung bình & P2 & Hiện thực \\
+\hline
+REQ-27 & Quy trình xét nghiệm: order, thu mẫu, nhập kết quả, xác minh & LAB\_TECHNICIAN, DOCTOR & Cao & P2 & Hiện thực + AutoTest \\
+\hline
+REQ-28 & Quản lý lô thuốc và tồn kho & PHARMACIST, ADMIN & Cao & P2 & Hiện thực + Bằng chứng thủ công \\
+\hline
+REQ-29 & Cấp phát thuốc theo đơn với hướng dẫn ưu tiên lô FEFO, chặn lô hết hạn & PHARMACIST & Cao & P2 & Hiện thực + Bằng chứng thủ công \\
+\hline
+REQ-30 & Ghi nhận audit log cho các thao tác quan trọng & ADMIN, MANAGER & Thấp & P2 & Hiện thực \\
+\hline
+\end{longtable}
+
+% ============================================================
+\section{Yêu cầu phi chức năng}
+\label{sec:srs-nonfunctional}
+% ============================================================
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu phi chức năng}
+\label{tab:srs-nfr}
+\begin{tabularx}{\textwidth}{|p{1.3cm}|p{2.6cm}|X|p{3.0cm}|}
+\hline
+\textbf{NFR} & \textbf{Nhóm} & \textbf{Mô tả} & \textbf{Phương pháp kiểm chứng} \\
+\hline
+NFR-01 & Bảo mật & JWT bắt buộc cho mọi route nghiệp vụ; 401 khi token không hợp lệ; 403 khi không đủ quyền; \texttt{passwordHash} không bao giờ được trả về response. & E2E test auth + RBAC negative \\
+\hline
+NFR-02 & Toàn vẹn dữ liệu & Các nghiệp vụ đa bảng (tạo visit, ghi thanh toán, kích hoạt quy định) dùng \verb|prisma.$transaction()|; unique constraint chặn trùng lặp. & E2E test + DB constraint test \\
+\hline
+NFR-03 & Hiệu năng & Trong môi trường local demo với dữ liệu seed, các API tra cứu phổ biến nên phản hồi dưới 500ms; hệ thống phục vụ tối thiểu 10 người dùng nội bộ đồng thời. & Thủ công / không đo chính thức \\
+\hline
+NFR-04 & Khả dụng & Giao diện theo vai trò, có loading/empty/error/success state rõ ràng; form validation với thông báo cụ thể; VND formatting cho tiền tệ. & Manual UI test \\
+\hline
+NFR-05 & Bảo trì & Backend modular monolith (NestJS module); business rules ở service layer; frontend theo feature folder; tên file theo NestJS convention. & Code review / cấu trúc code \\
+\hline
+NFR-06 & Kiểm thính & Audit log tự động ghi nhận thao tác quan trọng (Phase 2); Swagger UI tài liệu hóa toàn bộ API. & AuditLog table + Swagger \\
+\hline
+NFR-07 & Mở rộng & Modular monolith cho phép bổ sung Phase 2 module mà không sửa lõi Phase 1; schema 37 models đã tích hợp sẵn cấu trúc Phase 2. & Kiến trúc + 3 migrations \\
+\hline
+NFR-08 & Triển khai & Chạy được local với Node.js + PostgreSQL + Vite; CI scaffold bằng GitHub Actions (\texttt{ci.yml}); chưa có Docker/production. & Chạy local + CI scaffold \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ============================================================
+\section{Business rules}
+\label{sec:srs-br}
+% ============================================================
+
+Bảng~\ref{tab:srs-br} liệt kê 29 business rule (BR-01 đến BR-29) đã được hiện thực trong service layer backend. Nguồn xác minh là đọc trực tiếp mã nguồn trong quá trình audit ngày 15/06/2026.
+
+\begin{longtable}{|p{1.3cm}|p{4.5cm}|p{2.0cm}|p{2.4cm}|p{2.2cm}|}
+\caption{Danh sách business rules BR-01 đến BR-29}
+\label{tab:srs-br}\\
+\hline
+\textbf{BR} & \textbf{Nội dung quy tắc} & \textbf{UC liên quan} & \textbf{Nơi enforce} & \textbf{Trạng thái} \\
+\hline
+\endhead
+\hline
+\endfoot
+BR-01 & Sai credentials khi đăng nhập trả về 401 Unauthorized & UC01 & AuthService & Hiện thực + AutoTest \\
+\hline
+BR-02 & Tài khoản không ở trạng thái ACTIVE không thể đăng nhập & UC01 & AuthService & Hiện thực \\
+\hline
+BR-03 & Người dùng không đủ vai trò bị chặn 403 Forbidden & Tất cả & RolesGuard + Frontend & Hiện thực + AutoTest \\
+\hline
+BR-04 & CitizenId của bệnh nhân phải là duy nhất trong hệ thống & UC05 & PatientsService + DB unique & Hiện thực \\
+\hline
+BR-05 & Một bệnh nhân không có nhiều hơn 1 lượt khám trong cùng ngày & UC08 & VisitsService & Hiện thực + AutoTest \\
+\hline
+BR-06 & Số lượt khám trong ngày không vượt quá quota cấu hình trong RegulationVersion & UC08 & VisitsService & Hiện thực \\
+\hline
+BR-07 & Số thứ tự (queueNumber) không trùng trong cùng ngày; được sinh trong transaction & UC08 & VisitsService (\verb|$transaction|) & Hiện thực + AutoTest \\
+\hline
+BR-08 & Chỉ người dùng có vai trò DOCTOR được mở phiên khám & UC09 & RBAC + ExaminationsService & Hiện thực + AutoTest \\
+\hline
+BR-09 & Visit phải ở trạng thái hợp lệ (WAITING hoặc IN\_SERVICE) để mở phiên khám & UC09 & ExaminationsService & Hiện thực \\
+\hline
+BR-10 & Phiếu khám đã hoàn tất (COMPLETED) không được cập nhật tùy tiện & UC10--UC12 & ExaminationsService & Hiện thực + AutoTest \\
+\hline
+BR-11 & Tối đa một chẩn đoán chính (isPrimary) cho mỗi phiếu khám & UC11 & ExaminationsService & Hiện thực + AutoTest \\
+\hline
+BR-12 & Phải có ít nhất một chẩn đoán chính trước khi hoàn tất phiếu khám & UC13 & ExaminationsService & Hiện thực + AutoTest \\
+\hline
+BR-13 & Không kê đơn thuốc đã bị vô hiệu hóa (isActive = false) & UC12 & ExaminationsService & Hiện thực \\
+\hline
+BR-14 & Chỉ được lập hóa đơn khi lượt khám đã COMPLETED & UC14 & BillingService & Hiện thực + AutoTest \\
+\hline
+BR-15 & Một lượt khám không có hai hóa đơn chính trùng nhau & UC14 & BillingService + DB unique & Hiện thực \\
+\hline
+BR-16 & Số tiền thanh toán không được vượt quá remaining amount của hóa đơn & UC15 & BillingService & Hiện thực + AutoTest \\
+\hline
+BR-17 & Không thể ghi nhận thanh toán cho hóa đơn PAID hoặc VOID & UC15 & BillingService & Hiện thực + AutoTest \\
+\hline
+BR-18 & Chỉ một RegulationVersion được ở trạng thái active tại một thời điểm & UC18 & RegulationsService (\verb|$transaction|) & Hiện thực + AutoTest \\
+\hline
+BR-19 & Lịch hẹn chỉ được check-in khi ở trạng thái hợp lệ (CONFIRMED hoặc SCHEDULED) & UC22 & AppointmentsService & Hiện thực + AutoTest \\
+\hline
+BR-20 & Hàng đợi chuyển trạng thái theo state machine: WAITING $\rightarrow$ CALLED $\rightarrow$ IN\_SERVICE $\rightarrow$ DONE & UC23 & QueueService & Hiện thực + AutoTest \\
+\hline
+BR-21 & Không được bỏ qua bước trong state machine hàng đợi & UC23 & QueueService & Hiện thực + AutoTest \\
+\hline
+BR-22 & BMI được tính tự động khi nhập đủ chiều cao và cân nặng & UC24 & VitalsService & Hiện thực + AutoTest \\
+\hline
+BR-23 & Lab workflow theo state machine: ORDERED $\rightarrow$ SAMPLE\_COLLECTED $\rightarrow$ RESULT\_ENTERED $\rightarrow$ VERIFIED & UC27 & LabService & Hiện thực + AutoTest \\
+\hline
+BR-24 & Kết quả xét nghiệm đã VERIFIED không được sửa tùy tiện & UC27 & LabService & Cần xác minh thêm \\
+\hline
+BR-25 & Tồn kho lô thuốc không được âm & UC28, UC29 & InventoryService / PharmacyService & Hiện thực \\
+\hline
+BR-26 & Hệ thống ưu tiên hiển thị lô hết hạn sớm nhất khi cấp phát (FEFO) & UC29 & InventoryService (\texttt{orderBy expiryDate asc}) & Hiện thực một phần \\
+\hline
+BR-27 & Không cấp phát từ lô thuốc đã hết hạn & UC29 & PharmacyService & Hiện thực + Bằng chứng thủ công \\
+\hline
+BR-28 & Không cấp phát vượt số lượng đã kê trong đơn thuốc & UC29 & PharmacyService & Hiện thực \\
+\hline
+BR-29 & Audit log ghi nhận tự động các thao tác quan trọng (đăng nhập, tạo hồ sơ, cấp phát) & UC30 & AuditService & Hiện thực \\
+\hline
+\end{longtable}
+
+\textit{Lưu ý BR-26:} Cơ chế FEFO hiện tại liệt kê lô theo \texttt{expiryDate asc} và chặn lô hết hạn. Dược sĩ chọn lô tường minh; hệ thống không tự động phân bổ số lượng qua nhiều lô. Đây là ``FEFO có hướng dẫn'', phù hợp quy mô đồ án.
+
+% ============================================================
+\section{Danh sách use case theo actor}
+\label{sec:srs-uc-list}
+% ============================================================
+
+Bảng~\ref{tab:srs-uc-list} tổng hợp 30 use case (UC01--UC30), ánh xạ sang actor chính, REQ liên quan và mục tiêu nghiệp vụ.
+
+\begin{longtable}{|p{1.3cm}|p{3.5cm}|p{2.5cm}|p{1.2cm}|p{1.2cm}|p{4.0cm}|}
+\caption{Danh sách use case theo actor và phase}
+\label{tab:srs-uc-list}\\
+\hline
+\textbf{UC} & \textbf{Tên use case} & \textbf{Actor chính} & \textbf{Phase} & \textbf{REQ} & \textbf{Mục tiêu nghiệp vụ} \\
+\hline
+\endhead
+\hline
+\endfoot
+UC01 & Đăng nhập hệ thống & Tất cả & P1 & REQ-01 & Xác thực người dùng, khởi tạo phiên làm việc. \\
+\hline
+UC02 & Đăng xuất hệ thống & Tất cả & P1 & REQ-02 & Kết thúc phiên, thu hồi refresh token. \\
+\hline
+UC03 & Quản lý tài khoản người dùng & ADMIN & P1 & REQ-03 & Tạo, cập nhật, khóa/mở tài khoản và gán vai trò. \\
+\hline
+UC04 & Phân quyền theo vai trò & ADMIN & P1 & REQ-04 & Cấu hình RBAC, kiểm soát quyền truy cập endpoint. \\
+\hline
+UC05 & Tìm kiếm bệnh nhân & RECEPTIONIST, DOCTOR & P1 & REQ-05 & Tra cứu nhanh hồ sơ theo mã, tên, SĐT, định danh. \\
+\hline
+UC06 & Tạo hồ sơ bệnh nhân & RECEPTIONIST & P1 & REQ-06 & Tạo hồ sơ mới, sinh mã bệnh nhân, tránh trùng định danh. \\
+\hline
+UC07 & Cập nhật hồ sơ bệnh nhân & RECEPTIONIST & P1 & REQ-06 & Cập nhật thông tin hành chính khi có thay đổi. \\
+\hline
+UC08 & Tạo lượt khám và cấp số thứ tự & RECEPTIONIST & P1 & REQ-08 & Tiếp nhận bệnh nhân, sinh queueNumber không trùng. \\
+\hline
+UC09 & Xem danh sách lượt khám & RECEPTIONIST, DOCTOR & P1 & REQ-09 & Xem visit theo ngày, trạng thái, vai trò. \\
+\hline
+UC10 & Mở phiên khám & DOCTOR & P1 & REQ-10 & Bác sĩ bắt đầu xử lý lượt khám, tạo phiếu khám. \\
+\hline
+UC11 & Ghi thông tin phiếu khám & DOCTOR & P1 & REQ-11 & Ghi triệu chứng, ghi chú lâm sàng, phí khám. \\
+\hline
+UC12 & Ghi chẩn đoán bệnh & DOCTOR & P1 & REQ-12 & Chọn bệnh từ danh mục, đảm bảo tối đa 1 chẩn đoán chính. \\
+\hline
+UC13 & Kê đơn thuốc & DOCTOR & P1 & REQ-13 & Tạo đơn thuốc điện tử từ danh mục thuốc đang hoạt động. \\
+\hline
+UC14 & Hoàn tất phiếu khám & DOCTOR & P1 & REQ-14 & Chốt phiếu, chuyển visit COMPLETED, mở cho lập hóa đơn. \\
+\hline
+UC15 & Lập hóa đơn & CASHIER & P1 & REQ-15 & Tạo invoice từ visit COMPLETED. \\
+\hline
+UC16 & Ghi nhận thanh toán & CASHIER & P1 & REQ-16 & Ghi payment, cập nhật paidAmount, chuyển PAID khi đủ. \\
+\hline
+UC17 & Tra cứu hóa đơn & CASHIER, MANAGER & P1 & REQ-17 & Tìm kiếm invoice theo ngày, trạng thái, bệnh nhân. \\
+\hline
+UC18 & Quản lý quy định phòng mạch & ADMIN, MANAGER & P1 & REQ-18 & Cập nhật phí khám, quota/ngày, kích hoạt version mới. \\
+\hline
+UC19 & Quản lý danh mục bệnh & ADMIN & P1 & REQ-19 & Thêm, sửa, vô hiệu hóa bệnh trong danh mục. \\
+\hline
+UC20 & Quản lý danh mục thuốc & ADMIN & P1 & REQ-20 & Thêm, sửa, vô hiệu hóa thuốc trong danh mục. \\
+\hline
+UC21 & Xem báo cáo tháng & MANAGER & P1 & REQ-21 & Xem thống kê lượt khám và doanh thu theo tháng. \\
+\hline
+UC22 & Quản lý lịch hẹn & RECEPTIONIST & P2 & REQ-22 & Tạo, xác nhận, hủy lịch hẹn khám. \\
+\hline
+UC23 & Check-in lịch hẹn & RECEPTIONIST & P2 & REQ-23 & Chuyển lịch hẹn thành lượt khám thực tế. \\
+\hline
+UC24 & Quản lý hàng đợi & RECEPTIONIST, NURSE, DOCTOR & P2 & REQ-24 & Gọi số, điều phối bệnh nhân theo state machine. \\
+\hline
+UC25 & Ghi nhận sinh hiệu & NURSE & P2 & REQ-25 & Lưu vitals, tính BMI tự động. \\
+\hline
+UC26 & Quản lý dịch vụ y tế & ADMIN, MANAGER & P2 & REQ-26 & Danh mục dịch vụ, giá và trạng thái sử dụng. \\
+\hline
+UC27 & Chỉ định dịch vụ/xét nghiệm & DOCTOR & P2 & REQ-26 & Bác sĩ chỉ định dịch vụ/xét nghiệm trong phiếu khám. \\
+\hline
+UC28 & Xử lý xét nghiệm & LAB\_TECHNICIAN, DOCTOR & P2 & REQ-27 & Quy trình order $\rightarrow$ thu mẫu $\rightarrow$ nhập kết quả $\rightarrow$ xác minh. \\
+\hline
+UC29 & Quản lý lô thuốc và tồn kho & PHARMACIST, ADMIN & P2 & REQ-28 & Nhập lô, theo dõi hạn dùng và số lượng tồn. \\
+\hline
+UC30 & Cấp phát thuốc theo đơn & PHARMACIST & P2 & REQ-29 & Cấp phát theo prescription với hướng dẫn FEFO. \\
+\hline
+\end{longtable}
+
+% ============================================================
+\section{Đặc tả use case chi tiết}
+\label{sec:srs-uc-detail}
+% ============================================================
+
+Mục này đặc tả chi tiết các use case quan trọng nhất trong Phase 1 và Phase 2. Các use case có quy trình phức tạp được đặc tả đầy đủ; các use case đơn giản được đặc tả theo form rút gọn nhưng đủ các trường bắt buộc.
+
+% ------- UC01 -------
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC01 -- Đăng nhập hệ thống}
+\label{tab:uc01}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC01 \\
+\hline
+\textbf{Tên use case} & Đăng nhập hệ thống \\
+\hline
+\textbf{Actor chính} & Tất cả vai trò (ADMIN, RECEPTIONIST, DOCTOR, CASHIER, MANAGER, NURSE, LAB\_TECHNICIAN, PHARMACIST) \\
+\hline
+\textbf{Actor phụ} & -- \\
+\hline
+\textbf{Mục tiêu} & Xác thực người dùng, cấp JWT access token và refresh token, khởi tạo phiên làm việc. \\
+\hline
+\textbf{Trigger} & Người dùng truy cập hệ thống và chưa có phiên đăng nhập hợp lệ. \\
+\hline
+\textbf{Tiền điều kiện} & Tài khoản người dùng đã được ADMIN tạo trong hệ thống, trạng thái ACTIVE. \\
+\hline
+\textbf{Input} & Email (username), password \\
+\hline
+\textbf{Output} & JWT access token, refresh token, thông tin người dùng (id, fullName, role). \texttt{passwordHash} không bao giờ được trả về. \\
+\hline
+\textbf{Luồng chính} &
+1. Người dùng truy cập \texttt{/login}. \newline
+2. Hệ thống hiển thị form email và password. \newline
+3. Người dùng nhập thông tin và submit. \newline
+4. Frontend gửi \texttt{POST /api/v1/auth/login} với \texttt{\{username, password\}}. \newline
+5. AuthService tra cứu user theo username; kiểm tra trạng thái ACTIVE; so sánh password với bcrypt hash. \newline
+6. Hệ thống sinh access token (thời hạn ngắn) và refresh token (thời hạn dài, lưu hash vào DB). \newline
+7. Frontend nhận token, lưu vào store (Zustand), cập nhật Authorization header. \newline
+8. Hệ thống redirect người dùng đến dashboard tương ứng với vai trò. \\
+\hline
+\textbf{Luồng thay thế} & A1: Người dùng đã đăng nhập truy cập \texttt{/login} $\rightarrow$ redirect đến \texttt{/app/dashboard}. \\
+\hline
+\textbf{Luồng lỗi} &
+E1: Sai username hoặc password $\rightarrow$ 401 Unauthorized, hiển thị thông báo ``Tên đăng nhập hoặc mật khẩu không đúng''. \newline
+E2: Tài khoản không ACTIVE $\rightarrow$ 401 Unauthorized, hiển thị thông báo phù hợp. \newline
+E3: Thiếu trường bắt buộc $\rightarrow$ 400 Bad Request, frontend hiển thị lỗi validation. \\
+\hline
+\textbf{Business rules} & BR-01, BR-02, BR-03 \\
+\hline
+\textbf{Hậu điều kiện} & Người dùng có phiên làm việc hợp lệ; refresh token được lưu vào DB. \\
+\hline
+\textbf{Tác động phụ} & Audit log ghi nhận sự kiện đăng nhập thành công (Phase 2). \\
+\hline
+\textbf{API / Test} & \texttt{POST /api/v1/auth/login}; \texttt{auth.e2e-spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ------- UC06 -------
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC06 -- Tạo hồ sơ bệnh nhân}
+\label{tab:uc06}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC06 \\
+\hline
+\textbf{Tên use case} & Tạo hồ sơ bệnh nhân \\
+\hline
+\textbf{Actor chính} & RECEPTIONIST \\
+\hline
+\textbf{Mục tiêu} & Tạo hồ sơ bệnh nhân mới, sinh mã bệnh nhân tự động, đảm bảo không trùng định danh. \\
+\hline
+\textbf{Trigger} & Bệnh nhân đến khám lần đầu, chưa có hồ sơ trong hệ thống. \\
+\hline
+\textbf{Tiền điều kiện} & Lễ tân đã đăng nhập và đã tra cứu để xác nhận bệnh nhân chưa có hồ sơ. \\
+\hline
+\textbf{Input} & fullName, dateOfBirth, gender, phone, address, citizenId (tùy chọn nhưng phải duy nhất nếu có). \\
+\hline
+\textbf{Output} & Hồ sơ bệnh nhân mới với patientCode được sinh tự động. \\
+\hline
+\textbf{Luồng chính} &
+1. Lễ tân chọn ``Tạo bệnh nhân mới''. \newline
+2. Điền thông tin: họ tên, ngày sinh, giới tính, SĐT, địa chỉ, CMND/CCCD. \newline
+3. Submit form; frontend gửi \texttt{POST /api/v1/patients}. \newline
+4. PatientsService kiểm tra citizenId nếu có -- nếu trùng trả 409. \newline
+5. Hệ thống tạo bản ghi Patient với patientCode sinh tự động. \newline
+6. Trả về thông tin bệnh nhân mới; frontend chuyển sang trang chi tiết bệnh nhân. \\
+\hline
+\textbf{Luồng lỗi} & E1: citizenId đã tồn tại $\rightarrow$ 409 Conflict. E2: Thiếu trường bắt buộc $\rightarrow$ 400 Bad Request. \\
+\hline
+\textbf{Business rules} & BR-04 \\
+\hline
+\textbf{Hậu điều kiện} & Hồ sơ bệnh nhân mới được lưu vào DB; sẵn sàng cho tạo lượt khám. \\
+\hline
+\textbf{API / Test} & \texttt{POST /api/v1/patients}; \texttt{clinic-flow.e2e-spec.ts}; \texttt{patients.service.spec.ts} (13 unit tests) \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ------- UC08 -------
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC08 -- Tạo lượt khám và cấp số thứ tự}
+\label{tab:uc08}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC08 \\
+\hline
+\textbf{Tên use case} & Tạo lượt khám và cấp số thứ tự \\
+\hline
+\textbf{Actor chính} & RECEPTIONIST \\
+\hline
+\textbf{Mục tiêu} & Tiếp nhận bệnh nhân trong ngày, tạo visit và sinh queueNumber không trùng. \\
+\hline
+\textbf{Trigger} & Bệnh nhân đến phòng mạch và được xác nhận đã có hồ sơ. \\
+\hline
+\textbf{Tiền điều kiện} & Bệnh nhân tồn tại trong hệ thống; bệnh nhân chưa có visit trong ngày; số lượt khám trong ngày chưa đạt quota. \\
+\hline
+\textbf{Input} & patientId, visitDate \\
+\hline
+\textbf{Output} & Visit mới với queueNumber, status = WAITING. \\
+\hline
+\textbf{Luồng chính} &
+1. Lễ tân tìm và chọn bệnh nhân trong danh sách. \newline
+2. Chọn ``Tạo lượt khám'' cho ngày hiện tại. \newline
+3. Frontend gửi \texttt{POST /api/v1/visits} với \texttt{\{patientId, date\}}. \newline
+4. VisitsService kiểm tra bệnh nhân tồn tại. \newline
+5. VisitsService kiểm tra bệnh nhân chưa có visit hôm nay (BR-05). \newline
+6. VisitsService đọc maxPatientsPerDay từ regulation hiện hành; kiểm tra quota (BR-06). \newline
+7. Trong \verb|$transaction|: lấy số lượt khám cuối trong ngày, sinh queueNumber = max + 1, tạo visit (BR-07). \newline
+8. Hệ thống trả về visit mới kèm queueNumber. \newline
+9. Frontend hiển thị số thứ tự cho lễ tân và bệnh nhân. \\
+\hline
+\textbf{Luồng thay thế} & A1: Bệnh nhân chưa có hồ sơ $\rightarrow$ Lễ tân chuyển sang UC06, tạo hồ sơ trước. \\
+\hline
+\textbf{Luồng lỗi} & E1: Bệnh nhân không tồn tại $\rightarrow$ 404. E2: Bệnh nhân đã có visit hôm nay $\rightarrow$ 409 Conflict. E3: Vượt quota $\rightarrow$ 409 ``Daily patient limit reached''. E4: Không có vai trò $\rightarrow$ 403. \\
+\hline
+\textbf{Business rules} & BR-05, BR-06, BR-07 \\
+\hline
+\textbf{Hậu điều kiện} & Visit mới ở trạng thái WAITING; queueNumber là số nguyên dương, không trùng trong ngày. \\
+\hline
+\textbf{API / Test} & \texttt{POST /api/v1/visits}; \texttt{clinic-flow.e2e-spec.ts}; \texttt{visits.service.spec.ts} (13 unit tests) \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ------- UC10 -------
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC10 -- Mở phiên khám}
+\label{tab:uc10}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC10 \\
+\hline
+\textbf{Tên use case} & Mở phiên khám \\
+\hline
+\textbf{Actor chính} & DOCTOR \\
+\hline
+\textbf{Mục tiêu} & Bác sĩ bắt đầu xử lý lượt khám, tạo phiếu khám (Examination) và cập nhật trạng thái visit. \\
+\hline
+\textbf{Tiền điều kiện} & Visit đang ở trạng thái WAITING hoặc IN\_SERVICE; người dùng có vai trò DOCTOR. \\
+\hline
+\textbf{Luồng chính} &
+1. Bác sĩ xem danh sách lượt khám, chọn visit cần mở. \newline
+2. Click ``Mở phiên khám''; frontend gửi \texttt{POST /api/v1/examinations} (hoặc tương đương). \newline
+3. ExaminationsService kiểm tra DOCTOR role (BR-08). \newline
+4. ExaminationsService kiểm tra trạng thái visit (BR-09). \newline
+5. Tạo bản ghi Examination, gán doctorId = người dùng hiện tại, status = OPEN. \newline
+6. Cập nhật Visit status $\rightarrow$ IN\_SERVICE. \newline
+7. Frontend chuyển sang trang ExaminationPage. \\
+\hline
+\textbf{Luồng lỗi} & E1: Không phải DOCTOR $\rightarrow$ 403. E2: Visit sai trạng thái $\rightarrow$ 409. \\
+\hline
+\textbf{Business rules} & BR-08, BR-09 \\
+\hline
+\textbf{API / Test} & \texttt{POST /api/v1/examinations}; \texttt{clinic-flow.e2e-spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ------- UC11, UC12 (compact) -------
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC11 -- Ghi thông tin phiếu khám}
+\label{tab:uc11}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC11 \\
+\hline
+\textbf{Tên use case} & Ghi thông tin phiếu khám \\
+\hline
+\textbf{Actor chính} & DOCTOR \\
+\hline
+\textbf{Mục tiêu} & Ghi triệu chứng, ghi chú lâm sàng và phí khám vào phiếu khám. \\
+\hline
+\textbf{Tiền điều kiện} & Phiếu khám đang ở trạng thái OPEN. \\
+\hline
+\textbf{Input} & symptoms, clinicalNotes, consultationFee \\
+\hline
+\textbf{Luồng chính} & 1. Bác sĩ nhập triệu chứng và ghi chú vào form. 2. Hệ thống lưu thông tin (\texttt{PATCH /api/v1/examinations/:id}). 3. Phiếu khám vẫn ở trạng thái OPEN, chưa hoàn tất. \\
+\hline
+\textbf{Luồng lỗi} & E1: Phiếu khám COMPLETED $\rightarrow$ 409, không được sửa (BR-10). \\
+\hline
+\textbf{Business rules} & BR-10 \\
+\hline
+\textbf{API / Test} & \texttt{PATCH /api/v1/examinations/:id}; \texttt{examinations.service.spec.ts} (24 unit tests) \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC12 -- Ghi chẩn đoán bệnh}
+\label{tab:uc12}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC12 \\
+\hline
+\textbf{Tên use case} & Ghi chẩn đoán bệnh \\
+\hline
+\textbf{Actor chính} & DOCTOR \\
+\hline
+\textbf{Mục tiêu} & Chọn bệnh từ danh mục, lưu chẩn đoán; tối đa 1 chẩn đoán chính. \\
+\hline
+\textbf{Tiền điều kiện} & Phiếu khám OPEN; bệnh được chọn phải là active trong danh mục. \\
+\hline
+\textbf{Input} & diseaseId, isPrimary, notes \\
+\hline
+\textbf{Luồng chính} & 1. Bác sĩ chọn bệnh từ dropdown danh mục bệnh. 2. Đánh dấu isPrimary (nếu là chẩn đoán chính). 3. Lưu; ExaminationsService kiểm tra BR-11. 4. Thêm chẩn đoán vào phiếu khám. \\
+\hline
+\textbf{Luồng lỗi} & E1: Đã có chẩn đoán chính $\rightarrow$ 409, ``At most one primary diagnosis is allowed'' (BR-11). E2: Phiếu khám COMPLETED $\rightarrow$ 409 (BR-10). \\
+\hline
+\textbf{Business rules} & BR-10, BR-11 \\
+\hline
+\textbf{API / Test} & \texttt{POST /api/v1/examinations/:id/diagnoses}; \texttt{examinations.service.spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC13 -- Kê đơn thuốc}
+\label{tab:uc13}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC13 \\
+\hline
+\textbf{Tên use case} & Kê đơn thuốc \\
+\hline
+\textbf{Actor chính} & DOCTOR \\
+\hline
+\textbf{Mục tiêu} & Tạo đơn thuốc điện tử kèm các dòng thuốc với số lượng, giá tại thời điểm kê. \\
+\hline
+\textbf{Tiền điều kiện} & Phiếu khám OPEN; thuốc được chọn phải isActive = true. \\
+\hline
+\textbf{Input} & Danh sách: drugId, quantity, dosageInstruction \\
+\hline
+\textbf{Luồng chính} & 1. Bác sĩ chọn thuốc từ danh mục, nhập số lượng và hướng dẫn dùng. 2. Hệ thống lưu PrescriptionItem với priceSnapshot = giá hiện tại của thuốc. 3. Bác sĩ có thể thêm/xóa thuốc miễn phiếu khám chưa COMPLETED. \\
+\hline
+\textbf{Luồng lỗi} & E1: Thuốc không active $\rightarrow$ 422 (BR-13). E2: Phiếu khám COMPLETED $\rightarrow$ 409 (BR-10). \\
+\hline
+\textbf{Business rules} & BR-10, BR-13 \\
+\hline
+\textbf{Tác động phụ} & priceSnapshot lưu giá tại thời điểm kê, không thay đổi khi danh mục thuốc cập nhật giá sau. \\
+\hline
+\textbf{API / Test} & \texttt{PUT /api/v1/examinations/:id/prescription}; \texttt{clinic-flow.e2e-spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC14 -- Hoàn tất phiếu khám}
+\label{tab:uc14}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC14 \\
+\hline
+\textbf{Tên use case} & Hoàn tất phiếu khám \\
+\hline
+\textbf{Actor chính} & DOCTOR \\
+\hline
+\textbf{Mục tiêu} & Chốt phiếu khám, chuyển visit sang COMPLETED để lập hóa đơn. \\
+\hline
+\textbf{Tiền điều kiện} & Phiếu khám OPEN; có ít nhất 1 chẩn đoán chính (isPrimary = true). \\
+\hline
+\textbf{Luồng chính} &
+1. Bác sĩ review phiếu khám (triệu chứng, chẩn đoán, đơn thuốc). \newline
+2. Click ``Hoàn tất khám''. \newline
+3. ExaminationsService kiểm tra trạng thái OPEN (BR-10). \newline
+4. Kiểm tra có chẩn đoán chính ``Primary diagnosis is required before completing examination'' (BR-12). \newline
+5. Cập nhật Examination status $\rightarrow$ COMPLETED. \newline
+6. Cập nhật Visit status $\rightarrow$ COMPLETED. \\
+\hline
+\textbf{Luồng lỗi} & E1: Không có chẩn đoán chính $\rightarrow$ 422/400 (BR-12). E2: Phiếu đã COMPLETED $\rightarrow$ 409 (BR-10). \\
+\hline
+\textbf{Business rules} & BR-10, BR-12 \\
+\hline
+\textbf{Hậu điều kiện} & Visit ở trạng thái COMPLETED; sẵn sàng cho lập hóa đơn. \\
+\hline
+\textbf{Tác động phụ} & Thu ngân được phép tạo invoice sau bước này. \\
+\hline
+\textbf{API / Test} & \texttt{PATCH /api/v1/examinations/:id/complete}; \texttt{clinic-flow.e2e-spec.ts}; \texttt{examinations.service.spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC15 -- Lập hóa đơn}
+\label{tab:uc15}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC15 \\
+\hline
+\textbf{Tên use case} & Lập hóa đơn \\
+\hline
+\textbf{Actor chính} & CASHIER \\
+\hline
+\textbf{Mục tiêu} & Tạo invoice từ visit đã COMPLETED, tính tổng phí khám và thuốc. \\
+\hline
+\textbf{Tiền điều kiện} & Visit ở trạng thái COMPLETED; chưa có invoice cho visit này. \\
+\hline
+\textbf{Luồng chính} & 1. Thu ngân tìm visit cần lập hóa đơn. 2. Click ``Lập hóa đơn''; gửi \texttt{POST /api/v1/visits/:id/invoice} (hoặc tương đương). 3. BillingService kiểm tra visit COMPLETED (BR-14). 4. Tính totalAmount = phí khám + tổng tiền thuốc (priceSnapshot * quantity). 5. Tạo Invoice, trạng thái PENDING. \\
+\hline
+\textbf{Luồng lỗi} & E1: Visit chưa COMPLETED $\rightarrow$ 409 (BR-14). E2: Invoice đã tồn tại $\rightarrow$ 409 (BR-15). \\
+\hline
+\textbf{Business rules} & BR-14, BR-15 \\
+\hline
+\textbf{API / Test} & \texttt{POST /api/v1/invoices} hoặc \texttt{POST /api/v1/visits/:id/invoice}; \texttt{billing.service.spec.ts} (9 unit tests) \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC16 -- Ghi nhận thanh toán}
+\label{tab:uc16}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC16 \\
+\hline
+\textbf{Tên use case} & Ghi nhận thanh toán \\
+\hline
+\textbf{Actor chính} & CASHIER \\
+\hline
+\textbf{Mục tiêu} & Ghi nhận payment, cập nhật paidAmount, chuyển invoice sang PAID khi đủ số tiền. \\
+\hline
+\textbf{Tiền điều kiện} & Invoice trạng thái PENDING; bệnh nhân đến thanh toán. \\
+\hline
+\textbf{Input} & invoiceId, amount, paymentMethod (CASH / TRANSFER / CARD) \\
+\hline
+\textbf{Luồng chính} &
+1. Thu ngân mở chi tiết invoice. \newline
+2. Hiển thị totalAmount, paidAmount, remainingAmount. \newline
+3. Thu ngân nhập số tiền và phương thức thanh toán. \newline
+4. Gửi \texttt{POST /api/v1/invoices/:id/payments}. \newline
+5. BillingService kiểm tra invoice không PAID/VOID (BR-17). \newline
+6. Kiểm tra amount $\leq$ remainingAmount (BR-16). \newline
+7. Tạo Payment record; cộng vào paidAmount. \newline
+8. Nếu paidAmount = totalAmount $\rightarrow$ Invoice status $\rightarrow$ PAID. \\
+\hline
+\textbf{Luồng lỗi} & E1: amount > remainingAmount $\rightarrow$ 422, ``Payment exceeds remaining amount'' (BR-16). E2: Invoice PAID hoặc VOID $\rightarrow$ 409 (BR-17). \\
+\hline
+\textbf{Business rules} & BR-16, BR-17 \\
+\hline
+\textbf{API / Test} & \texttt{POST /api/v1/invoices/:id/payments}; \texttt{billing-catalog-flow.e2e-spec.ts}; \texttt{billing.service.spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ------- UC22 (Phase 2) -------
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC22 -- Quản lý lịch hẹn}
+\label{tab:uc22}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC22 \\
+\hline
+\textbf{Tên use case} & Quản lý lịch hẹn \\
+\hline
+\textbf{Actor chính} & RECEPTIONIST \\
+\hline
+\textbf{Mục tiêu} & Tạo, xác nhận và hủy lịch hẹn khám cho bệnh nhân. \\
+\hline
+\textbf{Trigger} & Bệnh nhân liên hệ đặt lịch qua điện thoại hoặc trực tiếp tại quầy. \\
+\hline
+\textbf{Input} & patientId, appointmentDate, doctorId (tùy chọn), notes \\
+\hline
+\textbf{Luồng chính} & 1. Lễ tân vào màn hình lịch hẹn. 2. Chọn ngày, giờ, bác sĩ. 3. Tạo appointment trạng thái SCHEDULED. 4. Xác nhận lịch hẹn $\rightarrow$ CONFIRMED. \\
+\hline
+\textbf{Luồng lỗi} & E1: Hủy lịch hẹn $\rightarrow$ trạng thái CANCELLED. \\
+\hline
+\textbf{Business rules} & BR-19 \\
+\hline
+\textbf{API / Test} & \texttt{/api/v1/appointments}; \texttt{appointments.e2e-spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC23 -- Check-in lịch hẹn}
+\label{tab:uc23}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC23 \\
+\hline
+\textbf{Tên use case} & Check-in lịch hẹn \\
+\hline
+\textbf{Actor chính} & RECEPTIONIST \\
+\hline
+\textbf{Mục tiêu} & Chuyển lịch hẹn đã xác nhận thành lượt khám thực tế trong ngày. \\
+\hline
+\textbf{Tiền điều kiện} & Appointment ở trạng thái CONFIRMED hoặc SCHEDULED. \\
+\hline
+\textbf{Luồng chính} & 1. Bệnh nhân đến, lễ tân tìm appointment. 2. Click ``Check-in''. 3. AppointmentsService kiểm tra trạng thái (BR-19). 4. Tạo visit từ appointment, sinh queueNumber. 5. Appointment $\rightarrow$ CHECKED\_IN. \\
+\hline
+\textbf{Luồng lỗi} & E1: Appointment sai trạng thái $\rightarrow$ 409 (BR-19). \\
+\hline
+\textbf{Business rules} & BR-19 \\
+\hline
+\textbf{API / Test} & \texttt{PATCH /api/v1/appointments/:id/check-in}; \texttt{appointments.e2e-spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC24 -- Quản lý hàng đợi}
+\label{tab:uc24}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC24 \\
+\hline
+\textbf{Tên use case} & Quản lý hàng đợi trong ngày \\
+\hline
+\textbf{Actor chính} & RECEPTIONIST, NURSE, DOCTOR \\
+\hline
+\textbf{Mục tiêu} & Điều phối bệnh nhân theo state machine hàng đợi. \\
+\hline
+\textbf{Luồng chính} & 1. Hệ thống hiển thị danh sách QueueTicket theo ngày. 2. Gọi số: WAITING $\rightarrow$ CALLED. 3. Bệnh nhân vào phòng: CALLED $\rightarrow$ IN\_SERVICE. 4. Hoàn tất: IN\_SERVICE $\rightarrow$ DONE. \\
+\hline
+\textbf{Luồng lỗi} & E1: Bỏ qua bước trạng thái $\rightarrow$ 422 (BR-20, BR-21). \\
+\hline
+\textbf{Business rules} & BR-20, BR-21 \\
+\hline
+\textbf{API / Test} & \texttt{/api/v1/queue}; \texttt{queue.e2e-spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC28 -- Xử lý xét nghiệm}
+\label{tab:uc28}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC28 \\
+\hline
+\textbf{Tên use case} & Xử lý xét nghiệm \\
+\hline
+\textbf{Actor chính} & LAB\_TECHNICIAN \\
+\hline
+\textbf{Actor phụ} & DOCTOR (chỉ định), NURSE (thu mẫu) \\
+\hline
+\textbf{Mục tiêu} & Thực hiện quy trình xét nghiệm từ order đến kết quả được xác minh. \\
+\hline
+\textbf{Luồng chính} &
+1. Bác sĩ chỉ định xét nghiệm $\rightarrow$ LabOrder trạng thái ORDERED. \newline
+2. KTV hoặc nurse thu mẫu $\rightarrow$ ORDERED $\rightarrow$ SAMPLE\_COLLECTED (tạo LabSample). \newline
+3. KTV xử lý mẫu, nhập kết quả $\rightarrow$ SAMPLE\_COLLECTED $\rightarrow$ RESULT\_ENTERED (tạo LabResult). \newline
+4. KTV xác minh kết quả $\rightarrow$ RESULT\_ENTERED $\rightarrow$ VERIFIED. \\
+\hline
+\textbf{Luồng lỗi} & E1: Bỏ qua bước trong state machine $\rightarrow$ 409 (BR-23). E2: Kết quả VERIFIED không được sửa $\rightarrow$ 409 (BR-24). \\
+\hline
+\textbf{Business rules} & BR-23, BR-24 \\
+\hline
+\textbf{API / Test} & \texttt{/api/v1/lab}; \texttt{phase2-clinical-integration.e2e-spec.ts} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC29 -- Quản lý lô thuốc và tồn kho}
+\label{tab:uc29}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC29 \\
+\hline
+\textbf{Tên use case} & Quản lý lô thuốc và tồn kho \\
+\hline
+\textbf{Actor chính} & PHARMACIST, ADMIN \\
+\hline
+\textbf{Mục tiêu} & Nhập lô thuốc mới, theo dõi số lượng tồn và hạn dùng. \\
+\hline
+\textbf{Input} & drugId, lotNumber, quantity, expiryDate, importPrice \\
+\hline
+\textbf{Luồng chính} & 1. Dược sĩ nhập thông tin lô thuốc. 2. Hệ thống tạo StockLot và StockMovement loại IMPORT. 3. Cộng số lượng vào tồn kho hiện tại. 4. Dược sĩ xem danh sách lô theo expiryDate, theo dõi lô sắp hết hạn. \\
+\hline
+\textbf{Luồng lỗi} & E1: Tồn kho không đủ khi tạo đơn xuất $\rightarrow$ 422 (BR-25). \\
+\hline
+\textbf{Business rules} & BR-25 \\
+\hline
+\textbf{API / Test} & \texttt{/api/v1/inventory}; bằng chứng thủ công \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả use case UC30 -- Cấp phát thuốc theo đơn}
+\label{tab:uc30}
+\begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
+\hline
+\textbf{Use case ID} & UC30 \\
+\hline
+\textbf{Tên use case} & Cấp phát thuốc theo đơn (FEFO) \\
+\hline
+\textbf{Actor chính} & PHARMACIST \\
+\hline
+\textbf{Mục tiêu} & Cấp phát thuốc theo prescription, ưu tiên lô hết hạn sớm nhất, trừ kho và ghi dispense record. \\
+\hline
+\textbf{Tiền điều kiện} & Prescription đã tồn tại; tồn kho đủ; lô không hết hạn. \\
+\hline
+\textbf{Input} & prescriptionId, lotId (chọn tường minh), quantityToDispense \\
+\hline
+\textbf{Luồng chính} &
+1. Dược sĩ xem worklist cần cấp phát. \newline
+2. Chọn đơn thuốc cần thực hiện. \newline
+3. Hệ thống gợi ý lô thuốc theo thứ tự expiryDate tăng dần (FEFO). \newline
+4. Dược sĩ xác nhận lô và số lượng. \newline
+5. PharmacyService kiểm tra lô không hết hạn (BR-27), số lượng không vượt kê đơn (BR-28), tồn kho đủ (BR-25). \newline
+6. Tạo Dispense và DispenseItem; trừ tồn kho StockLot. \\
+\hline
+\textbf{Luồng lỗi} & E1: Lô hết hạn $\rightarrow$ 422, ``Lot has expired'' (BR-27). E2: Vượt số lượng kê $\rightarrow$ 422 (BR-28). E3: Không đủ tồn kho $\rightarrow$ 422, ``Insufficient stock in lot'' (BR-25). \\
+\hline
+\textbf{Business rules} & BR-25, BR-26, BR-27, BR-28 \\
+\hline
+\textbf{Hậu điều kiện} & Dispense record được lưu; StockLot.quantity giảm tương ứng; Prescription được đánh dấu đã cấp phát. \\
+\hline
+\textbf{API / Test} & \texttt{/api/v1/pharmacy}; bằng chứng thủ công; cần bổ sung automated E2E \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ------- Compact UCs -------
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả rút gọn -- UC02 đến UC09 (các use case đơn giản Phase 1)}
+\label{tab:uc-simple-p1a}
+\begin{tabularx}{\textwidth}{|p{1.3cm}|p{2.5cm}|p{2.0cm}|X|p{2.3cm}|}
+\hline
+\textbf{UC} & \textbf{Tên} & \textbf{Actor} & \textbf{Luồng chính (tóm tắt)} & \textbf{BR / API} \\
+\hline
+UC02 & Đăng xuất & Tất cả & Người dùng click đăng xuất; frontend xóa token store; backend revoke refresh token. & \texttt{POST /api/v1/auth/logout} \\
+\hline
+UC03 & Quản lý tài khoản & ADMIN & ADMIN tạo/cập nhật/khóa tài khoản; gán vai trò thông qua UserRole; tài khoản bị khóa không đăng nhập được. & BR-02; \texttt{/api/v1/users} \\
+\hline
+UC04 & Phân quyền & ADMIN & ADMIN gán/xóa role cho user; RolesGuard enforce trong từng request; frontend ẩn menu theo role. & BR-03; \texttt{/api/v1/rbac} \\
+\hline
+UC05 & Tìm kiếm bệnh nhân & RECEPTIONIST, DOCTOR & Nhập từ khóa (tên, SĐT, mã); gửi \texttt{GET /api/v1/patients?q=...}; hiển thị danh sách; click vào để xem chi tiết. & \texttt{GET /api/v1/patients} \\
+\hline
+UC07 & Cập nhật hồ sơ bệnh nhân & RECEPTIONIST & Chọn bệnh nhân, chỉnh sửa thông tin, submit \texttt{PATCH /api/v1/patients/:id}; citizenId phải duy nhất nếu thay đổi. & BR-04; \texttt{PATCH /api/v1/patients/:id} \\
+\hline
+UC09 & Xem danh sách lượt khám & RECEPTIONIST, DOCTOR & Chọn ngày, lọc theo trạng thái; gửi \texttt{GET /api/v1/visits?date=\&status=}; hiển thị bảng kèm queueNumber. & \texttt{GET /api/v1/visits} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả rút gọn -- UC17 đến UC21 (catalog, quy định, báo cáo)}
+\label{tab:uc-simple-p1b}
+\begin{tabularx}{\textwidth}{|p{1.3cm}|p{2.5cm}|p{2.4cm}|X|p{2.3cm}|}
+\hline
+\textbf{UC} & \textbf{Tên} & \textbf{Actor} & \textbf{Luồng chính (tóm tắt)} & \textbf{BR / API} \\
+\hline
+UC17 & Tra cứu hóa đơn & CASHIER, MANAGER & Nhập bộ lọc (ngày, trạng thái, tên bệnh nhân); xem danh sách invoice; click để xem chi tiết và lịch sử payment. & \texttt{GET /api/v1/invoices} \\
+\hline
+UC18 & Quản lý quy định & ADMIN, MANAGER & Xem phiên bản quy định hiện hành; tạo phiên bản mới; kích hoạt với confirm dialog; hệ thống deactivate version cũ trong transaction. & BR-18; \texttt{/api/v1/regulations} \\
+\hline
+UC19 & Danh mục bệnh & ADMIN & Xem danh sách, thêm/sửa bệnh, toggle isActive; bệnh inactive không xuất hiện trong dropdown chẩn đoán. & \texttt{/api/v1/diseases} \\
+\hline
+UC20 & Danh mục thuốc & ADMIN & Xem danh sách, thêm/sửa thuốc (tên, đơn vị, giá), toggle isActive; thuốc inactive không xuất hiện khi kê đơn (BR-13). & BR-13; \texttt{/api/v1/drugs} \\
+\hline
+UC21 & Báo cáo tháng & MANAGER & Chọn tháng/năm; gửi \texttt{GET /api/v1/reports/monthly?month=\&year=}; xem số lượt khám và tổng doanh thu. & \texttt{GET /api/v1/reports/monthly} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đặc tả rút gọn -- UC25 đến UC27 và UC31 (Phase 2 compact)}
+\label{tab:uc-simple-p2}
+\begin{tabularx}{\textwidth}{|p{1.3cm}|p{2.5cm}|p{2.4cm}|X|p{2.3cm}|}
+\hline
+\textbf{UC} & \textbf{Tên} & \textbf{Actor} & \textbf{Luồng chính (tóm tắt)} & \textbf{BR / API} \\
+\hline
+UC25 & Ghi nhận sinh hiệu & NURSE & Nhập height, weight, bloodPressure, pulse, temperature; VitalsService tính BMI tự động; lưu VitalSign gắn với visitId. & BR-22; \texttt{/api/v1/vitals} \\
+\hline
+UC26 & Danh mục dịch vụ & ADMIN, MANAGER & Quản lý ServiceCatalog và LabTestCatalog: thêm, sửa tên/giá, toggle isActive. & \texttt{/api/v1/services} \\
+\hline
+UC27 & Chỉ định dịch vụ & DOCTOR & Trong phiếu khám, bác sĩ chọn dịch vụ hoặc xét nghiệm từ danh mục; tạo ServiceOrder/LabOrder gắn với examinationId. & \texttt{/api/v1/services/orders}, \texttt{/api/v1/lab/orders} \\
+\hline
+UC31 & Xem nhật ký hệ thống & ADMIN, MANAGER & Xem danh sách AuditLog theo ngày/actor/action; AuditLog được tạo tự động bởi AuditService. & \texttt{GET /api/v1/audit} \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ============================================================
+\section{Acceptance criteria}
+\label{sec:srs-ac}
+% ============================================================
+
+Bảng~\ref{tab:srs-ac} liệt kê acceptance criteria chọn lọc cho các UC và REQ quan trọng. Mỗi AC gồm: Given (tiền đề), When (hành động), Then (kết quả mong đợi) và loại kiểm thử tương ứng.
+
+\begin{longtable}{|p{1.5cm}|p{1.2cm}|p{3.3cm}|p{3.3cm}|p{2.5cm}|p{1.7cm}|}
+\caption{Acceptance criteria chọn lọc}
+\label{tab:srs-ac}\\
+\hline
+\textbf{AC ID} & \textbf{UC/REQ} & \textbf{Given} & \textbf{When} & \textbf{Then} & \textbf{Loại test} \\
+\hline
+\endhead
+\hline
+\endfoot
+AC-01-01 & UC01 & Credentials đúng & Gửi POST /auth/login & Nhận JWT + thông tin user; không có passwordHash & E2E \\
+\hline
+AC-01-02 & UC01 & Sai password & Gửi POST /auth/login & 401 Unauthorized & E2E \\
+\hline
+AC-01-03 & UC01 & Tài khoản không ACTIVE & Gửi POST /auth/login & 401 Unauthorized & E2E \\
+\hline
+AC-03-01 & UC03 & Role không đủ quyền truy cập endpoint & Gửi request có JWT nhưng role sai & 403 Forbidden & E2E \\
+\hline
+AC-06-01 & UC06 & citizenId chưa tồn tại & Tạo bệnh nhân & Patient mới với patientCode & E2E \\
+\hline
+AC-06-02 & UC06 & citizenId đã tồn tại & Tạo bệnh nhân & 409 Conflict & Unit + E2E \\
+\hline
+AC-08-01 & UC08 & Bệnh nhân tồn tại, chưa có visit hôm nay & Tạo lượt khám & Visit WAITING + queueNumber duy nhất & E2E \\
+\hline
+AC-08-02 & UC08 & Bệnh nhân đã có visit hôm nay & Tạo lượt khám & 409 Conflict & Unit + E2E \\
+\hline
+AC-08-03 & UC08 & Số lượt đã đạt maxPatientsPerDay & Tạo lượt khám & 409 ``Daily patient limit reached'' & Unit \\
+\hline
+AC-12-01 & UC12 & Phiếu khám OPEN, chưa có chẩn đoán chính & Thêm chẩn đoán isPrimary=true & Chẩn đoán được lưu & E2E \\
+\hline
+AC-12-02 & UC12 & Phiếu khám OPEN, đã có chẩn đoán chính & Thêm chẩn đoán isPrimary=true & 409 ``At most one primary diagnosis'' & Unit \\
+\hline
+AC-14-01 & UC14 & Phiếu khám OPEN + có chẩn đoán chính & Hoàn tất khám & Examination COMPLETED, Visit COMPLETED & E2E \\
+\hline
+AC-14-02 & UC14 & Phiếu khám OPEN, thiếu chẩn đoán chính & Hoàn tất khám & 422/400, không hoàn tất được & Unit \\
+\hline
+AC-15-01 & UC15 & Visit COMPLETED, chưa có invoice & Lập hóa đơn & Invoice PENDING, totalAmount đúng & E2E \\
+\hline
+AC-15-02 & UC15 & Visit chưa COMPLETED & Lập hóa đơn & 409 Conflict & Unit \\
+\hline
+AC-16-01 & UC16 & Invoice PENDING, amount $\leq$ remaining & Ghi nhận thanh toán & Payment ghi nhận, paidAmount tăng & E2E \\
+\hline
+AC-16-02 & UC16 & Invoice PENDING, amount > remaining & Ghi nhận thanh toán & 422, từ chối & Unit + E2E \\
+\hline
+AC-16-03 & UC16 & Invoice PAID & Ghi nhận thanh toán & 409 Conflict & Unit + E2E \\
+\hline
+AC-22-01 & UC22 & Appointment CONFIRMED/SCHEDULED & Check-in & Visit mới WAITING + queueNumber & E2E \\
+\hline
+AC-22-02 & UC22 & Appointment CANCELLED & Check-in & 409 trạng thái không hợp lệ & E2E \\
+\hline
+AC-24-01 & UC24 & QueueTicket WAITING & Gọi số (WAITING $\rightarrow$ CALLED) & Cập nhật trạng thái thành công & E2E \\
+\hline
+AC-24-02 & UC24 & QueueTicket WAITING & Chuyển thẳng sang IN\_SERVICE (bỏ CALLED) & 422 vi phạm state machine & E2E \\
+\hline
+AC-28-01 & UC28 & LabOrder ORDERED & Thu mẫu & SAMPLE\_COLLECTED + LabSample & E2E \\
+\hline
+AC-28-02 & UC28 & LabOrder RESULT\_ENTERED & Xác minh & VERIFIED & E2E \\
+\hline
+AC-30-01 & UC30 & Lô thuốc còn hạn, tồn kho đủ & Cấp phát & Dispense record + giảm StockLot.quantity & Thủ công \\
+\hline
+AC-30-02 & UC30 & Lô thuốc đã hết hạn & Cấp phát & 422 ``Lot has expired'' & Thủ công \\
+\hline
+\end{longtable}
+
+% ============================================================
+\section{Ma trận truy vết yêu cầu}
+\label{sec:srs-traceability}
+% ============================================================
+
+Bảng~\ref{tab:srs-trace} ánh xạ từng yêu cầu chức năng sang use case, business rule, API backend, màn hình frontend và bằng chứng kiểm thử. Thông tin được lấy từ audit codebase ngày 15/06/2026.
+
+\begin{longtable}{|p{1.3cm}|p{1.3cm}|p{1.6cm}|p{2.7cm}|p{2.2cm}|p{2.5cm}|p{1.3cm}|}
+\caption{Ma trận truy vết yêu cầu}
+\label{tab:srs-trace}\\
+\hline
+\textbf{REQ} & \textbf{UC} & \textbf{BR} & \textbf{Backend/API} & \textbf{Frontend} & \textbf{Test/Bằng chứng} & \textbf{Phase} \\
+\hline
+\endhead
+\hline
+\endfoot
+REQ-01 & UC01 & BR-01, BR-02 & \texttt{POST /auth/login} & LoginPage & \texttt{auth.e2e-spec.ts} & P1 \\
+\hline
+REQ-02 & UC02 & -- & \texttt{POST /auth/logout} & Logout handler & Manual & P1 \\
+\hline
+REQ-03 & UC03 & BR-02 & \texttt{/api/v1/users} & UserManagement Page & \texttt{auth.e2e-spec.ts} & P1 \\
+\hline
+REQ-04 & UC04 & BR-03 & \texttt{/api/v1/rbac} & RequireRole, Sidebar & E2E RBAC tests & P1 \\
+\hline
+REQ-05 & UC05 & -- & \texttt{GET /api/v1/patients} & PatientListPage & \texttt{clinic-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-06 & UC06 & BR-04 & \texttt{POST /api/v1/patients} & PatientCreate Page & \texttt{clinic-flow.e2e-spec.ts}; patients.service.spec.ts & P1 \\
+\hline
+REQ-07 & UC07 & BR-04 & \texttt{PATCH /api/v1/patients/:id} & PatientDetail Page & \texttt{clinic-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-08 & UC08 & BR-05--BR-07 & \texttt{POST /api/v1/visits} & VisitCreate Page & \texttt{clinic-flow.e2e-spec.ts}; visits.service.spec.ts & P1 \\
+\hline
+REQ-09 & UC09 & -- & \texttt{GET /api/v1/visits} & VisitListPage & \texttt{clinic-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-10 & UC10 & BR-08, BR-09 & \texttt{POST /api/v1/examinations} & ExaminationPage & \texttt{clinic-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-11 & UC11 & BR-10 & \texttt{PATCH /api/v1/examinations/:id} & ExaminationPage & examinations.service.spec.ts & P1 \\
+\hline
+REQ-12 & UC12 & BR-10, BR-11 & \texttt{POST /api/v1/examinations/:id/diagnoses} & DiagnosisSection & examinations.service.spec.ts & P1 \\
+\hline
+REQ-13 & UC13 & BR-10, BR-13 & \texttt{PUT /api/v1/examinations/:id/prescription} & PrescriptionSection & \texttt{clinic-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-14 & UC14 & BR-10, BR-12 & \texttt{PATCH .../complete} & ExaminationPage & \texttt{clinic-flow.e2e-spec.ts}; examinations.service.spec.ts & P1 \\
+\hline
+REQ-15 & UC15 & BR-14, BR-15 & \texttt{POST /api/v1/invoices} & InvoiceDetail Page & billing.service.spec.ts & P1 \\
+\hline
+REQ-16 & UC16 & BR-16, BR-17 & \texttt{POST /api/v1/invoices/:id/payments} & PaymentDialog & \texttt{billing-catalog-flow.e2e-spec.ts}; billing.service.spec.ts & P1 \\
+\hline
+REQ-17 & UC17 & -- & \texttt{GET /api/v1/invoices} & InvoiceListPage & \texttt{billing-catalog-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-18 & UC18 & BR-18 & \texttt{/api/v1/regulations} & RegulationPage & \texttt{billing-catalog-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-19 & UC19 & -- & \texttt{/api/v1/diseases} & DiseaseCatalog Page & \texttt{billing-catalog-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-20 & UC20 & BR-13 & \texttt{/api/v1/drugs} & MedicineCatalog Page & \texttt{billing-catalog-flow.e2e-spec.ts} & P1 \\
+\hline
+REQ-21 & UC21 & -- & \texttt{GET /api/v1/reports/monthly} & MonthlyReport Page & Manual & P1 \\
+\hline
+REQ-22 & UC22 & BR-19 & \texttt{/api/v1/appointments} & AppointmentList Page & \texttt{appointments.e2e-spec.ts} & P2 \\
+\hline
+REQ-23 & UC23 & BR-19 & \texttt{PATCH .../check-in} & AppointmentList Page & \texttt{appointments.e2e-spec.ts} & P2 \\
+\hline
+REQ-24 & UC24 & BR-20, BR-21 & \texttt{/api/v1/queue} & QueueDashboard Page & \texttt{queue.e2e-spec.ts} & P2 \\
+\hline
+REQ-25 & UC25 & BR-22 & \texttt{/api/v1/vitals} & VitalSignSection & \texttt{phase2-clinical-integration.e2e-spec.ts} & P2 \\
+\hline
+REQ-26 & UC26, UC27 & -- & \texttt{/api/v1/services} & ServiceCatalog Page & \texttt{phase2-clinical-integration.e2e-spec.ts} & P2 \\
+\hline
+REQ-27 & UC28 & BR-23, BR-24 & \texttt{/api/v1/lab} & LabWorklist & \texttt{phase2-clinical-integration.e2e-spec.ts} & P2 \\
+\hline
+REQ-28 & UC29 & BR-25 & \texttt{/api/v1/inventory} & StockListPage & Manual + \texttt{constraints\_test.sql} & P2 \\
+\hline
+REQ-29 & UC30 & BR-25--BR-28 & \texttt{/api/v1/pharmacy} & PharmacyWorklist & Manual (cần E2E) & P2 \\
+\hline
+REQ-30 & UC31 & BR-29 & \texttt{GET /api/v1/audit} & AuditLogPage & Manual & P2 \\
+\hline
+\end{longtable}
+
+% ============================================================
+\section{Demo chức năng trọng tâm}
+\label{sec:srs-demo}
+% ============================================================
+
+Bảng~\ref{tab:srs-demo} liệt kê các demo chức năng trọng tâm sẽ được trình bày trong buổi bảo vệ, kèm UC/REQ/BR liên quan, actor thực hiện và bằng chứng mong đợi.
+
+\begin{longtable}{|p{0.6cm}|p{2.3cm}|p{1.5cm}|p{2.0cm}|p{3.2cm}|p{3.8cm}|}
+\caption{Demo chức năng trọng tâm}
+\label{tab:srs-demo}\\
+\hline
+\textbf{\#} & \textbf{Demo} & \textbf{Actor} & \textbf{UC/REQ/BR} & \textbf{Nội dung} & \textbf{Kết quả mong đợi} \\
+\hline
+\endhead
+\hline
+\endfoot
+1 & Đăng nhập theo role & Tất cả & UC01/REQ-01 & Đăng nhập với 5 role Phase 1 khác nhau; sidebar, menu thay đổi theo role & JWT cấp phát; sidebar đúng vai trò; 403 khi truy cập sai quyền \\
+\hline
+2 & Tạo bệnh nhân & RECEPTIONIST & UC06/REQ-06/BR-04 & Điền form, submit; thử tạo với citizenId trùng & Bệnh nhân mới + patientCode; 409 khi trùng định danh \\
+\hline
+3 & Tạo lượt khám & RECEPTIONIST & UC08/REQ-08/BR-05--07 & Chọn bệnh nhân, tạo visit; thử tạo lần 2 trong ngày & Visit WAITING + queueNumber; 409 khi trùng ngày \\
+\hline
+4 & Mở và hoàn tất khám & DOCTOR & UC10,14/REQ-10,14/BR-08--12 & Mở phiếu khám, ghi chẩn đoán, kê đơn, hoàn tất & Examination/Visit COMPLETED; 422 khi thiếu chẩn đoán \\
+\hline
+5 & Hóa đơn và thanh toán & CASHIER & UC15,16/REQ-15,16/BR-14--17 & Lập hóa đơn, thanh toán từng phần, thanh toán hết & Invoice PAID; 422 khi vượt remaining; 409 khi PAID \\
+\hline
+6 & Lịch hẹn + check-in & RECEPTIONIST & UC22,23/REQ-22,23/BR-19 & Tạo lịch hẹn, xác nhận, check-in & Visit mới từ appointment; 409 khi sai trạng thái \\
+\hline
+7 & Lab workflow & LAB\_TECHNICIAN & UC28/REQ-27/BR-23,24 & Thu mẫu, nhập kết quả, xác minh & State machine theo thứ tự; 409 khi bỏ bước \\
+\hline
+8 & Cấp phát thuốc FEFO & PHARMACIST & UC30/REQ-29/BR-25--28 & Xem worklist, chọn lô, cấp phát; thử lô hết hạn & Dispense record; 422 khi lô hết hạn hoặc thiếu tồn kho \\
+\hline
+9 & Báo cáo tháng & MANAGER & UC21/REQ-21 & Chọn tháng/năm; xem số liệu & Bảng thống kê lượt khám và doanh thu đúng \\
+\hline
+\end{longtable}
+
+\ReportFigure{figures/screenshots/visit-create.png}{Màn hình tạo lượt khám -- UC08}{fig:demo-visit-create}
+
+\ReportFigure{figures/screenshots/examination-page.png}{Màn hình lập phiếu khám và kê đơn -- UC10--UC14}{fig:demo-exam}
+
+% ============================================================
+\section{Kết luận chương}
+\label{sec:srs-conclusion}
+% ============================================================
+
+Chương 1 đã trình bày đầy đủ đặc tả yêu cầu phần mềm cho hệ thống \projecttitle{}. Cụ thể, chương đã xác định 9 stakeholder/actor với nhu cầu và quyền truy cập rõ ràng; phân chia phạm vi thành Phase 1 (lõi hoàn chỉnh) và Phase 2 (mở rộng có codebase); đặc tả 30 yêu cầu chức năng (REQ-01 đến REQ-30), 8 yêu cầu phi chức năng (NFR-01 đến NFR-08), 29 business rules (BR-01 đến BR-29) và 30 use case (UC01--UC30) với đặc tả chi tiết cho các luồng nghiệp vụ quan trọng.
+
+Tất cả số liệu trong chương này đều được xác minh trực tiếp từ codebase (audit ngày 15/06/2026): 37 models, 12 enums, 3 migrations, 92 endpoints nghiệp vụ, 8 roles enforce trong \texttt{@Roles} guard, 7 file e2e test backend, 59 unit tests hộp trắng. Các trạng thái hiện thực (``Hiện thực + AutoTest'', ``Hiện thực'', ``Bằng chứng thủ công'', ``Cần xác minh thêm'') được ghi trung thực theo kết quả audit, không phóng đại.
+
+Chương này là đầu vào trực tiếp cho Chương 2 (thiết kế hệ thống và kiến trúc), Chương 3 (thiết kế phần mềm và cơ sở dữ liệu), Chương 4 (hiện thực) và Chương 5 (kiểm thử). Ma trận truy vết (Bảng~\ref{tab:srs-trace}) đảm bảo mọi yêu cầu đều có thể truy vết đến thiết kế, API, màn hình frontend và bằng chứng kiểm thử tương ứng.

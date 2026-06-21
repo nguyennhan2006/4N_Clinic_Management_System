@@ -1,0 +1,43 @@
+flowchart LR
+    subgraph Actors["Actors"]
+        direction TB
+        Receptionist["👤 Receptionist"]
+        Nurse["👤 Nurse"]
+        Doctor["👤 Doctor"]
+        LabTech["👤 Lab Technician"]
+        Pharmacist["👤 Pharmacist"]
+        Cashier["👤 Cashier"]
+        Manager["👤 Manager"]
+        Admin["👤 Admin"]
+    end
+
+    subgraph System["4N Clinic Management System - Phase 2"]
+        direction TB
+        AppointmentQueue["Appointment & Queue<br/>UC19 Đặt lịch hẹn<br/>UC20 Quản lý lịch hẹn<br/>UC21 Check-in thành lượt khám<br/>UC22 Quản lý hàng đợi"]
+        VitalsGroup["Vitals<br/>UC23 Ghi nhận sinh hiệu<br/>UC24 Tính BMI tự động"]
+        ServicesLab["Services & Lab<br/>UC25 Chỉ định dịch vụ<br/>UC26 Tạo yêu cầu xét nghiệm<br/>UC27 Thu mẫu xét nghiệm<br/>UC28 Nhập kết quả xét nghiệm<br/>UC29 Xác nhận kết quả"]
+        InventoryPharmacy["Inventory & Pharmacy<br/>UC30 Nhập lô thuốc<br/>UC31 Theo dõi tồn kho / hạn dùng<br/>UC32 Cấp phát thuốc theo đơn<br/>UC33 Trừ tồn kho FEFO"]
+        ExtendedBillingReports["Extended Billing & Reports<br/>UC34 Hóa đơn nhiều khoản mục<br/>UC35 Báo cáo mở rộng"]
+        RelationNote["Main relations<br/>UC21 from UC19<br/>UC23 include UC24<br/>UC26 from UC25<br/>UC32 include UC33<br/>UC34 uses service/drug items"]
+    end
+
+    Receptionist --> AppointmentQueue
+    Nurse --> AppointmentQueue
+    Nurse --> VitalsGroup
+    Doctor --> ServicesLab
+    LabTech --> ServicesLab
+    Pharmacist --> InventoryPharmacy
+    Cashier --> ExtendedBillingReports
+    Manager --> ExtendedBillingReports
+    Admin --> InventoryPharmacy
+    Admin --> ExtendedBillingReports
+
+    classDef actor fill:#F8FAFC,stroke:#334155,stroke-width:1px,color:#111827;
+    classDef uc fill:#FFF7ED,stroke:#EA580C,stroke-width:1.5px,color:#111827;
+    classDef note fill:#F1F5F9,stroke:#64748B,stroke-dasharray:4 3,color:#111827;
+    classDef system fill:#FFFDE7,stroke:#A16207,stroke-width:1px,color:#111827;
+
+    class Receptionist,Nurse,Doctor,LabTech,Pharmacist,Cashier,Manager,Admin actor;
+    class AppointmentQueue,VitalsGroup,ServicesLab,InventoryPharmacy,ExtendedBillingReports uc;
+    class RelationNote note;
+    class System system;

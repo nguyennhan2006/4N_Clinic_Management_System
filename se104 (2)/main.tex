@@ -1,0 +1,300 @@
+% main.tex
+% Compiler: pdfLaTeX
+% Project: 4N Clinic Management System -- SE104
+
+\documentclass[12pt,a4paper,oneside]{report}
+
+\usepackage{tikz}
+\usetikzlibrary{calc}
+% =========================================================
+% Vietnamese support for pdfLaTeX
+% =========================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{mathptmx}
+
+% =========================================================
+% Page layout and typography
+% =========================================================
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=3.0cm,right=2.0cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{indentfirst}
+\setlength{\parindent}{1.2cm}
+\setlength{\parskip}{6pt}
+
+% =========================================================
+% Tables, figures, colors
+% =========================================================
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{pdflscape}
+\usepackage{adjustbox}
+\usepackage{placeins}
+
+\setlength{\tabcolsep}{1pt}
+\renewcommand{\arraystretch}{1.15}
+\setlength{\LTpre}{6pt}
+\setlength{\LTpost}{6pt}
+\emergencystretch=3em
+\sloppy
+
+% =========================================================
+% Hyperlinks and URLs
+% =========================================================
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
+
+% =========================================================
+% Code listing
+% =========================================================
+\usepackage{listings}
+\lstdefinelanguage{JavaScript}{
+    keywords={async,await,const,let,var,return,if,else,throw,new,true,false,null,undefined},
+    sensitive=true,
+    comment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]',
+    morestring=[b]"
+}
+\lstdefinestyle{code}{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    breakatwhitespace=false,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red!60!black},
+    columns=fullflexible,
+    keepspaces=true
+}
+\lstset{style=code}
+
+% =========================================================
+% Header/Footer
+% =========================================================
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\setlength{\headheight}{15pt}
+\fancyhf{}
+\fancyhead[L]{4N Clinic Management System}
+\fancyhead[R]{SE104}
+\fancyfoot[C]{\thepage}
+
+% =========================================================
+% Project commands
+% =========================================================
+\newcommand{\projectname}{4N Clinic Management System}
+\newcommand{\projecttitle}{Hệ thống quản lý phòng mạch tư nhân}
+\newcommand{\coursename}{SE104 -- Nhập môn Công nghệ phần mềm}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\status}[1]{\textbf{#1}}
+
+% =========================================================
+% Figure helpers for pdfLaTeX
+% =========================================================
+% All images should be stored under figures/.
+% Diagram: prefer PDF vector. Screenshot: prefer PNG 1440px+ width.
+\newcommand{\SafeImage}[2][]{%
+    \IfFileExists{#2}{%
+        \includegraphics[#1]{#2}%
+    }{%
+        \fbox{%
+            \parbox{0.86\linewidth}{%
+                \centering
+                \vspace{0.8cm}
+                \textbf{Missing figure}\par
+                \vspace{0.25cm}
+                \texttt{\detokenize{#2}}\par
+                \vspace{0.25cm}
+                Thay placeholder này bằng ảnh/sơ đồ sau khi xuất file.\par
+                \vspace{0.8cm}
+            }%
+        }%
+    }%
+}
+
+
+\newcommand{\ReportFigure}[3]{%
+    \begin{figure}[H]
+        \centering
+        \SafeImage[width=0.92\textwidth,height=0.88\textheight,keepaspectratio]{#1}
+        \caption{#2}
+        \label{#3}
+    \end{figure}
+    \FloatBarrier
+}
+
+\newcommand{\WideFigure}[3]{%
+    \begin{figure}[H]
+        \centering
+        \SafeImage[width=\textwidth,height=0.78\textheight,keepaspectratio]{#1}
+        \caption{#2}
+        \label{#3}
+    \end{figure}
+    \FloatBarrier
+}
+
+\newcommand{\LandscapeFigure}[3]{%
+    \clearpage
+    \begin{landscape}
+    \begin{figure}[p]
+        \centering
+        \SafeImage[width=0.95\linewidth,height=0.82\textheight,keepaspectratio]{#1}
+        \caption{#2}
+        \label{#3}
+    \end{figure}
+    \end{landscape}
+    \clearpage
+}
+
+\newcommand{\TwoDemoFigures}[6]{%
+    \begin{figure}[H]
+        \centering
+        \begin{subfigure}{0.48\textwidth}
+            \centering
+            \SafeImage[width=\linewidth,height=0.8\textheight,keepaspectratio]{#1}
+            \caption{#2}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.48\textwidth}
+            \centering
+            \SafeImage[width=\linewidth,height=0.8\textheight,keepaspectratio]{#3}
+            \caption{#4}
+        \end{subfigure}
+        \caption{#5}
+        \label{#6}
+    \end{figure}
+    \FloatBarrier
+}
+
+% =========================================================
+% Document
+% =========================================================
+\begin{document}
+
+% =========================================================
+% Cover page
+% =========================================================
+
+\begin{titlepage}
+    \thispagestyle{empty}
+
+    % Khung viền kép
+    \begin{tikzpicture}[remember picture, overlay]
+        \draw[line width=1pt]
+            ($(current page.north west) + (2.5cm,-1.5cm)$)
+            rectangle
+            ($(current page.south east) + (-1.5cm,1.5cm)$);
+
+        \draw[line width=2pt]
+            ($(current page.north west) + (2.6cm,-1.6cm)$)
+            rectangle
+            ($(current page.south east) + (-1.6cm,1.6cm)$);
+    \end{tikzpicture}
+
+    \centering
+
+    % Tên trường/khoa
+    {\small \textbf{ĐẠI HỌC QUỐC GIA TP. HỒ CHÍ MINH}}\\[0.15cm]
+    {\small \textbf{TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN}}\\[0.15cm]
+    {\small \textbf{KHOA CÔNG NGHỆ PHẦN MỀM}}\\[1.0cm]
+
+    % Logo
+    % Nếu file logo để trong root project Overleaf thì dùng {uit.png}
+    % Nếu để trong figures/cover thì đổi thành {figures/cover/uit.png}
+    \includegraphics[width=0.30\textwidth]{uit.png}\\[1.0cm]
+
+    % Tiêu đề
+    {\Large \textbf{BÁO CÁO ĐỒ ÁN MÔN HỌC}}\\[0.45cm]
+    {\large \textbf{SE104 -- NHẬP MÔN CÔNG NGHỆ PHẦN MỀM}}\\[1.0cm]
+
+    {\large \textbf{ĐỀ TÀI}}\\[0.35cm]
+
+    \begin{minipage}{0.86\textwidth}
+        \centering
+        {\Large \textbf{HỆ THỐNG QUẢN LÝ PHÒNG MẠCH TƯ NHÂN}}\\[0.25cm]
+        {\large \textbf{4N Clinic Management System}}
+    \end{minipage}
+
+    \vspace{1.15cm}
+
+    % Thông tin lớp, giảng viên, nhóm
+    \begin{minipage}{0.82\textwidth}
+        \raggedright
+        \textbf{Lớp học:} SE104.Q26 \\[0.25cm]
+        \textbf{Giảng viên hướng dẫn:} TS.Huỳnh Ngọc Tín \\[0.25cm]
+        \textbf{Nhóm thực hiện:} Nhóm 15
+    \end{minipage}
+
+    \vspace{0.75cm}
+
+    % Danh sách thành viên
+    \begin{tabularx}{0.84\textwidth}{@{}c X c X@{}}
+        \textbf{STT} & \textbf{Họ và tên} & \textbf{MSSV} & \textbf{Vai trò} \\[0.2cm]
+
+        1 & Trần Trọng Nhân & 24521243 & Frontend \& UI/UX Lead \\[0.18cm]
+
+        2 & Nguyễn Chơn Nhân & 24521233 & Project Lead / BA / Documentation \\[0.18cm]
+
+        3 & Nguyễn Trọng Phan Nhật & 24521254 & QA / Integration Lead / Tester \\[0.18cm]
+
+        4 & Trần Đức Nguyên & 24521209 & Backend \& Database Lead \\
+    \end{tabularx}
+
+    \vfill
+
+    {\normalsize TP. HỒ CHÍ MINH -- NĂM HỌC: 2025--2026}
+
+\end{titlepage}
+
+\cleardoublepage
+
+
+\cleardoublepage % Kết thúc trang bìa
+\pagenumbering{roman}
+
+\chapter*{Lời cảm ơn}
+\addcontentsline{toc}{chapter}{Lời cảm ơn}
+Nhóm chúng em xin gửi lời cảm ơn chân thành đến giảng viên phụ trách học phần \coursename{} đã hướng dẫn, định hướng và cung cấp các kiến thức nền tảng về quy trình công nghệ phần mềm, đặc tả yêu cầu, thiết kế hệ thống, thiết kế phần mềm, hiện thực, kiểm thử và triển khai phần mềm.
+
+Trong quá trình thực hiện đồ án, nhóm đã có cơ hội vận dụng kiến thức đã học vào bài toán xây dựng hệ thống quản lý phòng mạch tư nhân. Thông qua đề tài này, nhóm hiểu rõ hơn vai trò của việc khảo sát yêu cầu, chốt phạm vi với khách hàng, tổ chức công việc nhóm, thiết kế dữ liệu, thiết kế xử lý, thiết kế giao diện, hiện thực chức năng và kiểm thử hệ thống.
+
+Do thời gian và kinh nghiệm còn hạn chế, báo cáo và sản phẩm không tránh khỏi thiếu sót. Nhóm rất mong nhận được ý kiến góp ý từ giảng viên để tiếp tục hoàn thiện hệ thống trong các phiên bản tiếp theo.
+
+
+
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+\pagenumbering{arabic}
+
+\include{chapters/00_mo_dau}
+\include{chapters/01_dac_ta_yeu_cau}
+\include{chapters/02_thiet_ke_he_thong}
+\include{chapters/03_thiet_ke_phan_mem}
+\include{chapters/04_hien_thuc}
+\include{chapters/05_kiem_thu}
+\include{chapters/06_trien_khai_van_hanh}
+\include{chapters/07_ket_luan}
+
+\addcontentsline{toc}{chapter}{Tài liệu tham khảo}
+\nocite{*}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\appendix
+\include{chapters/appendix}
+
+\end{document}

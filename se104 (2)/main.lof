@@ -1,0 +1,21 @@
+\babel@toc {vietnamese}{}\relax 
+\contentsline {figure}{\numberline {1}{\ignorespaces Quy trình thực hiện đồ án theo định hướng kỹ nghệ phần mềm}}{2}{figure.caption.9}%
+\contentsline {figure}{\numberline {2}{\ignorespaces Minh chứng giao diện tổng quan theo vai trò người dùng}}{5}{figure.caption.17}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Minh chứng hai use case lõi trong quy trình khám bệnh}}{16}{figure.caption.19}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Sơ đồ ngữ cảnh hệ thống}}{20}{figure.caption.20}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Sơ đồ container của hệ thống}}{20}{figure.caption.21}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Mô hình layered architecture của backend}}{25}{figure.caption.24}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Sơ đồ triển khai local/development của hệ thống}}{31}{figure.caption.29}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Minh chứng phân quyền trên giao diện theo vai trò}}{32}{figure.caption.30}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces ERD Phase 1 -- nghiệp vụ lõi phòng mạch}}{37}{figure.caption.32}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces ERD Phase 2 Delta -- các model mở rộng}}{38}{figure.caption.33}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Minh chứng giao diện cho hai nghiệp vụ quản lý bệnh nhân và thanh toán}}{55}{figure.caption.36}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Giao diện Pharmacy Worklist -- minh chứng hiện thực Phase 2}}{65}{figure.caption.39}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Tổng quan chiến lược kiểm thử của hệ thống}}{68}{figure.caption.41}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Sơ đồ triển khai và vận hành local/development}}{84}{figure.caption.50}%

@@ -1,0 +1,444 @@
+\chapter{Thiết kế hệ thống}
+
+\section{Mục tiêu thiết kế hệ thống}
+
+Thiết kế hệ thống nhằm xác định bức tranh tổng thể của phần mềm: các thành phần chính, cách giao tiếp giữa các thành phần, cách tổ chức backend/frontend, cách xác thực và phân quyền, cũng như công nghệ được sử dụng. Với phạm vi đồ án môn học và quy mô nhóm 4 thành viên, hệ thống được thiết kế theo hướng dễ triển khai, dễ kiểm thử và dễ mở rộng.
+
+Các mục tiêu thiết kế chính gồm:
+
+\begin{itemize}
+    \item Tách rõ giao diện người dùng, xử lý nghiệp vụ và lưu trữ dữ liệu.
+    \item Bảo vệ dữ liệu thông qua xác thực JWT và phân quyền RBAC.
+    \item Tổ chức backend theo module nghiệp vụ để thuận tiện bảo trì.
+    \item Tổ chức frontend theo feature để dễ mở rộng màn hình và luồng người dùng.
+    \item Phù hợp với môi trường local/development của đồ án.
+\end{itemize}
+
+\section{Nguyên tắc và giả định thiết kế}
+
+Trước khi lựa chọn kiến trúc và công nghệ, nhóm xác định một số nguyên tắc thiết kế để đảm bảo hệ thống phù hợp với phạm vi đồ án, năng lực nhóm và quy trình vận hành của phòng mạch tư nhân. Các nguyên tắc này giúp tránh hai vấn đề thường gặp: thiết kế quá đơn giản dẫn đến khó mở rộng, hoặc thiết kế quá phức tạp vượt quá nhu cầu thực tế của đồ án.
+
+\begin{longtable}{|p{4.2cm}|p{10.5cm}|}
+\caption{Nguyên tắc thiết kế hệ thống}\\
+\hline
+\textbf{Nguyên tắc} & \textbf{Ý nghĩa trong hệ thống} \\
+\hline
+Tách rõ trách nhiệm giữa frontend, backend và database & Frontend chỉ hiển thị giao diện và gọi API; backend xử lý nghiệp vụ, phân quyền, validation và transaction; database lưu trữ dữ liệu có ràng buộc. \\
+\hline
+Không đặt business logic lõi ở frontend & Các rule như không tạo visit trùng ngày, không thanh toán vượt số tiền còn lại, không cấp phát thuốc khi thiếu tồn kho phải được kiểm soát ở backend service layer. \\
+\hline
+Ưu tiên tính nhất quán dữ liệu & Các nghiệp vụ liên quan nhiều bảng như tạo lượt khám, hoàn tất khám, thanh toán và cấp phát thuốc cần dùng transaction hoặc ràng buộc dữ liệu phù hợp. \\
+\hline
+Thiết kế theo module nghiệp vụ & Backend được chia theo domain như auth, patients, visits, examinations, billing, lab, inventory, pharmacy để dễ phát triển, kiểm thử và bảo trì. \\
+\hline
+Phù hợp với team nhỏ và môi trường đồ án & Hệ thống cần dễ chạy local, dễ demo, dễ debug và không yêu cầu hạ tầng phân tán phức tạp. \\
+\hline
+Có khả năng mở rộng từ Phase 1 sang Phase 2 & Các module mở rộng như appointment, queue, lab, inventory, pharmacy được bổ sung quanh lõi Patient--Visit--Examination--Billing thay vì thay đổi toàn bộ kiến trúc. \\
+\hline
+\end{longtable}
+
+Các giả định thiết kế chính được nhóm sử dụng trong phạm vi đồ án như sau:
+
+\begin{longtable}{|p{1.2cm}|p{7.2cm}|p{6.2cm}|}
+\caption{Giả định thiết kế hệ thống}\\
+\hline
+\textbf{Mã} & \textbf{Giả định} & \textbf{Tác động đến thiết kế} \\
+\hline
+A1 & Hệ thống phục vụ một phòng mạch tư nhân quy mô nhỏ đến trung bình. & Chưa cần kiến trúc đa chi nhánh hoặc multi-tenant. \\
+\hline
+A2 & Người dùng chính là nhân sự nội bộ của phòng mạch. & Hệ thống được thiết kế là web application nội bộ, không phải patient portal. \\
+\hline
+A3 & Phase 1 tập trung vào nghiệp vụ lõi. & Thiết kế ưu tiên Patient, Visit, Examination, Prescription, Invoice và Payment. \\
+\hline
+A4 & Phase 2 mở rộng nghiệp vụ vận hành. & Các module appointment, queue, vitals, lab, inventory, pharmacy được tách riêng. \\
+\hline
+A5 & Lưu lượng truy cập ở mức nhỏ đến vừa trong phạm vi phòng mạch. & Modular monolith phù hợp hơn microservices ở giai đoạn này. \\
+\hline
+A6 & Hệ thống chạy local/development để phục vụ demo và kiểm thử đồ án. & Chưa khẳng định production deployment, Docker hoặc CI/CD hoàn chỉnh nếu codebase chưa chứng minh. \\
+\hline
+\end{longtable}
+
+
+\section{Kiến trúc tổng thể}
+
+Hệ thống sử dụng kiến trúc client--server. Người dùng thao tác qua trình duyệt, frontend React gửi request REST/JSON đến backend NestJS. Backend thực hiện xác thực, phân quyền, xử lý business rules và truy vấn PostgreSQL thông qua Prisma ORM.
+
+\ReportFigure{figures/ch02-system-design/system-context.pdf}{Sơ đồ ngữ cảnh hệ thống}{fig:system-context}
+
+\ReportFigure{figures/ch02-system-design/container-diagram.pdf}{Sơ đồ container của hệ thống}{fig:container-diagram}
+
+\section{Tech stack}
+
+\begin{longtable}{|p{3cm}|p{4cm}|p{3cm}|p{5cm}|}
+\caption{Tech stack sử dụng trong hệ thống}\\
+\hline
+\textbf{Lớp} & \textbf{Công nghệ} & \textbf{Phiên bản} & \textbf{Vai trò} \\
+\hline
+Runtime & Node.js & 20+ LTS & Chạy backend và frontend tooling \\
+\hline
+Backend framework & NestJS & 11.0.1 & Web framework, dependency injection, module system \\
+\hline
+Backend language & TypeScript & 5.7.3 & Type-safe backend \\
+\hline
+ORM & Prisma & 6.16.2 & Database access, migration, schema mapping \\
+\hline
+Database & PostgreSQL & 15+ & Relational database \\
+\hline
+Authentication & JWT, Passport & Theo package backend & Token generation và validation \\
+\hline
+Frontend framework & React & 19.2.0 & UI library \\
+\hline
+Build tool & Vite & 7.2.2 & Dev server và build frontend \\
+\hline
+Frontend language & TypeScript & 5.9.3 & Type-safe frontend \\
+\hline
+Styling & Tailwind CSS & 4.3.0 & Utility CSS và design system \\
+\hline
+Server state & TanStack Query & 5.100.10 & Data fetching và caching \\
+\hline
+Client state & Zustand & 5.0.13 & Auth store và global state \\
+\hline
+Forms/Validation & React Hook Form, Zod & 7.76.0, 4.4.3 & Form management và schema validation \\
+\hline
+Testing & Jest, Supertest & 30.x & Unit và E2E tests \\
+\hline
+\end{longtable}
+
+\section{Các quyết định kiến trúc chính}
+
+Để tránh việc lựa chọn công nghệ và kiến trúc một cách cảm tính, nhóm ghi nhận các quyết định kiến trúc chính dưới dạng ADR rút gọn. Mỗi quyết định đều xuất phát từ yêu cầu nghiệp vụ, phạm vi đồ án và khả năng hiện thực của nhóm.
+
+\begin{longtable}{|p{1.6cm}|p{4.4cm}|p{5.1cm}|p{4.2cm}|}
+\caption{Các quyết định kiến trúc chính của hệ thống}\\
+\hline
+\textbf{ADR} & \textbf{Quyết định} & \textbf{Lý do lựa chọn} & \textbf{Tác động} \\
+\hline
+ADR-01 & Xây dựng web application thay vì desktop application & Phòng mạch có nhiều vai trò cùng thao tác; dữ liệu cần tập trung và dễ truy cập qua trình duyệt. & Cần backend API và database tập trung; đổi lại hỗ trợ nhiều người dùng nội bộ tốt hơn. \\
+\hline
+ADR-02 & Sử dụng kiến trúc client--server & Cần tách giao diện, xử lý nghiệp vụ và lưu trữ dữ liệu. & Frontend không truy cập trực tiếp database; backend kiểm soát toàn bộ nghiệp vụ. \\
+\hline
+ADR-03 & Sử dụng backend modular monolith thay vì microservices & Team nhỏ, thời gian đồ án giới hạn, nghiệp vụ chưa cần scale độc lập từng service. & Dễ code, test, debug và chạy local; vẫn chia module nghiệp vụ rõ ràng. \\
+\hline
+ADR-04 & Đặt business logic lõi ở backend service layer & Tránh việc cùng một rule bị hiện thực khác nhau giữa các màn hình frontend. & Các rule nghiệp vụ quan trọng được áp dụng nhất quán và dễ kiểm thử. \\
+\hline
+ADR-05 & Sử dụng PostgreSQL và Prisma ORM & Dữ liệu phòng mạch có quan hệ rõ: bệnh nhân, lượt khám, phiếu khám, đơn thuốc, hóa đơn, thanh toán. & Tận dụng khóa ngoại, unique constraint, transaction và migration. \\
+\hline
+ADR-06 & Dùng REST/JSON API và Swagger & Phù hợp với React frontend, dễ kiểm thử bằng Swagger/Postman và dễ tài liệu hóa. & Frontend/backend phối hợp qua API contract rõ ràng. \\
+\hline
+ADR-07 & Sử dụng JWT và RBAC & Hệ thống có nhiều vai trò nội bộ cần phân quyền truy cập chức năng. & API được bảo vệ bởi JwtAuthGuard, RolesGuard và cấu hình role/permission. \\
+\hline
+ADR-08 & Tách module Phase 2 quanh lõi Phase 1 & Phase 2 mở rộng appointment, queue, lab, inventory, pharmacy nhưng không thay thế lõi hiện có. & Giảm rủi ro phá vỡ nghiệp vụ lõi khi mở rộng hệ thống. \\
+\hline
+\end{longtable}
+
+
+\section{Kiến trúc backend: Modular Monolith}
+
+Backend là một NestJS monolith được chia thành 21 feature modules theo domain nghiệp vụ. Trong đó 20 module có controller/API route, còn \code{prescriptions} là service-only module được gọi từ module \code{examinations}.
+
+\begin{table}[H]
+\centering
+\caption{Các nhóm module backend}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Nhóm} & \textbf{Module} \\
+\hline
+Identity \& Access & auth, users, rbac \\
+\hline
+Clinical Core & patients, visits, examinations, prescriptions, diseases, drugs \\
+\hline
+Billing \& Reports & billing, regulations, reports \\
+\hline
+Phase 2 Extension & appointments, queue, vitals, services, lab, inventory, pharmacy, organization, audit \\
+\hline
+Shared/Common & prisma, guards, decorators, filters, constants \\
+\hline
+\end{tabularx}
+\end{table}
+\noindent
+Lợi ích chính của modular monolith trong đồ án là nhóm có thể giữ một backend process duy nhất để dễ chạy local và debug, nhưng vẫn chia code theo domain nghiệp vụ. Điều này phù hợp với phạm vi nhóm 4 thành viên vì giảm chi phí vận hành so với microservices, trong khi vẫn bảo đảm các module như appointments, lab, inventory và pharmacy có thể được bổ sung ở Phase 2.
+
+\begin{table}[H]
+\centering
+\caption{Lợi ích và giới hạn của modular monolith}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Khía cạnh} & \textbf{Đánh giá} \\
+\hline
+Lợi ích & Dễ chạy local, dễ debug, dễ test E2E, quản lý transaction đơn giản hơn và phù hợp team nhỏ. \\
+\hline
+Giới hạn & Không scale độc lập từng module như microservices; nếu sau này hệ thống có nhiều chi nhánh hoặc lưu lượng lớn, cần đánh giá lại kiến trúc. \\
+\hline
+Hướng mở rộng & Tối ưu query, bổ sung index, caching, logging, monitoring trước khi nghĩ đến tách microservices. \\
+\hline
+\end{tabularx}
+\end{table}
+% \ReportFigure{figures/ch02-system-design/backend-component.pdf}{Sơ đồ component backend theo module nghiệp vụ}{fig:backend-component}
+
+\section{Kiến trúc layered architecture}
+
+Bên trong mỗi module backend, nhóm áp dụng layered architecture để tách rõ trách nhiệm giữa tiếp nhận request, kiểm tra dữ liệu, xử lý nghiệp vụ và truy cập database. Cách tổ chức này giúp controller mỏng, business rules tập trung ở service layer và các thao tác database đi qua PrismaService.
+
+\begin{longtable}{|p{4cm}|p{7cm}|p{4cm}|}
+\caption{Các lớp trong kiến trúc backend}\\
+\hline
+\textbf{Lớp} & \textbf{Trách nhiệm} & \textbf{Không nên chứa} \\
+\hline
+Controller layer & Expose REST API, nhận HTTP request, gọi service, trả response. & Không chứa business logic phức tạp hoặc transaction nghiệp vụ. \\
+\hline
+DTO/Validation layer & Kiểm tra dữ liệu đầu vào như required field, kiểu dữ liệu, định dạng email, số tiền dương. & Không quyết định nghiệp vụ hoặc trạng thái hệ thống. \\
+\hline
+Service/Use case layer & Điều phối use case, kiểm tra business rules, gọi Prisma và thực hiện transaction khi cần. & Không phụ thuộc trực tiếp vào chi tiết giao diện frontend. \\
+\hline
+Domain policy/Business rules & Biểu diễn các quy tắc như không tạo visit trùng ngày, không thanh toán vượt remaining, FEFO khi cấp phát thuốc. & Không chứa xử lý HTTP hoặc chi tiết UI. \\
+\hline
+Data access layer & PrismaService truy vấn PostgreSQL, thực hiện create/read/update/delete và transaction. & Không tự quyết định rule nghiệp vụ nếu rule đó thuộc service/domain. \\
+\hline
+Database layer & PostgreSQL lưu trữ dữ liệu, khóa ngoại, unique constraint, index và dữ liệu giao dịch. & Không thay thế hoàn toàn validation/business rule ở service. \\
+\hline
+\end{longtable}
+
+Ví dụ với nghiệp vụ ghi nhận thanh toán, \code{PaymentController} nhận request từ thu ngân, DTO kiểm tra \code{amount} và \code{method}, \code{PaymentService} kiểm tra hóa đơn tồn tại, trạng thái hóa đơn và số tiền còn lại, sau đó dùng Prisma transaction để tạo \code{Payment} và cập nhật \code{Invoice}. Nhờ đó, hệ thống tránh tình trạng payment được tạo nhưng trạng thái hóa đơn không được cập nhật.
+
+\ReportFigure{figures/ch02-system-design/layered-architecture.pdf}{Mô hình layered architecture của backend}{fig:layered-architecture}
+
+
+
+\section{Kiến trúc frontend}
+
+Frontend được tổ chức theo feature-based structure. Mỗi feature gồm page, component, API client và type tương ứng. Router quản lý 36 named routes, trong đó các route trong khu vực ứng dụng được bảo vệ bởi \code{ProtectedRoute} và \code{RequireRole}.
+
+\begin{table}[H]
+\centering
+\caption{Một số feature frontend chính}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Feature} & \textbf{Vai trò} \\
+\hline
+auth & LoginPage, ProtectedRoute, RequireRole, auth store \\
+\hline
+patients & Danh sách, tạo mới, chi tiết, lịch sử khám \\
+\hline
+visits & Danh sách lượt khám, tạo lượt khám \\
+\hline
+examinations & Phiếu khám, chẩn đoán, kê đơn, sinh hiệu, dịch vụ \\
+\hline
+invoices & Danh sách hóa đơn, chi tiết hóa đơn, thanh toán \\
+\hline
+reports & Báo cáo tháng và doanh thu theo loại \\
+\hline
+Phase 2 features & appointments, queue, lab, inventory, pharmacy, organization, audit \\
+\hline
+\end{tabularx}
+\end{table}
+\noindent
+Frontend không quyết định business rules lõi. Các kiểm tra ở frontend chủ yếu nhằm cải thiện trải nghiệm người dùng, ví dụ cảnh báo thiếu trường bắt buộc hoặc hiển thị lỗi rõ ràng. Quyết định cuối cùng vẫn thuộc về backend vì người dùng có thể bỏ qua giao diện và gọi API trực tiếp.
+
+\begin{table}[H]
+\centering
+\caption{Trách nhiệm của frontend trong hệ thống}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Thành phần} & \textbf{Trách nhiệm} \\
+\hline
+Router & Quản lý route công khai, route cần đăng nhập và route yêu cầu vai trò. \\
+\hline
+ProtectedRoute & Chặn người dùng chưa đăng nhập truy cập khu vực ứng dụng. \\
+\hline
+RequireRole & Chặn truy cập giao diện theo vai trò ở mức frontend. \\
+\hline
+API client & Gắn base URL, token, xử lý lỗi chung và gọi REST API. \\
+\hline
+TanStack Query & Quản lý fetching, caching, loading, error và refetch dữ liệu từ backend. \\
+\hline
+Zustand auth store & Lưu trạng thái đăng nhập, thông tin người dùng và token. \\
+\hline
+Role-based navigation & Hiển thị sidebar/menu theo vai trò. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Thiết kế API và giao tiếp giữa các thành phần}
+
+Hệ thống sử dụng REST/JSON API với prefix \code{/api/v1}. Frontend không truy cập trực tiếp database mà gọi backend thông qua API. Backend chịu trách nhiệm xác thực, phân quyền, validation, business rules và transaction trước khi truy vấn PostgreSQL.
+
+\begin{longtable}{|p{4cm}|p{5cm}|p{5.5cm}|}
+\caption{Nhóm API chính trong hệ thống}\\
+\hline
+\textbf{Nhóm API} & \textbf{Endpoint tiêu biểu} & \textbf{Vai trò} \\
+\hline
+Auth & \code{POST /api/v1/auth/login} & Đăng nhập, cấp token, refresh và logout nếu có. \\
+\hline
+Users/RBAC & \code{/api/v1/users}, \code{/api/v1/rbac} & Quản lý tài khoản, vai trò và quyền. \\
+\hline
+Patients & \code{/api/v1/patients} & Quản lý hồ sơ bệnh nhân. \\
+\hline
+Visits & \code{/api/v1/visits} & Tạo lượt khám, cấp số thứ tự, xem danh sách lượt khám. \\
+\hline
+Examinations & \code{/api/v1/examinations} & Mở phiếu khám, ghi chẩn đoán, kê đơn, hoàn tất khám. \\
+\hline
+Billing/Payments & \code{/api/v1/invoices}, \code{/api/v1/payments} & Lập hóa đơn và ghi nhận thanh toán. \\
+\hline
+Reports & \code{/api/v1/reports} & Báo cáo tháng và thống kê cơ bản. \\
+\hline
+Phase 2 APIs & appointments, queue, vitals, services, lab, inventory, pharmacy & Mở rộng quy trình vận hành phòng khám. \\
+\hline
+\end{longtable}
+
+Các API nghiệp vụ đều được bảo vệ bằng JWT và kiểm tra vai trò ở backend. Swagger UI được dùng để tài liệu hóa endpoint và hỗ trợ kiểm thử thủ công trong quá trình phát triển.
+
+\section{Xác thực và phân quyền}
+
+Hệ thống sử dụng JWT stateless authentication. Sau khi đăng nhập, người dùng nhận access token và refresh token. Frontend gắn access token vào header \code{Authorization: Bearer <token>} cho các request tiếp theo. Backend dùng \code{JwtAuthGuard} để xác thực token và \code{RolesGuard} để kiểm tra quyền theo vai trò.
+
+\begin{table}[H]
+\centering
+\caption{Vai trò người dùng trong hệ thống}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Role} & \textbf{Mô tả} \\
+\hline
+ADMIN & Toàn quyền quản trị hệ thống \\
+\hline
+RECEPTIONIST & Tiếp nhận, quản lý bệnh nhân, lượt khám và lịch hẹn \\
+\hline
+DOCTOR & Khám bệnh, kê đơn, xem lịch sử, chỉ định dịch vụ \\
+\hline
+CASHIER & Hóa đơn và thanh toán \\
+\hline
+MANAGER & Báo cáo, danh mục, theo dõi hoạt động \\
+\hline
+NURSE & Sinh hiệu, hỗ trợ hàng đợi và xét nghiệm \\
+\hline
+LAB\_TECHNICIAN & Nhận mẫu và nhập/xác nhận kết quả xét nghiệm \\
+\hline
+PHARMACIST & Quản lý tồn kho và cấp phát thuốc \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{longtable}{|p{4cm}|c|c|c|c|c|}
+\caption{Ma trận phân quyền rút gọn theo vai trò}\\
+\hline
+\textbf{Chức năng} & \textbf{ADMIN} & \textbf{RECEP.} & \textbf{DOCTOR} & \textbf{CASHIER} & \textbf{MANAGER} \\
+\hline
+Quản lý tài khoản & Có & Không & Không & Không & Xem giới hạn \\
+\hline
+Quản lý bệnh nhân & Có & Có & Xem & Không & Xem \\
+\hline
+Tạo lượt khám & Có & Có & Không & Không & Xem \\
+\hline
+Mở phiếu khám & Không & Không & Có & Không & Xem \\
+\hline
+Kê đơn & Không & Không & Có & Không & Xem \\
+\hline
+Lập hóa đơn & Không & Không & Không & Có & Xem \\
+\hline
+Ghi nhận thanh toán & Không & Không & Không & Có & Xem \\
+\hline
+Quản lý quy định & Có & Không & Không & Không & Có \\
+\hline
+Xem báo cáo & Có & Không & Không & Không & Có \\
+\hline
+\end{longtable}
+
+\begin{longtable}{|p{0.5cm}|p{3.2cm}|p{5.5cm}|p{5cm}|}
+\caption{Các bước trong luồng đăng nhập và gọi API bằng JWT}\label{tab:auth-sequence}\\
+\hline
+\textbf{\#} & \textbf{Actor / Component} & \textbf{Hành động} & \textbf{Kết quả / Điều kiện} \\
+\hline
+1 & User $\rightarrow$ LoginPage & Nhập username và password, submit form & POST /auth/login được gửi đến backend \\
+\hline
+2 & AuthService $\rightarrow$ DB & Tìm user theo username/email & 401 Unauthorized nếu user không tồn tại \\
+\hline
+3 & AuthService & So sánh password với hash đã lưu & 401 Unauthorized nếu sai mật khẩu \\
+\hline
+4 & AuthService $\rightarrow$ JWT & Ký access token (stateless) và refresh token & Hai token hợp lệ theo cấu hình TTL \\
+\hline
+5 & AuthService $\rightarrow$ DB & Lưu refresh token hash vào database & Phục vụ revoke khi logout \\
+\hline
+6 & AuthController $\rightarrow$ Frontend & 201 \{accessToken, refreshToken, user\} & Frontend lưu token, redirect về dashboard \\
+\hline
+7 & Frontend $\rightarrow$ API & Gắn \code{Authorization: Bearer <token>} vào mọi request tiếp theo & JwtAuthGuard xác thực, trả dữ liệu theo role \\
+\hline
+\end{longtable}
+
+\section{Xử lý lỗi và bảo vệ API}
+
+Ngoài xác thực JWT và phân quyền RBAC, backend còn cần xử lý lỗi theo một kiến trúc thống nhất để frontend nhận được HTTP status code và thông báo rõ ràng. Các lỗi nghiệp vụ như trùng lượt khám trong ngày, thanh toán vượt số tiền còn lại hoặc cấp phát thuốc không đủ tồn kho được trả về dưới dạng 400/409 thay vì lỗi hệ thống chung. Các lỗi truy cập được phân biệt thành 401 Unauthorized khi chưa xác thực và 403 Forbidden khi đã xác thực nhưng không đủ quyền.
+
+\begin{table}[H]
+\centering
+\caption{Kiến trúc xử lý lỗi và bảo vệ API}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|}
+\hline
+\textbf{Thành phần} & \textbf{Vai trò} \\
+\hline
+JwtAuthGuard & Kiểm tra access token trong header \code{Authorization}. Request thiếu hoặc token không hợp lệ trả 401. \\
+\hline
+RolesGuard và \code{@Roles} & Kiểm tra role được phép truy cập endpoint. Người dùng không đủ quyền bị chặn ở backend. \\
+\hline
+DTO validation & Kiểm tra dữ liệu đầu vào trước khi vào service layer, ví dụ required field, kiểu dữ liệu, định dạng email, số tiền dương. \\
+\hline
+Exception filters & Chuẩn hóa lỗi NestJS/Prisma thành HTTP response dễ hiểu, giúp frontend hiển thị thông báo nhất quán. \\
+\hline
+CORS và secret config & Cấu hình nguồn gọi API trong môi trường local; JWT secret và database URL đặt trong biến môi trường, không hard-code trong mã nguồn. \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Lý do không chọn microservices}
+
+Microservices phù hợp với hệ thống lớn, nhiều nhóm phát triển độc lập, yêu cầu scale từng service riêng và có hạ tầng vận hành đầy đủ. Tuy nhiên, với phạm vi đồ án môn học, nhóm 4 thành viên và môi trường local/development, microservices sẽ tạo ra nhiều chi phí không cần thiết.
+
+\begin{longtable}{|p{4.5cm}|p{5.2cm}|p{5.2cm}|}
+\caption{So sánh modular monolith và microservices trong bối cảnh đồ án}\\
+\hline
+\textbf{Tiêu chí} & \textbf{Modular monolith} & \textbf{Microservices} \\
+\hline
+Độ phức tạp triển khai & Một backend process, dễ chạy local và demo. & Nhiều service, nhiều port, cần service discovery hoặc orchestration. \\
+\hline
+Quản lý transaction & Dễ transaction trong cùng database và codebase. & Khó hơn vì có thể cần distributed transaction hoặc eventual consistency. \\
+\hline
+Debug và kiểm thử & Dễ theo dõi luồng nghiệp vụ trong một ứng dụng. & Lỗi có thể nằm ở network, message, API contract giữa service. \\
+\hline
+Phù hợp team nhỏ & Phù hợp với nhóm 4 thành viên và thời gian giới hạn. & Dễ vượt quá năng lực vận hành của đồ án. \\
+\hline
+Khả năng mở rộng & Có thể mở rộng bằng module mới trong cùng codebase. & Scale từng service tốt hơn nhưng cần hạ tầng trưởng thành. \\
+\hline
+Kết luận & Phù hợp với Phase 1 và Phase 2 của đồ án. & Chưa cần thiết ở giai đoạn hiện tại. \\
+\hline
+\end{longtable}
+
+Vì vậy, nhóm chọn modular monolith để đạt cân bằng giữa tính đơn giản và khả năng mở rộng. Nếu hệ thống phát triển thành sản phẩm thật với nhiều chi nhánh, lưu lượng lớn hoặc nhiều nhóm phát triển độc lập, việc tách một số module thành service riêng có thể được xem xét trong tương lai.
+
+\section{Góc nhìn triển khai local}
+
+Trong phạm vi đồ án, hệ thống được vận hành ở môi trường local/development: frontend Vite chạy trên cổng 5173, backend NestJS chạy trên cổng 3000 và PostgreSQL chạy trên máy cục bộ. Góc nhìn triển khai này giúp xác định rõ các tiến trình cần chạy khi demo, đồng thời tránh nhầm lẫn với production deployment.
+
+\ReportFigure{figures/ch06-deployment/local-deployment.pdf}{Sơ đồ triển khai local/development của hệ thống}{fig:local-deployment-design}
+
+\section{Demo các chức năng trọng tâm}
+
+\begin{longtable}{|p{3.4cm}|p{5.5cm}|p{5.2cm}|}
+\caption{Demo thiết kế hệ thống}\\
+\hline
+\textbf{Demo} & \textbf{Nội dung trình bày} & \textbf{Minh chứng } \\
+\hline
+Demo client--server & Frontend React gọi REST API backend, backend truy vấn PostgreSQL & System context diagram, Swagger screenshot \\
+\hline
+Demo JWT auth flow & Login, nhận token, gọi API có Bearer token & Sequence diagram, Swagger authorize \\
+\hline
+Demo RBAC & Admin thấy menu quản trị, bác sĩ chỉ thấy chức năng khám & Screenshot sidebar Admin/Doctor \\
+\hline
+Demo backend module & Backend chia theo domain nghiệp vụ & Component diagram backend \\
+\hline
+\end{longtable}
+
+\TwoDemoFigures
+{figures/screenshots/sidebar-admin.png}
+{Sidebar của Admin}
+{figures/screenshots/sidebar-doctor.png}
+{Sidebar của Bác sĩ}
+{Minh chứng phân quyền trên giao diện theo vai trò}
+{fig:rbac-sidebar-demo}

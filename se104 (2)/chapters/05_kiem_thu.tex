@@ -1,0 +1,498 @@
+\chapter{Kiểm thử phần mềm}
+
+\section{Mục tiêu kiểm thử}
+
+Mục tiêu kiểm thử là xác nhận hệ thống đáp ứng các yêu cầu đã chốt, các business rules quan trọng được thực thi đúng và các luồng nghiệp vụ chính hoạt động ổn định khi frontend, backend và database được tích hợp. Chương này trình bày chiến lược kiểm thử, bằng chứng test hiện có, kế hoạch test Phase 1, kế hoạch test thủ công Phase 2 và các giới hạn cần trình bày trung thực.
+
+\section{Chiến lược kiểm thử}
+
+Nhóm kết hợp nhiều hình thức kiểm thử, phân loại theo mức độ hiểu biết về cấu trúc bên trong hệ thống:
+
+\begin{table}[H]
+\centering
+\caption{Unit test files hộp trắng cho service layer}
+\begin{tabularx}{\textwidth}{|p{5.5cm}|p{1.8cm}|X|}
+\hline
+\textbf{File} & \textbf{Tests} & \textbf{Business rules kiểm thử} \\
+\hline
+\code{billing.service.spec.ts} & 9 & UC-14/15: số tiền không hợp lệ, VOID/PAID invoice, vượt remaining, partial payment, full payment, 404 invoice/visit không tồn tại. \\
+\hline
+\code{visits.service.spec.ts} & 13 & UC-07/09: quota ngày, trùng visit, queueNumber, doctor inactive, wrong status. \\
+\hline
+\texttt{examinations.service.}\newline\texttt{spec.ts} & 24 & UC-10/12/13: sửa exam completed, primary diagnosis, required service orders, idempotent behavior. \\
+\hline
+\code{patients.service.spec.ts} & 13 & UC-04/05/11: citizenId trùng, patientCode, medical history filter. \\
+\hline
+\textbf{Tổng} & \textbf{59} & \textbf{Đã đếm trực tiếp từ mã nguồn; tất cả pass khi chạy \code{npm test} không cần database.} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\ReportFigure{figures/ch05-testing/testing-strategy.pdf}{Tổng quan chiến lược kiểm thử của hệ thống}{fig:testing-strategy}
+
+\textbf{Ghi chú trung thực:} Codebase hiện có 7 file e2e test, bao phủ cả các luồng lõi Phase 1 (auth, clinic flow, billing/catalog) lẫn một phần Phase 2 (appointments, queue, services/lab). Theo log test run được nhóm cung cấp, các test tự động đã chạy thành công 220/220 trên bộ test hiện có. Để khắc phục các khoảng trống, nhóm đã bổ sung một khung kiểm thử đa tầng (unit hộp trắng backend, Vitest frontend, test ràng buộc database, CI) trình bày ở mục~\ref{sec:bo-sung-khung}. Các điểm còn lại cần mở rộng là e2e cho hai module Phase 2 là inventory và pharmacy (cấp phát FEFO); đây là hướng bổ sung trong tương lai.
+
+\section{Bằng chứng test hiện có}
+
+\begin{longtable}{|p{5cm}|p{1.4cm}|p{1.4cm}|p{1.6cm}|p{5cm}|}
+\caption{Test files hiện có trong codebase}\\
+\hline
+\textbf{File} & \textbf{Loại} & \textbf{Phase} & \textbf{Số test} & \textbf{Nội dung} \\
+\hline
+\path{backend/test/auth.e2e-spec.ts} & E2E & P1 & 16 & Login đúng/sai credentials, refresh token, logout revoke, GET /auth/me, RBAC \\
+\hline
+\path{backend/test/clinic-flow.e2e-spec.ts} & E2E & P1 & 33 & Luồng UC07 đến UC13: patient, visit, open examination, diagnosis, prescription, complete \\
+\hline
+\path{backend/test/billing-catalog-flow.e2e-spec.ts} & E2E & P1 & 49 & Billing flow: invoice, payment; catalog: diseases, drugs \\
+\hline
+\path{backend/test/appointments.e2e-spec.ts} & E2E & P2 & 32 & Lịch hẹn: list/RBAC, tạo, cập nhật (chỉ SCHEDULED), check-in \\
+\hline
+\path{backend/test/queue.e2e-spec.ts} & E2E & P2 & 30 & Hàng đợi: list, next ticket, state machine transitions \\
+\hline
+\texttt{backend/test/}\newline\texttt{phase2-clinical-}\newline\texttt{integration.e2e-spec.ts} & E2E & P2 & 54 & Service catalog, service orders, lab workflow ORDERED$\rightarrow$VERIFIED, vitals, audit \\
+\hline
+\path{backend/test/app.e2e-spec.ts} & E2E & -- & 1 & Boilerplate health check, không test business logic \\
+\hline
+\path{backend/src/app.controller.spec.ts} & Unit & -- & 1 & Boilerplate app controller unit test \\
+\hline
+\end{longtable}
+
+Như vậy, codebase hiện có \textbf{7 file e2e test} với khoảng 215 test case tĩnh; cùng với phần mở rộng từ \code{it.each}, tổng số test khi chạy đạt 220 theo log nhóm cung cấp. Đáng chú ý, Phase 2 \textbf{đã có} automated e2e cho các module appointments, queue và services/lab, không chỉ kiểm thử thủ công.
+
+\section{Kế hoạch kiểm thử Phase 1}
+
+\subsection{Auth Module}
+
+\begin{table}[H]
+\centering
+\caption{Test plan Auth Module}
+\begin{tabularx}{\textwidth}{|p{2.5cm}|p{2.2cm}|X|p{3.5cm}|}
+\hline
+\textbf{Test ID} & \textbf{Loại} & \textbf{Mục tiêu} & \textbf{Expected} \\
+\hline
+T-AUTH-01 & E2E & Login thành công & 201, accessToken, refreshToken \\
+\hline
+T-AUTH-02 & E2E & Login sai password & 401 Unauthorized \\
+\hline
+T-AUTH-03 & E2E & Refresh token hợp lệ & 200, new accessToken \\
+\hline
+T-AUTH-04 & E2E & Logout revoke token & Token bị revoke \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Clinic Flow}
+
+\begin{longtable}{|p{2.5cm}|p{2.2cm}|p{5cm}|p{4.5cm}|}
+\caption{Test plan clinic flow Phase 1}\\
+\hline
+\textbf{Test ID} & \textbf{Loại} & \textbf{Mục tiêu} & \textbf{Expected} \\
+\hline
+T-PAT-01 & E2E & Tạo patient thành công & 201, patientCode \\
+\hline
+T-PAT-02 & Manual & Tạo trùng citizenId & 409 Conflict \\
+\hline
+T-VIS-01 & E2E & Tạo visit thành công & 201, queueNumber assigned \\
+\hline
+T-VIS-02 & E2E & Tạo trùng visit cùng patient/date & 409 Conflict \\
+\hline
+T-VIS-03 & E2E & Open examination & 201, Examination OPEN \\
+\hline
+T-EXAM-01 & E2E & Update examination & 200, updated \\
+\hline
+T-EXAM-02 & E2E & Create prescription & 201, PrescriptionItems \\
+\hline
+T-EXAM-03 & E2E & Complete examination có diagnosis & 200, COMPLETED \\
+\hline
+T-EXAM-04 & Manual & Complete không có diagnosis & 400 BadRequest \\
+\hline
+\end{longtable}
+
+\subsection{Billing và Catalog}
+
+\begin{table}[H]
+\centering
+\caption{Test plan Billing và Catalog}
+\begin{tabularx}{\textwidth}{|p{2.5cm}|p{2.2cm}|X|p{3.5cm}|}
+\hline
+\textbf{Test ID} & \textbf{Loại} & \textbf{Mục tiêu} & \textbf{Expected} \\
+\hline
+T-BILL-01 & E2E & Tạo invoice từ COMPLETED visit & 201, invoice ISSUED \\
+\hline
+T-BILL-02 & E2E & Payment hợp lệ & 201, paidAmount updated \\
+\hline
+T-BILL-03 & Manual & Payment lớn hơn remaining & 400 BadRequest \\
+\hline
+T-BILL-04 & Manual & Payment invoice đã PAID & 400 BadRequest \\
+\hline
+T-CAT-01 & E2E & CRUD diseases & Kết quả đúng theo API \\
+\hline
+T-CAT-02 & E2E & CRUD drugs & Kết quả đúng theo API \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Kế hoạch kiểm thử Phase 2}
+
+Phase 2 đã có automated e2e cho appointments, queue và services/lab. Hai module \textbf{inventory} và \textbf{pharmacy} (cấp phát FEFO) hiện chưa có automated test nên được kiểm thử thủ công kèm minh chứng giao diện/API. Bảng dưới đây tổng hợp các test case Phase 2; cột \textit{Hình thức} phân biệt rõ test đã tự động hóa và test còn thủ công:
+
+\begin{longtable}{|p{1.8cm}|p{2.1cm}|p{1.7cm}|p{3.6cm}|p{4.6cm}|}
+\caption{Test plan Phase 2}\\
+\hline
+\textbf{Test ID} & \textbf{Module} & \textbf{Hình thức} & \textbf{Steps} & \textbf{Expected} \\
+\hline
+T-APT-01 & appoint-\allowbreak ments & E2E auto & Chọn patient, doctor, giờ, submit & Appointment SCHEDULED \\
+\hline
+T-APT-02 & appoint-\allowbreak ments & E2E auto & Check-in lịch hẹn & Visit tạo, Appointment CHECKED\_IN \\
+\hline
+T-QUE-01 & queue & E2E auto & Xem hàng đợi theo ngày & QueueTickets listed \\
+\hline
+T-QUE-02 & queue & E2E auto & Chuyển WAITING, CALLED, IN\_SERVICE, DONE & State transition đúng \\
+\hline
+T-VTL-01 & vitals & E2E auto & Nhập weight/height & BMI tự tính \\
+\hline
+T-LAB-01 & lab & E2E auto & Bác sĩ chỉ định xét nghiệm & LabOrder ORDERED \\
+\hline
+T-LAB-02 & lab & E2E auto & Nurse/lab confirm lấy mẫu & SAMPLE\_COLLECTED \\
+\hline
+T-LAB-03 & lab & E2E auto & Lab tech nhập kết quả & RESULT\_ENTERED \\
+\hline
+T-LAB-04 & lab & E2E auto & Doctor/lab verify kết quả & VERIFIED \\
+\hline
+T-INV-01 & inventory & Manual & Nhập lô thuốc & StockLot created \\
+\hline
+T-PHM-01 & pharmacy & Manual & Cấp phát theo đơn & DISPENSED, stock giảm \\
+\hline
+T-PHM-02 & pharmacy & Manual & Cấp phát lô hết hạn & 400 BadRequest \\
+\hline
+T-PHM-03 & pharmacy & Manual & Cấp phát vượt tồn kho & 400 BadRequest \\
+\hline
+T-AUD-01 & audit & E2E auto & Xem audit log & Danh sách AuditLog hiển thị \\
+\hline
+\end{longtable}
+
+\section{Kiểm thử giao diện}
+\begin{longtable}{|p{2.4cm}|p{3.2cm}|p{5.2cm}|p{3.5cm}|}
+\caption{Test case giao diện theo vai trò}\\
+\hline
+\textbf{Test ID} & \textbf{Vai trò} & \textbf{Mục tiêu kiểm thử} & \textbf{Expected} \\
+\hline
+T-UI-01 & All & Đăng nhập thành công và điều hướng theo role & Dashboard/menu đúng vai trò \\
+\hline
+T-UI-02 & ADMIN & Sidebar hiển thị chức năng quản trị & Có menu users, catalogs, regulations nếu được cấp quyền \\
+\hline
+T-UI-03 & DOCTOR & Truy cập màn hình khám bệnh & Thấy visit/examination, không thấy chức năng thanh toán \\
+\hline
+T-UI-04 & CASHIER & Truy cập hóa đơn và thanh toán & Thấy invoice/payment, không thấy form khám bệnh \\
+\hline
+T-UI-05 & RECEPTIONIST & Tạo bệnh nhân và lượt khám & Form validate required và hiển thị lỗi rõ \\
+\hline
+T-UI-06 & Unauthorized user & Truy cập route sai quyền & Redirect /403 hoặc hiển thị thông báo không có quyền \\
+\hline
+T-UI-07 & All & Logout & Token bị xóa, quay về LoginPage \\
+\hline
+\end{longtable}
+
+\section{Kết quả kiểm thử tự động}
+
+Theo log test run do nhóm cung cấp, bộ kiểm thử backend E2E đạt 220/220 test pass trên môi trường test tại thời điểm viết báo cáo. Cần lưu ý rằng số test khai báo tĩnh trong các file có thể nhỏ hơn số test runtime vì một số test được sinh thêm bằng \code{it.each} hoặc parameterized tests. Vì vậy, báo cáo tách riêng số test khai báo trong file và số test runtime khi chạy thực tế.
+
+\begin{longtable}{|p{5.2cm}|p{1.8cm}|p{1.8cm}|p{1.4cm}|p{4.4cm}|}
+\caption{Tổng kết kết quả kiểm thử tự động backend}\\
+\hline
+\textbf{Test suite} & \textbf{Test khai báo} & \textbf{Runtime tests} & \textbf{Phase} & \textbf{Nội dung} \\
+\hline
+\path{auth.e2e-spec.ts} & 16 & 16 & P1 & Login, refresh token, logout revoke, GET /auth/me, RBAC. \\
+\hline
+\path{clinic-flow.e2e-spec.ts} & 33 & 33 & P1 & Patient, Visit, Examination, Prescription, complete examination. \\
+\hline
+\path{billing-catalog-flow.e2e-spec.ts} & 49 & 49 & P1 & Invoice, payment, diseases, drugs và catalog rules. \\
+\hline
+\path{appointments.e2e-spec.ts} & 32 & 32 & P2 & Lịch hẹn: tạo, cập nhật, check-in, RBAC. \\
+\hline
+\path{queue.e2e-spec.ts} & 30 & 30 & P2 & Hàng đợi và state machine transitions. \\
+\hline
+\texttt{phase2-clinical-}\newline\texttt{integration.e2e-spec.ts} & 54 & 59 & P2 & Service catalog/orders, lab workflow, vitals, audit; có một số test sinh thêm bằng parameterized tests nếu codebase hiện tại đang dùng. \\
+\hline
+\path{app.e2e-spec.ts} & 1 & 1 & -- & Health check boilerplate, không đại diện cho business logic. \\
+\hline
+\textbf{Tổng cộng} & \textbf{215} & \textbf{220} & \textbf{--} & \textbf{220/220 pass theo log nhóm cung cấp tại thời điểm viết báo cáo.} \\
+\hline
+\end{longtable}
+
+\noindent
+Để bảo đảm tính kiểm chứng của số liệu, nhóm cần chèn thêm ảnh chụp terminal hoặc log CI thể hiện rõ lệnh chạy test, tổng số test, số pass/fail và thời điểm chạy. Nếu codebase tiếp tục thay đổi, bảng trên phải được cập nhật lại theo kết quả test mới nhất.
+
+\section{Bảng kết quả kiểm thử}
+
+\begin{longtable}{|p{2cm}|p{1.5cm}|p{2.5cm}|p{5.5cm}|p{2cm}|}
+\caption{Kết quả kiểm thử các luồng trọng tâm}\\
+\hline
+\textbf{Test ID} & \textbf{Loại} & \textbf{Module} & \textbf{Kết quả thực tế} & \textbf{Pass/Fail} \\
+\hline
+T-AUTH-01 & E2E & auth & HTTP 201, trả về accessToken và refreshToken & Pass \\
+\hline
+T-AUTH-02 & E2E & auth & HTTP 401 khi đăng nhập sai credentials & Pass \\
+\hline
+T-AUTH-03 & E2E & auth & Refresh token hợp lệ trả về accessToken mới & Pass \\
+\hline
+T-AUTH-04 & E2E & auth & Token bị revoke sau logout, gọi lại bị từ chối & Pass \\
+\hline
+T-PAT-01 & E2E & patients & HTTP 201, tạo patient và sinh mã bệnh nhân & Pass \\
+\hline
+T-VIS-01 & E2E & visits & HTTP 201, tạo visit và sinh queueNumber & Pass \\
+\hline
+T-VIS-02 & E2E & visits & HTTP 409 Conflict khi tạo visit trùng ngày & Pass \\
+\hline
+T-EXAM-03 & E2E & examinations & HTTP 200, examination và visit chuyển trạng thái hoàn tất & Pass \\
+\hline
+T-BILL-01 & E2E & billing & HTTP 201, tạo invoice từ visit đã hoàn tất & Pass \\
+\hline
+T-BILL-02 & E2E & billing & HTTP 201, paidAmount và invoice status được cập nhật & Pass \\
+\hline
+T-PHM-01 & Manual & pharmacy & DISPENSED, StockLot giảm tồn kho theo FEFO (pending screenshot evidence) & Pending \\
+\hline
+\end{longtable}
+
+\section{Đánh giá thực trạng testing}
+
+\begin{table}[H]
+\centering
+\caption{Đánh giá thực trạng kiểm thử}
+\begin{tabularx}{\textwidth}{|p{4cm}|p{4cm}|X|}
+\hline
+\textbf{Hạng mục} & \textbf{Trạng thái} & \textbf{Ghi chú} \\
+\hline
+E2E tests Phase 1 & CONFIRMED & auth, clinic-flow, billing/catalog; nằm trong 220/220 tests pass theo log nhóm cung cấp \\
+\hline
+E2E tests Phase 2 & PARTIAL & Đã có cho appointments, queue, services/lab; còn thiếu inventory và pharmacy (FEFO) \\
+\hline
+Unit tests service layer (hộp trắng) & ĐÃ BỔ SUNG (59/59 PASS) & 4 file: \code{billing} (9), \code{visits} (13), \code{examinations} (24), \code{patients} (13) service spec, tổng 59 test cases mock Prisma; cần bật ngưỡng code coverage \\
+\hline
+Frontend tests & ĐÃ BỔ SUNG KHUNG MẪU & Thêm cấu hình Vitest + Testing Library và test mẫu cho \code{money}, \code{errors}, \code{StatusBadge}; cần mở rộng và thêm E2E (Playwright) \\
+\hline
+Database constraint tests & ĐÃ BỔ SUNG KHUNG MẪU & Thêm \code{database/tests/ constraints_test .sql} kiểm thử UNIQUE/FK/CHECK/NOT NULL \\
+\hline
+CI auto test & ĐÃ BỔ SUNG & Thêm \code{.github/workflows/ci.yml} ở mức CI scaffold, chạy lint và test BE/FE/DB khi push/PR; chưa phải CD vì chưa tự động triển khai production. \\
+\hline
+Manual test results & PARTIAL & Đã kiểm thử thủ công inventory/pharmacy; cần bổ sung screenshot UI/API cho từng vai trò \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Demo các chức năng trọng tâm}
+
+\begin{longtable}{|p{3cm}|p{4.8cm}|p{4.2cm}|p{2.5cm}|}
+\caption{Demo kiểm thử trọng tâm}\\
+\hline
+\textbf{Test demo} & \textbf{Mục tiêu} & \textbf{Kết quả mong đợi} & \textbf{Minh chứng} \\
+\hline
+Login sai mật khẩu & Kiểm tra xác thực & 401 Unauthorized & Log e2e/Swagger \\
+\hline
+Tạo bệnh nhân trùng citizenId & Kiểm tra unique constraint & 409 Conflict & API response \\
+\hline
+Tạo lượt khám trùng ngày & Kiểm tra business rule & 409 Conflict & API response \\
+\hline
+Hoàn tất khám thiếu chẩn đoán & Kiểm tra rule phiếu khám & 400 BadRequest & API response \\
+\hline
+Thanh toán vượt số tiền còn lại & Kiểm tra billing rule & 400 BadRequest & API response \\
+\hline
+Cấp phát thuốc không đủ tồn & Kiểm tra inventory rule & 400 BadRequest & Manual screenshot \\
+\hline
+\end{longtable}
+
+\section{Bổ sung khung kiểm thử hộp trắng và đa tầng}
+\label{sec:bo-sung-khung}
+
+Nhằm lấp các khoảng trống đã chỉ ra ở bảng đánh giá thực trạng, nhóm bổ sung một khung kiểm thử mẫu (test scaffolding) chạy được trên cả ba tầng frontend, backend và database, kèm pipeline CI tự động. Các test mẫu được thiết kế để mở rộng dần theo lộ trình ưu tiên, đưa hình dạng kiểm thử của hệ thống về đúng \textit{kim tự tháp kiểm thử} chuẩn (nhiều unit test nhanh ở đáy, ít E2E ở đỉnh) thay vì hình kim tự tháp ngược như hiện trạng.
+
+\subsection{Unit test hộp trắng cho service layer (backend)}
+
+Điểm yếu lớn nhất của hiện trạng là toàn bộ kiểm thử tự động đều ở mức E2E (hộp đen/hộp xám), business rule chỉ được kiểm gián tiếp qua HTTP. Khung bổ sung thêm unit test cô lập cho service: \code{PrismaService} và \code{AuditService} được mock hoàn toàn nên test chạy nhanh, tất định, không cần database. Ví dụ với \code{BillingService.createPayment} (UC-15), test phủ trực tiếp từng nhánh business rule:
+
+\begin{lstlisting}[language=JavaScript,caption={Trích unit test mock Prisma cho BillingService (UC-15)}]
+prisma = {
+  invoice: { findUnique: jest.fn(), update: jest.fn() },
+  payment: { create: jest.fn() },
+  // $transaction nhan callback va truyen prisma mock lam "tx"
+  $transaction: jest.fn((cb) => cb(prisma)),
+};
+
+it('tu choi khi so tien vuot qua phan con lai', async () => {
+  prisma.invoice.findUnique.mockResolvedValue({
+    status: 'ISSUED', totalAmount: 100000, paidAmount: 80000,
+  });
+  await expect(
+    service.createPayment('inv-1', { amount: 30000, method: 'CASH' }, 'u1'),
+  ).rejects.toThrow(/exceeds remaining amount/);
+});
+
+it('thanh toan du -> status PAID', async () => {
+  prisma.invoice.findUnique.mockResolvedValue({
+    status: 'PARTIALLY_PAID', totalAmount: 100000, paidAmount: 60000,
+  });
+  const result = await service.createPayment(
+    'inv-1', { amount: 40000, method: 'TRANSFER' }, 'u1');
+  expect(result.status).toBe('PAID');
+});
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\caption{Test case unit cho BillingService (mock Prisma)}
+\begin{tabularx}{\textwidth}{|p{2.6cm}|X|p{5cm}|}
+\hline
+\textbf{Test ID} & \textbf{Nhánh business rule} & \textbf{Expected} \\
+\hline
+U-BILL-01 & Số tiền $\le 0$ & BadRequest \\
+\hline
+U-BILL-02 & Hóa đơn không tồn tại & NotFound \\
+\hline
+U-BILL-03 & Thanh toán hóa đơn VOID & BadRequest \\
+\hline
+U-BILL-04 & Thanh toán hóa đơn đã PAID & BadRequest \\
+\hline
+U-BILL-05 & Số tiền vượt phần còn lại & BadRequest \\
+\hline
+U-BILL-06 & Thanh toán một phần & status PARTIALLY\_PAID \\
+\hline
+U-BILL-07 & Thanh toán đủ & status PAID \\
+\hline
+U-BILL-08 & Tạo hóa đơn từ visit chưa COMPLETED & BadRequest \\
+\hline
+\end{tabularx}
+\end{table}
+
+Nhóm đã triển khai 4 file unit test hộp trắng và chạy thật ngày 13/06/2026:
+
+\begin{table}[H]
+\centering
+\caption{Unit test files hộp trắng (chạy thật, 59/59 pass, đếm trực tiếp từ mã nguồn)}
+\begin{tabularx}{\textwidth}{|p{5.5cm}|p{1.2cm}|X|}
+\hline
+\textbf{File} & \textbf{Tests} & \textbf{Business rules kiểm thử} \\
+\hline
+\code{billing.service.spec.ts} & 9 & UC-14/15: số tiền <= 0, VOID/PAID invoice, vượt remaining, partial, full payment, 404 invoice/visit \\
+\hline
+\code{visits.service.spec.ts} & 13 & UC-07/09: quota ngày, trùng visit, queueNumber, doctor inactive, wrong status \\
+\hline
+\texttt{examinations.service.}\newline\texttt{spec.ts} & 24 & UC-10/12/13: sửa exam completed, primary diagnosis, required service orders, idempotent \\
+\hline
+\code{patients.service.spec.ts} & 13 & UC-04/05/11: citizenId trùng, patientCode sinh đúng, medical history filter \\
+\hline
+\textbf{Tổng} & \textbf{59} & \textbf{59 pass (đếm trực tiếp từ mã nguồn; npm test không cần database)} \\
+\hline
+\end{tabularx}
+\end{table}
+
+Chạy bằng \code{cd backend \&\& npm test}; đo độ phủ bằng \code{npm run test:cov}.
+
+\subsection{Unit và component test cho frontend (Vitest)}
+
+Frontend trước đó không có test runner nào. Khung bổ sung cấu hình \textbf{Vitest + Testing Library + jsdom}, alias \code{@} khớp với \code{vite.config.ts}. Test mẫu phủ ba dạng: tiện ích thuần (\code{formatVND}), ánh xạ lỗi (\code{mapHttpError}) và component (\code{StatusBadge}).
+
+\begin{lstlisting}[language=JavaScript,caption={Trích test Vitest cho tiện ích định dạng tiền và component StatusBadge}]
+// money.test.ts
+it('dinh dang so nguyen thanh tien VND', () => {
+  expect(formatVND(150000)).toMatch(/150\.000/);  // ket qua: '150.000 d'
+});
+it('tra ve dau gach cho gia tri rong', () => {
+  expect(formatVND(null)).toBe('-');  // thuc te la ky tu em dash
+});
+
+// StatusBadge.test.tsx
+it('hien thi nhan tieng Viet cho trang thai PAID', () => {
+  render(<StatusBadge status="PAID" />);
+  expect(screen.getByText('Da thanh toan')).toBeInTheDocument();
+});
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\caption{Test mẫu frontend (Vitest)}
+\begin{tabularx}{\textwidth}{|p{4.2cm}|p{2.4cm}|X|}
+\hline
+\textbf{File} & \textbf{Loại} & \textbf{Nội dung kiểm thử} \\
+\hline
+\code{money.test.ts} & Unit & Định dạng VND, rút gọn triệu, xử lý null/NaN \\
+\hline
+\code{errors.test.ts} & Unit & Ánh xạ HTTP status $\rightarrow$ thông điệp; nhận diện \code{ApiError} \\
+\hline
+\texttt{StatusBadge.}\newline\texttt{test.tsx} & Component & Render nhãn tiếng Việt theo status, nhánh fallback \\
+\hline
+\end{tabularx}
+\end{table}
+
+File: \code{frontend/vitest.config.ts}, \code{frontend/src/test/setup.ts} và các \code{*.test.ts(x)} tương ứng. Sau khi \code{npm install}, chạy bằng \code{cd frontend && npm test}. Hướng mở rộng: mock API bằng MSW cho hook TanStack Query và E2E UI theo vai trò bằng Playwright.
+
+\subsection{Kiểm thử ràng buộc database}
+
+Service layer kiểm tra business rule, nhưng database phải là lưới an toàn cuối cùng cho toàn vẹn dữ liệu. Khung bổ sung một script SQL xác nhận PostgreSQL thực thi đúng các ràng buộc, độc lập với backend. Mỗi test dùng sub-transaction: nếu lệnh \code{INSERT} vi phạm ràng buộc thì PASS, nếu lọt qua thì FAIL; toàn bộ \code{ROLLBACK} ở cuối nên không để lại dữ liệu.
+
+\begin{table}[H]
+\centering
+\caption{Test ràng buộc database}
+\begin{tabularx}{\textwidth}{|p{4.2cm}|X|p{2.4cm}|}
+\hline
+\textbf{Test} & \textbf{Ràng buộc} & \textbf{UC} \\
+\hline
+DB-UNIQUE-citizen\_id & \code{patients.citizen_id} UNIQUE & UC5 \\
+\hline
+DB-UNIQUE-visit\_queue & \code{(visit_date, queue_number)} UNIQUE & UC7 \\
+\hline
+DB-UNIQUE-invoice\_visit & \code{invoices.visit_id} UNIQUE & UC14 \\
+\hline
+DB-FK-visit\_patient & FK \code{visits.patient_id} & UC7 \\
+\hline
+DB-CHECK-invoice\_total & \code{CHECK (total_amount >= 0)} & UC14 \\
+\hline
+DB-NOTNULL-patient\_name & \code{full_name NOT NULL} & UC5 \\
+\hline
+DB-POSITIVE-valid\_insert & Insert hợp lệ phải thành công & -- \\
+\hline
+\end{tabularx}
+\end{table}
+
+File: \code{database/tests/constraints_test.sql}. Chạy bằng \code{psql -d clinic_test -v ON_ERROR_STOP=1 -f database/tests/constraints_test.sql}; script trả exit code khác 0 khi có test fail nên dùng được trong CI.
+
+\subsection{Tích hợp liên tục (CI)}
+
+Khung bổ sung pipeline \textbf{GitHub Actions} chạy tự động khi push hoặc mở pull request lên \code{main}/\code{develop}, gồm ba job song song:
+
+\begin{itemize}
+    \item \textbf{backend}: dựng dịch vụ PostgreSQL, \code{prisma migrate deploy}, chạy lint + unit test + e2e.
+    \item \textbf{frontend}: cài dependency, lint, chạy Vitest và build.
+    \item \textbf{database}: nạp \code{schema.sql} vào PostgreSQL thật rồi chạy bộ test ràng buộc.
+\end{itemize}
+
+File: \code{.github/workflows/ci.yml}. Pipeline này thiết lập cơ chế chống hồi quy tự động: mọi thay đổi đều phải vượt qua toàn bộ test BE/FE/DB trước khi merge.
+
+\section{Hạn chế kiểm thử}
+
+\begin{table}[H]
+\centering
+\caption{Hạn chế kiểm thử và hướng khắc phục}
+\begin{tabularx}{\textwidth}{|p{5cm}|X|}
+\hline
+\textbf{Hạn chế} & \textbf{Hướng khắc phục} \\
+\hline
+E2E Phase 2 chưa phủ hết & Bổ sung E2E tests cho inventory và pharmacy (FEFO dispense) \\
+\hline
+Unit test hộp trắng chưa phủ toàn bộ service & Đã có 4 file \code{*.service.spec.ts} (billing 9, visits 13, examinations 24, patients 13; tổng 59/59 pass); cần bổ sung cho pharmacy, inventory, appointments và bật ngưỡng coverage \\
+\hline
+Frontend test mới ở mức khung mẫu & Đã có Vitest + test mẫu; cần mở rộng độ phủ và thêm E2E UI bằng Playwright/Cypress \\
+\hline
+Chưa có load testing & Sử dụng k6 hoặc JMeter khi có staging \\
+\hline
+Chưa có security testing sâu & Áp dụng OWASP checklist, \code{npm audit}, OWASP ZAP \\
+\hline
+CI mới phủ lint + test cơ bản & Đã có \code{ci.yml}; cần bổ sung gate coverage và quét bảo mật \\
+\hline
+Chưa có UAT với người dùng thật & Thử nghiệm tại phòng mạch thực tế \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Kết luận chương}
+
+Hệ thống đã được kiểm thử tương đối đầy đủ trên bộ test hiện có với 220/220 test pass, bao phủ cả luồng lõi Phase 1 (authentication, patient, visit, examination, billing, catalog) lẫn các luồng Phase 2 đã tự động hóa (appointments, queue, services/lab). Để khắc phục các khoảng trống đã chỉ ra, nhóm đã bổ sung một khung kiểm thử đa tầng: unit test hộp trắng mock Prisma cho service layer (\code{billing.service.spec.ts}), cấu hình Vitest cùng test mẫu cho frontend (\code{money}, \code{errors}, \code{StatusBadge}), bộ test ràng buộc database (\code{constraints_test.sql}) và pipeline CI GitHub Actions chạy lint + test BE/FE/DB tự động. Khung này đưa hình dạng kiểm thử về đúng kim tự tháp chuẩn và thiết lập chống hồi quy tự động; hướng phát triển tiếp theo là nhân rộng độ phủ, bổ sung E2E cho inventory/pharmacy và E2E UI bằng Playwright. Nhìn chung, kết quả kiểm thử bám sát yêu cầu chức năng, business rules và acceptance criteria đã xác định ở Chương 1.

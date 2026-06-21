@@ -1,0 +1,41 @@
+stateDiagram-v2
+    state "Visit Status" as VS {
+        [*] --> WAITING: create visit
+        WAITING --> IN_EXAM: doctor opens examination
+        IN_EXAM --> DONE: complete examination
+        WAITING --> CANCELLED: cancel visit
+        IN_EXAM --> CANCELLED: administrative cancel
+        DONE --> [*]
+        CANCELLED --> [*]
+    }
+
+    state "Examination Status" as ES {
+        [*] --> IN_PROGRESS: open examination
+        IN_PROGRESS --> DONE: complete
+        IN_PROGRESS --> CANCELLED: cancel
+        DONE --> [*]
+        CANCELLED --> [*]
+    }
+
+    state "Invoice Status" as IS {
+        [*] --> UNPAID: create invoice
+        UNPAID --> PARTIAL: first partial payment
+        PARTIAL --> PARTIAL: additional partial payment
+        UNPAID --> PAID: full payment
+        PARTIAL --> PAID: remaining paid
+        UNPAID --> CANCELLED: void invoice
+        PARTIAL --> CANCELLED: void invoice
+        PAID --> [*]
+        CANCELLED --> [*]
+    }
+
+    state "Queue Status - Phase 2" as QS {
+        [*] --> Q_WAITING: check-in / create ticket
+        Q_WAITING --> CALLED: call patient
+        CALLED --> IN_SERVICE: start service
+        IN_SERVICE --> Q_DONE: finish
+        Q_WAITING --> Q_CANCELLED: cancel ticket
+        CALLED --> Q_CANCELLED: cancel ticket
+        Q_DONE --> [*]
+        Q_CANCELLED --> [*]
+    }

@@ -1,0 +1,119 @@
+flowchart TB
+    FE["Frontend SPA<br/>React"]
+
+    subgraph API["API Layer"]
+        Controllers["REST Controllers<br/>@Controller<br/>@Get / @Post / @Patch"]
+        DTO["DTO Validation<br/>class-validator<br/>class-transformer"]
+        Swagger["Swagger Decorators<br/>OpenAPI Docs"]
+    end
+
+    subgraph Cross["Cross-cutting Modules"]
+        Auth["Auth Module<br/>Login / refresh / logout"]
+        JwtGuard["JWT Guard"]
+        RolesGuard["Roles Guard<br/>RBAC"]
+        Filters["Common Filters<br/>Exception handling"]
+    end
+
+    subgraph P1["Phase 1 Core Modules"]
+        Users["Users"]
+        RBAC["RBAC"]
+        Patients["Patients"]
+        Visits["Visits"]
+        Exams["Examinations"]
+        Prescriptions["Prescriptions<br/>service-only"]
+        Diseases["Diseases"]
+        Drugs["Drugs"]
+        Billing["Billing"]
+        Regulations["Regulations"]
+        Reports["Reports"]
+    end
+
+    subgraph P2["Phase 2 Extension Modules"]
+        Appointments["Appointments"]
+        Queue["Queue"]
+        Vitals["Vitals"]
+        Services["Services"]
+        Lab["Lab"]
+        Inventory["Inventory"]
+        Pharmacy["Pharmacy"]
+        Organization["Organization"]
+        Audit["Audit"]
+    end
+
+    Prisma["PrismaService"]
+    DB[("PostgreSQL")]
+
+    FE --> Controllers
+    Controllers --> DTO
+    Controllers --> Auth
+    Controllers --> Patients
+    Controllers --> Visits
+    Controllers --> Exams
+    Controllers --> Billing
+    Controllers --> Appointments
+    Controllers --> Queue
+    Controllers --> Lab
+    Controllers --> Inventory
+    Controllers --> Pharmacy
+
+    JwtGuard -.-> Controllers
+    RolesGuard -.-> Controllers
+    Filters -.-> Controllers
+
+    Auth --> Users
+    Users --> RBAC
+    Visits --> Patients
+    Visits --> Regulations
+    Exams --> Visits
+    Exams --> Diseases
+    Exams --> Prescriptions
+    Prescriptions --> Drugs
+    Billing --> Visits
+    Billing --> Exams
+    Billing --> Prescriptions
+    Reports --> Billing
+    Reports --> Visits
+
+    Appointments --> Patients
+    Appointments --> Users
+    Queue --> Visits
+    Vitals --> Visits
+    Services --> Visits
+    Services --> Exams
+    Lab --> Services
+    Inventory --> Drugs
+    Pharmacy --> Prescriptions
+    Pharmacy --> Inventory
+    Audit -.-> Controllers
+
+    Auth --> Prisma
+    Users --> Prisma
+    Patients --> Prisma
+    Visits --> Prisma
+    Exams --> Prisma
+    Prescriptions --> Prisma
+    Billing --> Prisma
+    Reports --> Prisma
+    Appointments --> Prisma
+    Queue --> Prisma
+    Vitals --> Prisma
+    Services --> Prisma
+    Lab --> Prisma
+    Inventory --> Prisma
+    Pharmacy --> Prisma
+    Organization --> Prisma
+    Audit --> Prisma
+
+    Prisma --> DB
+
+    classDef api fill:#E0F2FE,stroke:#0369A1,color:#111827;
+    classDef cross fill:#F1F5F9,stroke:#475569,color:#111827;
+    classDef p1 fill:#DBEAFE,stroke:#1D4ED8,color:#111827;
+    classDef p2 fill:#FFF7ED,stroke:#EA580C,color:#111827;
+    classDef data fill:#F3E8FF,stroke:#7E22CE,color:#111827;
+
+    class Controllers,DTO,Swagger api;
+    class Auth,JwtGuard,RolesGuard,Filters cross;
+    class Users,RBAC,Patients,Visits,Exams,Prescriptions,Diseases,Drugs,Billing,Regulations,Reports p1;
+    class Appointments,Queue,Vitals,Services,Lab,Inventory,Pharmacy,Organization,Audit p2;
+    class Prisma,DB data;

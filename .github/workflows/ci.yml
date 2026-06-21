@@ -1,0 +1,104 @@
+name: CI
+
+# Tự động chạy lint + test cho backend, frontend và kiểm thử ràng buộc database
+# mỗi khi push hoặc mở pull request lên main/develop.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # -------------------------------------------------------------------
+  # Backend: lint + unit test + e2e (cần PostgreSQL)
+  # -------------------------------------------------------------------
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: clinic
+          POSTGRES_PASSWORD: clinic
+          POSTGRES_DB: clinic_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://clinic:clinic@localhost:5432/clinic_test?schema=public
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests (white-box, mock Prisma)
+        run: npm test
+      - name: E2E tests
+        run: npm run test:e2e
+
+  # -------------------------------------------------------------------
+  # Frontend: lint + build + Vitest
+  # -------------------------------------------------------------------
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Unit/component tests (Vitest)
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  # -------------------------------------------------------------------
+  # Database: kiểm thử ràng buộc trên PostgreSQL thật
+  # -------------------------------------------------------------------
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: clinic
+          POSTGRES_PASSWORD: clinic
+          POSTGRES_DB: clinic_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: clinic
+    steps:
+      - uses: actions/checkout@v4
+      - name: Load schema
+        run: psql -h localhost -U clinic -d clinic_test -f database/schema.sql
+      - name: Run constraint tests
+        run: psql -h localhost -U clinic -d clinic_test -v ON_ERROR_STOP=1 -f database/tests/constraints_test.sql

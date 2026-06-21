@@ -1,0 +1,90 @@
+sequenceDiagram
+    autonumber
+    actor Doctor
+    participant FE as Frontend Examination Page
+    participant EC as ExaminationsController
+    participant ES as ExaminationsService
+    participant PS as PrescriptionsService
+    participant DB as PostgreSQL
+
+    rect rgb(224, 242, 254)
+    Note over Doctor,DB: Open examination
+    Doctor->>FE: Select waiting visit
+    FE->>EC: POST /visits/{id}/open-examination
+    EC->>ES: openExamination(visitId, doctorId)
+    ES->>DB: SELECT Visit by id
+    DB-->>ES: Visit
+
+    alt Invalid visit status
+        ES-->>EC: BadRequestException
+        EC-->>FE: 400 Bad Request
+    else Valid visit
+        ES->>DB: INSERT Examination status = IN_PROGRESS
+        ES->>DB: UPDATE Visit status = IN_EXAM
+        DB-->>ES: Examination
+        ES-->>EC: ExaminationDTO
+        EC-->>FE: 201 Created
+        FE-->>Doctor: Show examination form
+    end
+    end
+
+    rect rgb(220, 252, 231)
+    Note over Doctor,DB: Save diagnosis
+    Doctor->>FE: Enter symptoms, diagnosis, disease, fee
+    FE->>EC: PATCH /examinations/{id}
+    EC->>ES: updateExamination(id, dto)
+    ES->>DB: SELECT Examination
+    DB-->>ES: Examination
+
+    alt Examination completed
+        ES-->>EC: BadRequestException
+        EC-->>FE: 400 Cannot update completed exam
+    else Editable
+        ES->>DB: UPDATE Examination diagnosis + disease + fee
+        DB-->>ES: updated
+        ES-->>EC: updated DTO
+        EC-->>FE: 200 OK
+    end
+    end
+
+    rect rgb(255, 247, 237)
+    Note over Doctor,DB: Save prescription
+    Doctor->>FE: Add prescription items
+    FE->>EC: PATCH /examinations/{id} with prescription items
+    EC->>ES: update with prescription
+    ES->>PS: upsertPrescription(examId, items)
+    PS->>DB: Validate active drugs
+    DB-->>PS: Drug records
+
+    alt No prescription item
+        PS-->>ES: BadRequestException
+        ES-->>EC: 400
+        EC-->>FE: 400 Prescription must have items
+    else Valid prescription
+        PS->>DB: Transaction: upsert Prescription and replace Items
+        DB-->>PS: saved prescription
+        PS-->>ES: PrescriptionDTO
+        ES-->>EC: updated exam + prescription
+        EC-->>FE: 200 OK
+    end
+    end
+
+    rect rgb(243, 232, 255)
+    Note over Doctor,DB: Complete examination
+    Doctor->>FE: Click Complete
+    FE->>EC: POST /examinations/{id}/complete
+    EC->>ES: completeExamination(id)
+    ES->>DB: Validate exam + required data
+
+    alt Pending required lab/service exists
+        ES-->>EC: BadRequestException
+        EC-->>FE: 400 Pending required orders
+    else Valid completion
+        ES->>DB: UPDATE Examination status = DONE
+        ES->>DB: UPDATE Visit status = DONE
+        DB-->>ES: committed
+        ES-->>EC: completed DTO
+        EC-->>FE: 200 OK
+        FE-->>Doctor: Show completed status
+    end
+    end

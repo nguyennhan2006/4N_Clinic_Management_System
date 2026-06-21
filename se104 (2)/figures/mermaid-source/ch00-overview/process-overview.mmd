@@ -1,0 +1,23 @@
+flowchart LR
+    A["1. Khảo sát<br/>Khách hàng giả định<br/>Nghiệp vụ phòng mạch"] --> B["2. Xác định & đặc tả yêu cầu<br/>REQ / UC / BR<br/>Acceptance Criteria"]
+    B --> C["3. Thiết kế hệ thống<br/>System Context<br/>Container<br/>Backend Component"]
+    C --> D["4. Thiết kế phần mềm<br/>Thiết kế dữ liệu<br/>Thiết kế xử lý<br/>Thiết kế giao diện"]
+    D --> E["5. Hiện thực<br/>NestJS Backend<br/>React Frontend<br/>PostgreSQL + Prisma"]
+    E --> F["6. Kiểm thử<br/>API Test<br/>E2E Test<br/>Manual UI Test"]
+    F --> G["7. Triển khai & vận hành<br/>Local Development<br/>Migration + Seed<br/>Swagger / Prisma Studio"]
+
+    C --> C1["Kiến trúc hệ thống / phần mềm"]
+    C --> C2["Mô hình dữ liệu"]
+    C --> C3["Mô hình xử lý"]
+    D --> D1["UI/UX"]
+    D --> D2["Wireframe"]
+    D --> D3["User Flow"]
+    E --> E1["Tổ chức mã nguồn"]
+    E --> E2["Quy ước viết code"]
+    E --> E3["Quản lý phiên bản Git"]
+
+    classDef main fill:#E0F2FE,stroke:#0369A1,stroke-width:1.5px,color:#111827;
+    classDef sub fill:#F8FAFC,stroke:#64748B,stroke-width:1px,color:#111827;
+
+    class A,B,C,D,E,F,G main;
+    class C1,C2,C3,D1,D2,D3,E1,E2,E3 sub;

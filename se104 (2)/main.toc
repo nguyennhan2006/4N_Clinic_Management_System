@@ -1,0 +1,112 @@
+\babel@toc {vietnamese}{}\relax 
+\contentsline {chapter}{Lời cảm ơn}{i}{chapter*.1}%
+\contentsline {chapter}{Mở đầu}{1}{chapter*.5}%
+\contentsline {chapter}{\numberline {1}Đặc tả yêu cầu phần mềm}{6}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Mục tiêu của chương}{6}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Bối cảnh và vấn đề của khách hàng}{6}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Khảo sát khách hàng giả định}{7}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Phạm vi hệ thống}{7}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Trong phạm vi}{7}{subsection.1.4.1}%
+\contentsline {subsection}{\numberline {1.4.2}Ngoài phạm vi}{8}{subsection.1.4.2}%
+\contentsline {section}{\numberline {1.5}Yêu cầu chức năng}{8}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Yêu cầu phi chức năng}{10}{section.1.6}%
+\contentsline {section}{\numberline {1.7}Danh sách use case theo actor}{10}{section.1.7}%
+\contentsline {section}{\numberline {1.8}Acceptance criteria chọn lọc}{13}{section.1.8}%
+\contentsline {section}{\numberline {1.9}Ma trận truy vết yêu cầu rút gọn}{14}{section.1.9}%
+\contentsline {section}{\numberline {1.10}Demo các chức năng trọng tâm}{15}{section.1.10}%
+\contentsline {chapter}{\numberline {2}Thiết kế hệ thống}{17}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Mục tiêu thiết kế hệ thống}{17}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Nguyên tắc và giả định thiết kế}{17}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Kiến trúc tổng thể}{19}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Tech stack}{20}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Các quyết định kiến trúc chính}{21}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Kiến trúc backend: Modular Monolith}{22}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Kiến trúc layered architecture}{23}{section.2.7}%
+\contentsline {section}{\numberline {2.8}Kiến trúc frontend}{25}{section.2.8}%
+\contentsline {section}{\numberline {2.9}Thiết kế API và giao tiếp giữa các thành phần}{26}{section.2.9}%
+\contentsline {section}{\numberline {2.10}Xác thực và phân quyền}{27}{section.2.10}%
+\contentsline {section}{\numberline {2.11}Xử lý lỗi và bảo vệ API}{29}{section.2.11}%
+\contentsline {section}{\numberline {2.12}Lý do không chọn microservices}{29}{section.2.12}%
+\contentsline {section}{\numberline {2.13}Góc nhìn triển khai local}{30}{section.2.13}%
+\contentsline {section}{\numberline {2.14}Demo các chức năng trọng tâm}{31}{section.2.14}%
+\contentsline {chapter}{\numberline {3}Thiết kế phần mềm}{33}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Tổng quan thiết kế phần mềm}{33}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Nguyên tắc thiết kế phần mềm}{33}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Cách đọc ERD và phạm vi sơ đồ}{34}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Quan hệ và multiplicity giữa các entity lõi}{35}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}Thiết kế dữ liệu}{36}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Mục tiêu thiết kế dữ liệu}{36}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}ERD tổng thể và cách tách sơ đồ}{37}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Các nhóm model chính}{38}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.4}Enum và state machine}{39}{subsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.3.5}Ràng buộc dữ liệu quan trọng}{40}{subsection.3.3.5}%
+\contentsline {subsection}{\numberline {3.3.6}Quyết định thiết kế dữ liệu}{41}{subsection.3.3.6}%
+\contentsline {section}{\numberline {3.4}Thiết kế lớp và module nghiệp vụ}{42}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Nhóm entity nghiệp vụ}{42}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Nhóm service điều phối nghiệp vụ}{43}{subsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.4.3}Mối liên hệ giữa entity và service}{44}{subsection.3.4.3}%
+\contentsline {subsection}{\numberline {3.4.4}Đánh giá thiết kế lớp và module}{45}{subsection.3.4.4}%
+\contentsline {section}{\numberline {3.5}Thiết kế xử lý}{46}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Nguyên tắc thiết kế xử lý}{46}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}API inventory tổng quan}{46}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}Ma trận phân quyền RBAC}{46}{subsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.5.4}Danh sách endpoint Phase 1 tiêu biểu}{47}{subsection.3.5.4}%
+\contentsline {subsection}{\numberline {3.5.5}DTO và response shape tiêu biểu}{48}{subsection.3.5.5}%
+\contentsline {subsection}{\numberline {3.5.6}Business rules trọng tâm}{48}{subsection.3.5.6}%
+\contentsline {subsection}{\numberline {3.5.7}Các luồng xử lý chính}{49}{subsection.3.5.7}%
+\contentsline {section}{\numberline {3.6}Thiết kế giao diện}{53}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Nguyên tắc thiết kế giao diện}{53}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Danh sách màn hình chính}{53}{subsection.3.6.2}%
+\contentsline {subsection}{\numberline {3.6.3}RBAC trên giao diện}{53}{subsection.3.6.3}%
+\contentsline {section}{\numberline {3.7}Demo các chức năng trọng tâm}{54}{section.3.7}%
+\contentsline {chapter}{\numberline {4}Hiện thực}{56}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Mục tiêu của chương}{56}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Phương pháp hiện thực}{56}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Cơ sở kiểm chứng codebase}{56}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Quy trình hiện thực theo use case}{57}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Cấu trúc mã nguồn tổng quan}{58}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Hiện thực backend}{59}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Hiện thực frontend}{60}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Hiện thực cơ sở dữ liệu}{61}{section.4.8}%
+\contentsline {section}{\numberline {4.9}Hiện thực API}{61}{section.4.9}%
+\contentsline {section}{\numberline {4.10}Hiện thực business rules tiêu biểu}{61}{section.4.10}%
+\contentsline {subsection}{\numberline {4.10.1}Ví dụ hiện thực business rule bằng transaction}{62}{subsection.4.10.1}%
+\contentsline {section}{\numberline {4.11}Quản lý mã nguồn và quy trình nhóm}{63}{section.4.11}%
+\contentsline {section}{\numberline {4.12}Demo các chức năng trọng tâm}{64}{section.4.12}%
+\contentsline {section}{\numberline {4.13}Kết luận chương}{65}{section.4.13}%
+\contentsline {chapter}{\numberline {5}Kiểm thử phần mềm}{66}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Mục tiêu kiểm thử}{66}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Chiến lược kiểm thử}{66}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Bằng chứng test hiện có}{69}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Kế hoạch kiểm thử Phase 1}{70}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Auth Module}{70}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Clinic Flow}{70}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Billing và Catalog}{71}{subsection.5.4.3}%
+\contentsline {section}{\numberline {5.5}Kế hoạch kiểm thử Phase 2}{71}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Kiểm thử giao diện}{72}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Kết quả kiểm thử tự động}{73}{section.5.7}%
+\contentsline {section}{\numberline {5.8}Bảng kết quả kiểm thử}{74}{section.5.8}%
+\contentsline {section}{\numberline {5.9}Đánh giá thực trạng testing}{76}{section.5.9}%
+\contentsline {section}{\numberline {5.10}Demo các chức năng trọng tâm}{76}{section.5.10}%
+\contentsline {section}{\numberline {5.11}Bổ sung khung kiểm thử hộp trắng và đa tầng}{77}{section.5.11}%
+\contentsline {subsection}{\numberline {5.11.1}Unit test hộp trắng cho service layer (backend)}{77}{subsection.5.11.1}%
+\contentsline {subsection}{\numberline {5.11.2}Unit và component test cho frontend (Vitest)}{79}{subsection.5.11.2}%
+\contentsline {subsection}{\numberline {5.11.3}Kiểm thử ràng buộc database}{80}{subsection.5.11.3}%
+\contentsline {subsection}{\numberline {5.11.4}Tích hợp liên tục (CI)}{81}{subsection.5.11.4}%
+\contentsline {section}{\numberline {5.12}Hạn chế kiểm thử}{81}{section.5.12}%
+\contentsline {section}{\numberline {5.13}Kết luận chương}{82}{section.5.13}%
+\contentsline {chapter}{\numberline {6}Triển khai và vận hành}{83}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Mục tiêu của chương}{83}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Phạm vi triển khai}{83}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Yêu cầu môi trường}{84}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Biến môi trường backend}{84}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Cài đặt và chạy backend}{85}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Cài đặt và chạy frontend}{85}{section.6.6}%
+\contentsline {section}{\numberline {6.7}Tài khoản demo}{85}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Quản lý database}{86}{section.6.8}%
+\contentsline {section}{\numberline {6.9}Lệnh kiểm tra chất lượng code}{86}{section.6.9}%
+\contentsline {section}{\numberline {6.10}Troubleshooting khi triển khai local}{87}{section.6.10}%
+\contentsline {section}{\numberline {6.11}Ghi chú vận hành production trong tương lai}{87}{section.6.11}%
+\contentsline {section}{\numberline {6.12}Demo các chức năng trọng tâm}{88}{section.6.12}%
+\contentsline {chapter}{Kết luận}{89}{chapter*.52}%
+\contentsline {chapter}{Tài liệu tham khảo}{94}{section*.57}%
